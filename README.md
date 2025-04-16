@@ -1,6 +1,6 @@
 # NetVelocimeter
 
-A Python library for measuring network performance metrics like bandwidth, latency, and ping times across multiple service providers.
+A Python library for measuring network performance metrics like bandwidth, latency, and jitter across multiple service providers.
 
 ## Installation
 
@@ -8,29 +8,88 @@ A Python library for measuring network performance metrics like bandwidth, laten
 pip install netvelocimeter
 ```
 
-## Usage
+## Features
+
+<img src="netvelocimeter/assets/icons/netvelocimeter-128.png" alt="NetVelocimeter" width="128" height="128" style="float: right"/>
+
+- Measure download speed, upload speed, latency, and jitter
+- Support for multiple network speed test providers
+- Server selection capabilities (auto or manual)
+- Proper handling of legal requirements (EULA, terms, privacy policy)
+- Type-safe time duration handling with `timedelta`
+
+## Basic Usage
 
 ```python
 from netvelocimeter import NetVelocimeter
 
-# Use the default Ookla provider
-nv = NetVelocimeter()
+# Use the default Ookla provider with legal agreements acceptance
+nv = NetVelocimeter(
+    provider="ookla",
+    accept_eula=True,
+    accept_terms=True,
+    accept_privacy=True
+)
 
 # Run a complete measurement
 result = nv.measure()
 print(f"Download: {result.download_speed:.2f} Mbps")
 print(f"Upload: {result.upload_speed:.2f} Mbps")
-print(f"Latency: {result.latency:.2f} ms")
-
-# Or measure individual components
-download_speed = nv.measure_download()
-upload_speed = nv.measure_upload()
-latency = nv.measure_latency()
+print(f"Latency: {result.latency.total_seconds() * 1000:.2f} ms")
+print(f"Jitter: {result.jitter.total_seconds() * 1000:.2f} ms")
 ```
 
-## Supported Providers
+## Working with Legal Requirements
 
-- **Ookla/Speedtest.net**: Uses the official Ookla CLI tool
+Some providers require acceptance of legal agreements:
+
+```python
+# Get legal requirements information
+nv = NetVelocimeter(provider="ookla")
+legal = nv.get_legal_requirements()
+
+print(f"EULA URL: {legal.eula_url}")
+print(f"Terms URL: {legal.terms_url}")
+print(f"Privacy URL: {legal.privacy_url}")
+
+# Check if legal requirements are met
+if not nv.check_legal_requirements():
+    print("Legal requirements must be accepted before running tests")
+```
+
+## Server Selection
+
+List and select specific test servers:
+
+```python
+# List available servers
+nv = NetVelocimeter(
+    provider="ookla",
+    accept_eula=True,
+    accept_terms=True,
+    accept_privacy=True
+)
+
+servers = nv.get_servers()
+for server in servers:
+    print(f"Server {server.id}: {server.name} in {server.location} ({server.distance} km)")
+
+# Run test with a specific server
+result = nv.measure(server_id=12345)  # By server ID
+# OR
+result = nv.measure(server_host="speedtest.example.com")  # By hostname
+```
+
+## Provider Information
+
+Get information about the provider:
+
+```python
+# Get provider version
+nv = NetVelocimeter()
+version = nv.get_provider_version()
+print(f"Provider version: {version}")
+```
 
 ## Custom Binary Directory
 
@@ -40,6 +99,168 @@ By default, NetVelocimeter stores provider binaries in `~/.netvelocimeter/bin/`.
 nv = NetVelocimeter(binary_dir="/path/to/custom/directory")
 ```
 
+## Supported Providers
+
+- **Ookla/Speedtest.net**: Uses the official Ookla CLI tool
+
+## Example with Error Handling
+
+```python
+from netvelocimeter import NetVelocimeter
+from netvelocimeter.exceptions import LegalAcceptanceError
+from datetime import timedelta
+
+try:
+    nv = NetVelocimeter(
+        provider="ookla",
+        accept_eula=True,
+        accept_terms=True,
+        accept_privacy=True
+    )
+
+    result = nv.measure()
+
+    print(f"Download: {result.download_speed:.2f} Mbps")
+    print(f"Upload: {result.upload_speed:.2f} Mbps")
+    print(f"Latency: {result.latency.total_seconds() * 1000:.2f} ms")
+    print(f"Jitter: {result.jitter.total_seconds() * 1000:.2f} ms")
+    print(f"Packet Loss: {result.packet_loss if result.packet_loss is not None else 'N/A'}")
+
+except LegalAcceptanceError as e:
+    print(f"Legal acceptance error: {e}")
+except Exception as e:
+    print(f"Error running test: {e}")
+```
+
+## Development
+
+### Setting Up for Development
+
+1.  Clone the repository:
+
+    ```bash
+    git clone https://github.com/your-username/netvelocimeter.git
+    cd netvelocimeter
+    ```
+
+2.  Create a virtual environment:
+
+    ```bash
+    python -m venv venv
+    ```
+
+3.  Activate the virtual environment:
+
+    *   On Windows:
+
+        ```bash
+        venv\Scripts\activate
+        ```
+
+    *   On macOS and Linux:
+
+        ```bash
+        source venv/bin/activate
+        ```
+
+4.  Install the development dependencies:
+
+    ```bash
+    pip install -e ".[dev]"
+    ```
+
+### Testing
+
+Run the tests using `pytest`:
+
+```bash
+pytest
+```
+
+To run tests with coverage:
+
+```bash
+pytest --cov=netvelocimeter
+```
+
+To run specific test files:
+
+```bash
+pytest tests/test_legal_requirements.py
+```
+
+### Code Style
+
+This project uses:
+- Black for code formatting
+- Flake8 for linting
+- mypy for type checking
+
+Run the formatters and linters:
+
+```bash
+black netvelocimeter tests
+flake8 netvelocimeter tests
+mypy netvelocimeter
+```
+
+### Documentation
+
+Documentation is built with Sphinx. To build the docs:
+
+```bash
+cd docs
+make html
+```
+
+Then open `docs/_build/html/index.html` in your browser.
+
+### Creating a New Provider
+
+To add support for a new speed test provider:
+
+1. Create a new file in providers for your provider
+2. Implement a class that extends `BaseProvider` from base.py
+3. Register your provider in __init__.py
+4. Add tests for your provider in tests
+
+### Building and Publishing
+
+Build the package:
+
+```bash
+python -m build
+```
+
+Publish to PyPI:
+
+```bash
+python -m twine upload dist/*
+```
+
+### Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a new branch for your feature or bug fix
+3. Implement your changes
+4. Write tests for your changes
+5. Ensure all tests pass
+6. Submit a pull request
+
 ## License
 
-MIT
+Copyright 2025 Dale Phurrough
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+<http://www.apache.org/licenses/LICENSE-2.0>
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

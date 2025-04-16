@@ -6,8 +6,6 @@ import os
 import stat
 import platform
 import urllib.request
-from typing import Optional
-
 
 def download_file(url: str, destination: str) -> None:
     """
@@ -17,10 +15,11 @@ def download_file(url: str, destination: str) -> None:
         url: URL to download from.
         destination: Local path to save the file.
     """
-    os.makedirs(os.path.dirname(os.path.abspath(destination)), exist_ok=True)
+    absolute_destination = os.path.abspath(destination)
+    os.makedirs(os.path.dirname(absolute_destination), exist_ok=True)
 
     with urllib.request.urlopen(url) as response:
-        with open(destination, 'wb') as out_file:
+        with open(absolute_destination, 'wb') as out_file:
             out_file.write(response.read())
 
 

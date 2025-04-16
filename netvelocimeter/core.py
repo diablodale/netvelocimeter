@@ -4,9 +4,11 @@ Core functionality for the NetVelocimeter library.
 
 import os
 import importlib
-from typing import Dict, Optional, Type, Union
+from typing import Dict, Optional, Type, List, Union
+from packaging.version import Version
 
-from .providers.base import BaseProvider
+from .providers.base import BaseProvider, ProviderLegalRequirements, MeasurementResult, ServerInfo
+from .exceptions import LegalAcceptanceError
 
 
 _PROVIDERS: Dict[str, Type[BaseProvider]] = {}
@@ -42,7 +44,10 @@ class NetVelocimeter:
     def __init__(
         self,
         provider: str = "ookla",
-        binary_dir: Optional[str] = None
+        binary_dir: Optional[str] = None,
+        accept_eula: bool = False,
+        accept_terms: bool = False,
+        accept_privacy: bool = False
     ):
         """
         Initialize the NetVelocimeter.
@@ -50,7 +55,9 @@ class NetVelocimeter:
         Args:
             provider: The name of the provider to use.
             binary_dir: Directory to store provider binaries.
-                        If None, uses ~/.netvelocimeter/bin/
+            accept_eula: Whether to accept the provider's EULA.
+            accept_terms: Whether to accept the provider's terms of service.
+            accept_privacy: Whether to accept the provider's privacy policy.
         """
         provider_class = get_provider(provider)
 
@@ -59,10 +66,79 @@ class NetVelocimeter:
             os.makedirs(binary_dir, exist_ok=True)
 
         self.provider = provider_class(binary_dir)
+        self._accepted_eula = accept_eula
+        self._accepted_terms = accept_terms
+        self._accepted_privacy = accept_privacy
 
-    def measure(self):
-        """Measure network performance using the configured provider."""
-        return self.provider.measure()
+        # Store acceptance status in the provider
+        if hasattr(self.provider, "_accepted_eula"):
+            self.provider._accepted_eula = accept_eula
+        if hasattr(self.provider, "_accepted_terms"):
+            self.provider._accepted_terms = accept_terms
+        if hasattr(self.provider, "_accepted_privacy"):
+            self.provider._accepted_privacy = accept_privacy
+
+    def check_legal_requirements(self) -> bool:
+        """
+        Check if all legal requirements are satisfied.
+
+        Returns:
+            True if all requirements are met, False otherwise
+        """
+        return self.provider.check_acceptance(
+            accepted_eula=self._accepted_eula,
+            accepted_terms=self._accepted_terms,
+            accepted_privacy=self._accepted_privacy
+        )
+
+    def get_legal_requirements(self) -> ProviderLegalRequirements:
+        """
+        Get legal requirements for the current provider.
+
+        Returns:
+            A ProviderLegalRequirements object
+        """
+        return self.provider.legal_requirements
+
+    def get_servers(self) -> List[ServerInfo]:
+        """
+        Get list of available servers.
+
+        Returns:
+            List of server information objects.
+        """
+        return self.provider.get_servers()
+
+    def get_provider_version(self) -> Version:
+        """
+        Get the version of the provider.
+
+        Returns:
+            Provider version as a Version object.
+        """
+        return self.provider.version
+
+    def measure(self, server_id: Optional[Union[int, str]] = None, server_host: Optional[str] = None) -> MeasurementResult:
+        """
+        Measure network performance using the configured provider.
+
+        Args:
+            server_id: Server ID to use for testing (either integer or string)
+            server_host: Server hostname to use for testing
+
+        Returns:
+            Measurement results
+        """
+        if not self.check_legal_requirements():
+            legal = self.get_legal_requirements()
+            raise LegalAcceptanceError(
+                "You must accept the legal requirements before running tests.\n"
+                f"EULA: {legal.eula_url}\n"
+                f"Terms of Service: {legal.terms_url}\n"
+                f"Privacy Policy: {legal.privacy_url}"
+            )
+
+        return self.provider.measure(server_id=server_id, server_host=server_host)
 
     def measure_download(self):
         """Measure download speed."""
