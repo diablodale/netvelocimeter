@@ -7,7 +7,6 @@ import os
 import platform
 import re
 import subprocess
-import zipfile
 from typing import Dict, List, Optional, Union
 import shutil
 from datetime import timedelta
@@ -16,7 +15,7 @@ from packaging.version import Version, InvalidVersion
 from ..core import register_provider
 from .base import BaseProvider, MeasurementResult, ServerInfo, ProviderLegalRequirements
 from ..exceptions import LegalAcceptanceError
-from ..utils.binary_manager import download_file, ensure_executable
+from ..utils.binary_manager import download_file, ensure_executable, extract_file
 
 
 class OoklaProvider(BaseProvider):
@@ -120,23 +119,12 @@ class OoklaProvider(BaseProvider):
         download_url = self._DOWNLOAD_URLS[key]
         temp_file = os.path.join(self.binary_dir, os.path.basename(download_url))
 
-        download_file(download_url, temp_file)
-
         try:
-            # Extract based on file extension
-            if download_url.endswith(".zip"):
-                with zipfile.ZipFile(temp_file, 'r') as zip_ref:
-                    # Check for path traversal attempts
-                    zip_info = zip_ref.getinfo(binary_filename)
-                    if zip_info.filename != binary_filename or '..' in zip_info.filename or zip_info.filename.startswith('/'):
-                        raise RuntimeError(f"Potentially unsafe file in archive: {zip_info.filename}")
-                    zip_ref.extract(binary_filename, self.binary_dir)
-            elif download_url.endswith(".tgz") or download_url.endswith(".tar.gz"):
-                # For Linux .tgz files
-                import tarfile
-                with tarfile.open(temp_file, 'r:gz') as tar:
-                    # data filter checks for path traversal, links, devs, etc.
-                    tar.extract(binary_filename, self.binary_dir, filter="data")
+            # Download the file
+            download_file(download_url, temp_file)
+
+            # Extract the binary
+            binary_path = extract_file(temp_file, binary_filename, self.binary_dir)
 
             # Make binary executable
             ensure_executable(binary_path)
