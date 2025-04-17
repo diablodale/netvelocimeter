@@ -316,6 +316,24 @@ class TestOoklaProvider(unittest.TestCase):
             # Verify raw result was stored
             self.assertEqual(result.raw_result, sample_data)
 
+    @mock.patch('subprocess.run')
+    def test_error_handling(self, mock_run):
+        """Test handling of non-acceptance related errors."""
+        self.provider._accepted_eula = True
+        self.provider._accepted_terms = True
+        self.provider._accepted_privacy = True
+
+        # Mock a general error
+        mock_process = mock.Mock()
+        mock_process.returncode = 1
+        mock_process.stderr = "Connection error: could not reach server"
+        mock_run.return_value = mock_process
+
+        with self.assertRaises(RuntimeError) as context:
+            self.provider._run_speedtest()
+
+        self.assertIn("Speedtest failed", str(context.exception))
+
 class TestOoklaProviderVersionParsing(unittest.TestCase):
     """Separate test class for version parsing functionality."""
 
@@ -344,6 +362,66 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
                     capture_output=True,
                     text=True
                 )
+
+    def test_valid_version_format(self):
+        """Test handling of valid version format."""
+        # Create a provider with direct mocks, no setUp complications
+        with mock.patch('subprocess.run') as mock_run:
+            # Set up mock for valid version output
+            mock_process = mock.Mock()
+            mock_process.returncode = 0
+            mock_process.stdout = "Speedtest by Ookla 1.2.0.84 (ea6b6773cf) Linux/x86_64-linux-musl 5.15.167.4-microsoft-standard-WSL2 x86_64"
+            mock_run.return_value = mock_process
+
+            # Patch _ensure_binary directly
+            with mock.patch('netvelocimeter.providers.ookla.OoklaProvider._ensure_binary',
+                           return_value="speedtest_path_1234"):
+                # Create a clean provider instance
+                provider = OoklaProvider("/temp/dir")
+
+                # Version should be parsed correctly
+                self.assertEqual(provider.version, Version("1.2.0.84+ea6b6773cf"))
+
+                # Verify subprocess call
+                mock_run.assert_called_once_with(
+                    ["speedtest_path_1234", "--version"],
+                    capture_output=True,
+                    text=True
+                )
+
+class TestOoklaProviderPlatformDetection(unittest.TestCase):
+    """Test platform detection for OoklaProvider."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    @mock.patch('platform.system')
+    @mock.patch('platform.machine')
+    def test_platform_detection_mapping(self, mock_machine, mock_system):
+        """Test platform and architecture mapping logic."""
+        # Test ARM mapping on Linux
+        mock_system.return_value = "Linux"
+        mock_machine.return_value = "armv7l"
+
+        # We need to patch where the function is *used*, not where it's defined
+        with mock.patch('netvelocimeter.providers.ookla.download_file') as mock_download:
+            with mock.patch('netvelocimeter.providers.ookla.extract_file'):
+                with mock.patch('netvelocimeter.providers.ookla.ensure_executable'):
+                    with mock.patch.object(OoklaProvider, '_get_version', return_value=Version("1.0.0")):
+                        # Now create the provider - this will call the real _ensure_binary
+                        provider = OoklaProvider(self.temp_dir)
+
+                        # The download URL should have been passed to download_file
+                        mock_download.assert_called_once()
+                        url_arg = mock_download.call_args[0][0]
+
+                        # Check if the URL contains "armhf" (our expected machine mapping)
+                        self.assertIn("armhf", url_arg, f"Machine type 'armv7l' not correctly mapped to 'armhf' in URL: {url_arg}")
+
+
 
 class TestOoklaRealBinaries(unittest.TestCase):
     """Test actual Ookla binary operations across supported platforms."""
@@ -442,3 +520,22 @@ class TestOoklaRealBinaries(unittest.TestCase):
         print(f"  Binary path: {provider.binary_path}")
         print(f"  File size: {file_size:,} bytes")
         print(f"  Version: {provider.version}")
+
+class TestNetworkHandling(unittest.TestCase):
+    """Test handling of network errors."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    @mock.patch('netvelocimeter.utils.binary_manager.urllib.request.urlopen')
+    def test_network_errors(self, mock_urlopen):
+        """Test handling of network errors."""
+        import urllib.error
+        mock_urlopen.side_effect = urllib.error.URLError("Network unreachable")
+
+        with self.assertRaises(urllib.error.URLError):
+            with mock.patch.object(OoklaProvider, '_get_version', return_value=Version("1.0.0")):
+                provider = OoklaProvider(self.temp_dir)
