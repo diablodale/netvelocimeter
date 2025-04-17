@@ -26,12 +26,11 @@ class ProviderLegalRequirements:
 class ServerInfo:
     """Information about a speed test server."""
 
-    id: str
+    id: Union[int, str]
     name: str
-    location: str
+    location: Optional[str] = None
     country: Optional[str] = None
     host: Optional[str] = None
-    distance: Optional[float] = None  # Distance in km
     raw_server: Optional[Dict] = None  # Raw provider-specific server data
 
 
@@ -39,27 +38,37 @@ class ServerInfo:
 class MeasurementResult:
     """Result of a network measurement."""
 
-    download_speed: Optional[float] = None  # in Mbps
-    upload_speed: Optional[float] = None    # in Mbps
-    latency: Optional[timedelta] = None     # as timedelta
-    jitter: Optional[timedelta] = None      # as timedelta
-    packet_loss: Optional[float] = None     # as percentage
-    server_info: Optional[Dict] = None      # server details
-    raw_result: Optional[Dict] = None       # raw provider result
+    download_speed: float  # in Mbps
+    upload_speed: float    # in Mbps
+    download_latency: Optional[timedelta] = None # as timedelta
+    upload_latency: Optional[timedelta] = None   # as timedelta
+    ping_latency: Optional[timedelta] = None     # as timedelta
+    ping_jitter: Optional[timedelta] = None      # as timedelta
+    packet_loss: Optional[float] = None          # as percentage
+    server_info: Optional[ServerInfo] = None     # server details
+    raw_result: Optional[Dict] = None            # raw provider result
 
     def __str__(self) -> str:
         """Return a string representation of the measurement result."""
         parts = []
+        if self.server_info:
+            parts.append(f"Server: {self.server_info.name} ({self.server_info.id})")
         if self.download_speed is not None:
             parts.append(f"Download: {self.download_speed:.2f} Mbps")
         if self.upload_speed is not None:
             parts.append(f"Upload: {self.upload_speed:.2f} Mbps")
-        if self.latency is not None:
-            latency_ms = self.latency.total_seconds() * 1000
-            parts.append(f"Latency: {latency_ms:.2f} ms")
-        if self.jitter is not None:
-            jitter_ms = self.jitter.total_seconds() * 1000
-            parts.append(f"Jitter: {jitter_ms:.2f} ms")
+        if self.ping_latency is not None:
+            latency_ms = self.ping_latency.total_seconds() * 1000
+            parts.append(f"Ping Latency: {latency_ms:.2f} ms")
+        if self.ping_jitter is not None:
+            jitter_ms = self.ping_jitter.total_seconds() * 1000
+            parts.append(f"Ping Jitter: {jitter_ms:.2f} ms")
+        if self.download_latency is not None:
+            dl_latency_ms = self.download_latency.total_seconds() * 1000
+            parts.append(f"Download Latency: {dl_latency_ms:.2f} ms")
+        if self.upload_latency is not None:
+            ul_latency_ms = self.upload_latency.total_seconds() * 1000
+            parts.append(f"Upload Latency: {ul_latency_ms:.2f} ms")
         if self.packet_loss is not None:
             parts.append(f"Packet Loss: {self.packet_loss:.2f}%")
 

@@ -17,8 +17,8 @@ class TestServerFeatures(unittest.TestCase):
         self.mock_provider.measure.return_value = MeasurementResult(
             download_speed=100.0,
             upload_speed=50.0,
-            latency=timedelta(milliseconds=10.0),
-            jitter=timedelta(milliseconds=2.0)
+            ping_latency=timedelta(milliseconds=10.0),
+            ping_jitter=timedelta(milliseconds=2.0)
         )
 
         # Create server list
@@ -27,16 +27,14 @@ class TestServerFeatures(unittest.TestCase):
             name="Server 1",
             location="Location 1",
             country="Country 1",
-            host="host1.example.com",
-            distance=10.5
+            host="host1.example.com"
         )
         server2 = ServerInfo(
             id="2",
             name="Server 2",
             location="Location 2",
             country="Country 2",
-            host="host2.example.com",
-            distance=20.7
+            host="host2.example.com"
         )
         self.mock_provider.get_servers.return_value = [server1, server2]
 

@@ -5,6 +5,7 @@ Tests for the Ookla provider.
 import json
 import os
 import platform
+import pytest
 import shutil
 import tempfile
 import unittest
@@ -120,16 +121,14 @@ class TestOoklaProvider(unittest.TestCase):
                     "name": "Server 1",
                     "location": "Location 1",
                     "country": "Country 1",
-                    "host": "server1.example.com",
-                    "distance": 10.5
+                    "host": "server1.example.com"
                 },
                 {
                     "id": "2",
                     "name": "Server 2",
                     "location": "Location 2",
                     "country": "Country 2",
-                    "host": "server2.example.com",
-                    "distance": 20.7
+                    "host": "server2.example.com"
                 }
             ]
         })
@@ -149,7 +148,6 @@ class TestOoklaProvider(unittest.TestCase):
         self.assertEqual(servers[0].host, "server1.example.com")
         self.assertEqual(servers[1].id, "2")
         self.assertEqual(servers[1].country, "Country 2")
-        self.assertEqual(servers[1].distance, 20.7)
 
     @mock.patch('subprocess.run')
     def test_measure_with_server_id(self, mock_run):
@@ -163,8 +161,8 @@ class TestOoklaProvider(unittest.TestCase):
         mock_process = mock.Mock()
         mock_process.returncode = 0
         mock_process.stdout = json.dumps({
-            "download": {"bandwidth": 12500000},
-            "upload": {"bandwidth": 2500000},
+            "download": {"bandwidth": 12500000, "latency": {"iqm": 42.985}},
+            "upload": {"bandwidth": 2500000, "latency": {"iqm": 178.546}},
             "ping": {"latency": 15.5, "jitter": 3.2},
             "server": {"id": "1234", "name": "Test Server"}
         })
@@ -173,10 +171,10 @@ class TestOoklaProvider(unittest.TestCase):
         result = self.provider.measure(server_id=1234)
 
         # Verify timedelta conversion
-        self.assertIsInstance(result.latency, timedelta)
-        self.assertIsInstance(result.jitter, timedelta)
-        self.assertAlmostEqual(result.latency.total_seconds() * 1000, 15.5)
-        self.assertAlmostEqual(result.jitter.total_seconds() * 1000, 3.2)
+        self.assertIsInstance(result.ping_latency, timedelta)
+        self.assertIsInstance(result.ping_jitter, timedelta)
+        self.assertAlmostEqual(result.ping_latency.total_seconds() * 1000, 15.5)
+        self.assertAlmostEqual(result.ping_jitter.total_seconds() * 1000, 3.2)
 
         # Verify --server-id flag was included
         args, kwargs = mock_run.call_args
@@ -196,8 +194,8 @@ class TestOoklaProvider(unittest.TestCase):
         mock_process = mock.Mock()
         mock_process.returncode = 0
         mock_process.stdout = json.dumps({
-            "download": {"bandwidth": 12500000},
-            "upload": {"bandwidth": 2500000},
+            "download": {"bandwidth": 12500000, "latency": {"iqm": 42.985}},
+            "upload": {"bandwidth": 2500000, "latency": {"iqm": 178.546}},
             "ping": {"latency": 15.5, "jitter": 3.2},
             "server": {"id": "1234", "name": "Test Server"}
         })
@@ -206,8 +204,8 @@ class TestOoklaProvider(unittest.TestCase):
         result = self.provider.measure(server_host="example.com")
 
         # Verify timedelta conversion
-        self.assertIsInstance(result.latency, timedelta)
-        self.assertIsInstance(result.jitter, timedelta)
+        self.assertIsInstance(result.ping_latency, timedelta)
+        self.assertIsInstance(result.ping_jitter, timedelta)
 
         # Verify --host flag was included
         args, kwargs = mock_run.call_args
@@ -253,6 +251,71 @@ class TestOoklaProvider(unittest.TestCase):
         # Check the version
         self.assertEqual(provider.version, Version("0.0.0"))
 
+    def test_measure_with_sample_data(self):
+        """Test measurement using sample data from JSON file."""
+        # Set up acceptance flags
+        self.provider._accepted_eula = True
+        self.provider._accepted_terms = True
+        self.provider._accepted_privacy = True
+
+        # Path to sample data file
+        sample_path = os.path.join(os.path.dirname(__file__), "samples", "ookla.json")
+
+        # Load sample data
+        with open(sample_path, "r") as f:
+            sample_data = json.load(f)
+
+        # Mock subprocess.run to return our sample data
+        with mock.patch('subprocess.run') as mock_run:
+            mock_process = mock.Mock()
+            mock_process.returncode = 0
+            mock_process.stdout = json.dumps(sample_data)
+            mock_run.return_value = mock_process
+
+            # Run measurement
+            result = self.provider.measure()
+
+            # Verify subprocess was called correctly
+            mock_run.assert_called_once()
+            args, kwargs = mock_run.call_args
+            cmd_line = args[0]
+            self.assertIn("--accept-license", cmd_line)
+            self.assertIn("--accept-gdpr", cmd_line)
+
+            # Verify download speed (bandwidth in bits/sec converted to Mbps)
+            # 13038400 bytes/s * 8 bits/byte / 1,000,000 bits/Mbps = 104.3072 Mbps
+            self.assertAlmostEqual(result.download_speed, 104.3072, places=4)
+
+            # Verify upload speed
+            # 4771435 bytes/s * 8 bits/byte / 1,000,000 bits/Mbps = 38.17148 Mbps
+            self.assertAlmostEqual(result.upload_speed, 38.17148, places=4)
+
+            # Verify ping metrics
+            self.assertIsInstance(result.ping_latency, timedelta)
+            self.assertIsInstance(result.ping_jitter, timedelta)
+            self.assertAlmostEqual(result.ping_latency.total_seconds() * 1000, 10.055, places=3)
+            self.assertAlmostEqual(result.ping_jitter.total_seconds() * 1000, 3.475, places=3)
+
+            # Verify latency metrics
+            self.assertIsInstance(result.download_latency, timedelta)
+            self.assertIsInstance(result.upload_latency, timedelta)
+            self.assertAlmostEqual(result.download_latency.total_seconds() * 1000, 42.985, places=3)
+            self.assertAlmostEqual(result.upload_latency.total_seconds() * 1000, 178.546, places=3)
+
+            # Verify packet loss
+            self.assertEqual(result.packet_loss, 0)
+
+            # Verify server info
+            self.assertIsNotNone(result.server_info)
+            self.assertEqual(result.server_info.id, 20507)
+            self.assertEqual(result.server_info.name, "DNS:NET Internet Service GmbH")
+            self.assertEqual(result.server_info.location, "Berlin")
+            self.assertEqual(result.server_info.country, "Germany")
+            self.assertEqual(result.server_info.host, "speedtest01.dns-net.de")
+
+            # Verify raw result was stored
+            self.assertEqual(result.raw_result, sample_data)
+
 class TestOoklaProviderVersionParsing(unittest.TestCase):
     """Separate test class for version parsing functionality."""
 
@@ -294,6 +357,7 @@ class TestOoklaRealBinaries(unittest.TestCase):
         """Clean up test directory."""
         shutil.rmtree(self.temp_dir)
 
+    @pytest.mark.expensive
     def test_real_binary_download_all_platforms(self):
         """Test real non-simulated download and extraction of Ookla test binary for all supported platforms."""
         # Mock _get_version to avoid executing binaries

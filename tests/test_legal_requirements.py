@@ -40,8 +40,8 @@ class MockProvider(BaseProvider):
         return MeasurementResult(
             download_speed=100.0,
             upload_speed=50.0,
-            latency=timedelta(milliseconds=10.0),
-            jitter=timedelta(milliseconds=2.0)
+            ping_latency=timedelta(milliseconds=10.0),
+            ping_jitter=timedelta(milliseconds=2.0)
         )
 
 
@@ -108,7 +108,7 @@ class TestLegalRequirements(unittest.TestCase):
         result = nv.measure()
         self.assertEqual(result.download_speed, 100.0)
         self.assertEqual(result.upload_speed, 50.0)
-        self.assertEqual(result.latency, timedelta(milliseconds=10.0))
+        self.assertEqual(result.ping_latency, timedelta(milliseconds=10.0))
 
     @mock.patch('netvelocimeter.core.get_provider')
     def test_get_legal_requirements(self, mock_get_provider):

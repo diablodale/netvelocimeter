@@ -1,0 +1,55 @@
+{
+    "type": "result",
+    "timestamp": "2025-04-04T03:14:41Z",
+    "ping": {
+        "jitter": 3.475,
+        "latency": 10.055,
+        "low": 8.531,
+        "high": 14.479
+    },
+    "download": {
+        "bandwidth": 13038400,
+        "bytes": 104718228,
+        "elapsed": 8101,
+        "latency": {
+            "iqm": 42.985,
+            "low": 18.085,
+            "high": 80.000,
+            "jitter": 10.108
+        }
+    },
+    "upload": {
+        "bandwidth": 4771435,
+        "bytes": 17647269,
+        "elapsed": 3701,
+        "latency": {
+            "iqm": 178.546,
+            "low": 23.307,
+            "high": 193.088,
+            "jitter": 6.416
+        }
+    },
+    "packetLoss": 0,
+    "isp": "1&1 Versatel",
+    "interface": {
+        "internalIp": "172.17.0.2",
+        "name": "eth0",
+        "macAddr": "96:18:8D:23:B1:43",
+        "isVpn": false,
+        "externalIp": "59.47.58.206"
+    },
+    "server": {
+        "id": 20507,
+        "host": "speedtest01.dns-net.de",
+        "port": 8080,
+        "name": "DNS:NET Internet Service GmbH",
+        "location": "Berlin",
+        "country": "Germany",
+        "ip": "212.91.239.102"
+    },
+    "result": {
+        "id": "c37d62b5-52ab-5252-bc06-db205451a1e5",
+        "url": "https://www.speedtest.net/result/c/c37d62b5-52ab-5252-bc06-db205451a1e5",
+        "persisted": true
+    }
+}

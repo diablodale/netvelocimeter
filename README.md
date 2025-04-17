@@ -35,8 +35,8 @@ nv = NetVelocimeter(
 result = nv.measure()
 print(f"Download: {result.download_speed:.2f} Mbps")
 print(f"Upload: {result.upload_speed:.2f} Mbps")
-print(f"Latency: {result.latency.total_seconds() * 1000:.2f} ms")
-print(f"Jitter: {result.jitter.total_seconds() * 1000:.2f} ms")
+print(f"Latency: {result.ping_latency.total_seconds() * 1000:.2f} ms")
+print(f"Jitter: {result.ping_jitter.total_seconds() * 1000:.2f} ms")
 ```
 
 ## Working with Legal Requirements
@@ -72,7 +72,7 @@ nv = NetVelocimeter(
 
 servers = nv.get_servers()
 for server in servers:
-    print(f"Server {server.id}: {server.name} in {server.location} ({server.distance} km)")
+    print(f"Server {server.id}: {server.name} in {server.location} {server.country}")
 
 # Run test with a specific server
 result = nv.measure(server_id=12345)  # By server ID
@@ -122,8 +122,8 @@ try:
 
     print(f"Download: {result.download_speed:.2f} Mbps")
     print(f"Upload: {result.upload_speed:.2f} Mbps")
-    print(f"Latency: {result.latency.total_seconds() * 1000:.2f} ms")
-    print(f"Jitter: {result.jitter.total_seconds() * 1000:.2f} ms")
+    print(f"Latency: {result.ping_latency.total_seconds() * 1000:.2f} ms")
+    print(f"Jitter: {result.ping_jitter.total_seconds() * 1000:.2f} ms")
     print(f"Packet Loss: {result.packet_loss if result.packet_loss is not None else 'N/A'}")
 
 except LegalAcceptanceError as e:
@@ -136,44 +136,45 @@ except Exception as e:
 
 ### Setting Up for Development
 
-1.  Clone the repository:
+1. Clone the repository:
 
-    ```bash
-    git clone https://github.com/your-username/netvelocimeter.git
-    cd netvelocimeter
-    ```
+   ```bash
+   git clone https://github.com/your-username/netvelocimeter.git
+   cd netvelocimeter
+   ```
 
-2.  Create a virtual environment:
+2. Create a virtual environment:
 
-    ```bash
-    python -m venv venv
-    ```
+   ```bash
+   python -m venv venv
+   ```
 
-3.  Activate the virtual environment:
+3. Activate the virtual environment:
 
-    *   On Windows:
+   - On Windows:
 
-        ```bash
-        venv\Scripts\activate
-        ```
+     ```bash
+     venv\Scripts\activate
+     ```
 
-    *   On macOS and Linux:
+   - On macOS and Linux:
 
-        ```bash
-        source venv/bin/activate
-        ```
+     ```bash
+     source venv/bin/activate
+     ```
 
-4.  Install the development dependencies:
+4. Install the development dependencies:
 
-    ```bash
-    pip install -e ".[dev]"
-    ```
+   ```bash
+   pip install -e ".[dev]"
+   ```
 
 ### Testing
 
 Run the tests using `pytest`:
 
 ```bash
+# Run all non-expensive tests (default)
 pytest
 ```
 
@@ -189,9 +190,37 @@ To run specific test files:
 pytest tests/test_legal_requirements.py
 ```
 
+For tests that download binaries or make network requests:
+
+```bash
+# Run all tests including expensive ones
+pytest --run-expensive
+
+# Run only the expensive tests
+pytest --run-only-expensive
+```
+
+When contributing new tests, use the `@pytest.mark.expensive` decorator for tests that:
+
+- Download large files
+- Make network requests
+- Take a long time to run
+
+Example:
+
+```python
+import pytest
+
+@pytest.mark.expensive
+def test_download_real_binary():
+    # Test code that downloads real binaries
+    ...
+```
+
 ### Code Style
 
 This project uses:
+
 - Black for code formatting
 - Flake8 for linting
 - mypy for type checking

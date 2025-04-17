@@ -139,15 +139,3 @@ class NetVelocimeter:
             )
 
         return self.provider.measure(server_id=server_id, server_host=server_host)
-
-    def measure_download(self):
-        """Measure download speed."""
-        return self.provider.measure_download()
-
-    def measure_upload(self):
-        """Measure upload speed."""
-        return self.provider.measure_upload()
-
-    def measure_latency(self):
-        """Measure network latency."""
-        return self.provider.measure_latency()

@@ -126,12 +126,17 @@ class OoklaProvider(BaseProvider):
             # Extract based on file extension
             if download_url.endswith(".zip"):
                 with zipfile.ZipFile(temp_file, 'r') as zip_ref:
+                    # Check for path traversal attempts
+                    zip_info = zip_ref.getinfo(binary_filename)
+                    if zip_info.filename != binary_filename or '..' in zip_info.filename or zip_info.filename.startswith('/'):
+                        raise RuntimeError(f"Potentially unsafe file in archive: {zip_info.filename}")
                     zip_ref.extract(binary_filename, self.binary_dir)
-            elif download_url.endswith(".tgz"):
+            elif download_url.endswith(".tgz") or download_url.endswith(".tar.gz"):
                 # For Linux .tgz files
                 import tarfile
                 with tarfile.open(temp_file, 'r:gz') as tar:
-                    tar.extract(binary_filename, self.binary_dir)
+                    # data filter checks for path traversal, links, devs, etc.
+                    tar.extract(binary_filename, self.binary_dir, filter="data")
 
             # Make binary executable
             ensure_executable(binary_path)
@@ -214,7 +219,6 @@ class OoklaProvider(BaseProvider):
                 location=server.get("location"),
                 country=server.get("country"),
                 host=server.get("host"),
-                distance=server.get("distance"),
                 raw_server=server
             ))
 
@@ -233,35 +237,43 @@ class OoklaProvider(BaseProvider):
         """
         args = []
         if server_id is not None:
-            args.extend(["--server-id", str(server_id)])  # Convert to string regardless of input type
+            args.extend(["--server-id", str(server_id)])
         elif server_host is not None:
             args.extend(["--host", server_host])
 
         result = self._run_speedtest(args)
 
-        server_info = {
-            "id": result.get("server", {}).get("id"),
-            "name": result.get("server", {}).get("name"),
-            "location": result.get("server", {}).get("location"),
-            "host": result.get("server", {}).get("host"),
-        }
+        # Extract server information or throw exception if not found
+        server_data = result.get("server")
+        server_info = ServerInfo(
+            id=server_data.get("id"),
+            name=server_data.get("name"),
+            location=server_data.get("location"),
+            country=server_data.get("country"),
+            host=server_data.get("host"),
+            raw_server=server_data
+        )
 
-        # Convert bits/s to Mbps (megabits per second)
-        download_mbps = result.get("download", {}).get("bandwidth", 0) * 8 / 1_000_000
-        upload_mbps = result.get("upload", {}).get("bandwidth", 0) * 8 / 1_000_000
+        # Convert bytes/s to Mbps (megabits per second)
+        download_mbps = result.get("download").get("bandwidth") * 8 / 1_000_000
+        upload_mbps = result.get("upload").get("bandwidth") * 8 / 1_000_000
 
+        # Extract download and upload latency
+        download_latency_ms = result.get("download").get("latency").get("iqm")
+        upload_latency_ms = result.get("upload").get("latency").get("iqm")
 
-        # Explicit conversion to timedelta or None
-        latency_ms = result.get("ping", {}).get("latency")
-        jitter_ms = result.get("ping", {}).get("jitter")
-        latency = timedelta(milliseconds=latency_ms) if latency_ms is not None else None
-        jitter = timedelta(milliseconds=jitter_ms) if jitter_ms is not None else None
+        # Extract ping metrics
+        ping_latency_ms = result.get("ping").get("latency")
+        ping_jitter_ms = result.get("ping").get("jitter")
 
+        # Convert to timedeltas
         return MeasurementResult(
             download_speed=download_mbps,
             upload_speed=upload_mbps,
-            latency=latency,
-            jitter=jitter,
+            download_latency=timedelta(milliseconds=download_latency_ms),
+            upload_latency=timedelta(milliseconds=upload_latency_ms),
+            ping_latency=timedelta(milliseconds=ping_latency_ms),
+            ping_jitter=timedelta(milliseconds=ping_jitter_ms),
             packet_loss=result.get("packetLoss"),
             server_info=server_info,
             raw_result=result
