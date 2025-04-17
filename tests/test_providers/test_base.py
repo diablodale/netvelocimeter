@@ -4,10 +4,10 @@ Tests for the base provider.
 
 import shutil
 import tempfile
-from unittest import TestCase, mock
+from unittest import TestCase
 from datetime import timedelta
 
-from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ProviderLegalRequirements
+from netvelocimeter.providers.base import BaseProvider, MeasurementResult
 from netvelocimeter.providers.static import StaticProvider
 
 class MockProvider(BaseProvider):
