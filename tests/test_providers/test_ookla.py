@@ -5,6 +5,7 @@ Tests for the Ookla provider.
 import json
 import os
 import platform
+import shutil
 import tempfile
 import unittest
 from unittest import mock
@@ -46,7 +47,6 @@ class TestOoklaProvider(unittest.TestCase):
         for patcher in self.patchers:
             patcher.stop()
 
-        import shutil
         shutil.rmtree(self.temp_dir)
 
     def test_legal_requirements(self):
@@ -281,3 +281,75 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
                     capture_output=True,
                     text=True
                 )
+
+class TestOoklaRealBinaries(unittest.TestCase):
+    """Test actual Ookla binary operations across supported platforms."""
+
+    def setUp(self):
+        """Set up a clean test directory."""
+        # Create a fresh temporary directory for each test
+        self.temp_dir = tempfile.mkdtemp(prefix="ookla_test_")
+
+    def tearDown(self):
+        """Clean up test directory."""
+        shutil.rmtree(self.temp_dir)
+
+    def test_real_binary_download_all_platforms(self):
+        """Test real non-simulated download and extraction of Ookla test binary for all supported platforms."""
+        # Mock _get_version to avoid executing binaries
+        with mock.patch.object(OoklaProvider, '_get_version', return_value=Version("1.0.0")):
+            # Test results tracking
+            results = []
+
+            # Test each platform combination defined in OoklaProvider._DOWNLOAD_URLS
+            for (sys_name, machine), url in OoklaProvider._DOWNLOAD_URLS.items():
+                # Create a dedicated directory for each platform
+                platform_dir = os.path.join(self.temp_dir, f"{sys_name}-{machine}")
+                os.makedirs(platform_dir, exist_ok=True)
+
+                # Mock the platform detection to simulate this platform
+                with mock.patch('platform.system', return_value=sys_name):
+                    with mock.patch('platform.machine', return_value=machine):
+                        print(f"Testing: {sys_name} {machine}")
+
+                        # Create a provider which will download the binary
+                        provider = OoklaProvider(platform_dir)
+
+                        # Check if binary exists
+                        binary_exists = os.path.exists(provider.binary_path)
+
+                        # Get file size if it exists
+                        file_size = os.path.getsize(provider.binary_path) if binary_exists else 0
+
+                        # Record result
+                        results.append({
+                            "system": sys_name,
+                            "machine": machine,
+                            "binary_path": provider.binary_path,
+                            "exists": binary_exists,
+                            "file_size": file_size
+                        })
+
+                        # Verify binary was actually downloaded
+                        self.assertTrue(binary_exists, f"Binary not downloaded for {sys_name} {machine}")
+
+                        # Verify binary has reasonable size
+                        self.assertGreater(file_size, 500000,
+                                         f"Binary file for {sys_name} {machine} is too small: {file_size} bytes")
+
+                        # Verify the binary filename is correct
+                        expected_filename = "speedtest.exe" if sys_name == "Windows" else "speedtest"
+                        actual_filename = os.path.basename(provider.binary_path)
+                        self.assertEqual(actual_filename, expected_filename,
+                                       f"Binary filename mismatch for {sys_name} {machine}")
+
+            # Print test results summary
+            print("\n=== Binary Download Test Results ===")
+            for result in results:
+                print(f"{result['system']} {result['machine']}: "
+                      f"{'✓' if result['exists'] else '✗'} "
+                      f"({result['file_size']:,} bytes)")
+
+            # Success if we reach here
+            self.assertEqual(len(results), len(OoklaProvider._DOWNLOAD_URLS),
+                             f"Tested {len(results)} of {len(OoklaProvider._DOWNLOAD_URLS)} platforms")
