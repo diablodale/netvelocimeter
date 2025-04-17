@@ -184,6 +184,12 @@ To run tests with coverage:
 pytest --cov=netvelocimeter
 ```
 
+To see stdout and stderr during tests:
+
+```bash
+pytest -s
+```
+
 To run specific test files:
 
 ```bash

@@ -417,3 +417,28 @@ class TestOoklaRealBinaries(unittest.TestCase):
             # Success if we reach here
             self.assertEqual(len(results), len(OoklaProvider._DOWNLOAD_URLS),
                              f"Tested {len(results)} of {len(OoklaProvider._DOWNLOAD_URLS)} platforms")
+
+    @pytest.mark.expensive
+    def test_real_binary_download_and_version(self):
+        """Test downloading the real binary for the current system and checking its version."""
+        # Create a provider which will download the real binary for the current platform
+        provider = OoklaProvider(self.temp_dir)
+
+        # Verify binary was downloaded
+        self.assertTrue(os.path.exists(provider.binary_path),
+                      f"Binary not downloaded at {provider.binary_path}")
+
+        # Verify binary has reasonable size
+        file_size = os.path.getsize(provider.binary_path)
+        self.assertGreater(file_size, 500000,
+                         f"Binary file is too small: {file_size} bytes")
+
+        # Check that we got a real version (not 0)
+        self.assertNotEqual(provider.version, Version("0"),
+                           "Failed to get a valid version from the binary")
+
+        print(f"\nSuccessfully downloaded and verified Ookla binary:")
+        print(f"  Platform: {platform.system()} {platform.machine()}")
+        print(f"  Binary path: {provider.binary_path}")
+        print(f"  File size: {file_size:,} bytes")
+        print(f"  Version: {provider.version}")
