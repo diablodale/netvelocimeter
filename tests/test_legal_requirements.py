@@ -32,11 +32,6 @@ class MockProvider(BaseProvider):
         )
 
     def measure(self, **kwargs) -> MeasurementResult:
-        if not self.check_acceptance(
-            self._accepted_eula, self._accepted_terms, self._accepted_privacy
-        ):
-            raise LegalAcceptanceError("Legal requirements not accepted")
-
         return MeasurementResult(
             download_speed=100.0,
             upload_speed=50.0,

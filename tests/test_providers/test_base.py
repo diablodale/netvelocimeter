@@ -4,10 +4,11 @@ Tests for the base provider.
 
 import shutil
 import tempfile
-import unittest
+from unittest import TestCase, mock
 from datetime import timedelta
 
-from netvelocimeter.providers.base import BaseProvider, MeasurementResult
+from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ProviderLegalRequirements
+from netvelocimeter.providers.static import StaticProvider
 
 class MockProvider(BaseProvider):
     """A concrete implementation of BaseProvider for testing."""
@@ -22,7 +23,7 @@ class MockProvider(BaseProvider):
             ping_jitter=timedelta(milliseconds=5)
         )
 
-class TestBaseProviderImplementation(unittest.TestCase):
+class TestBaseProviderImplementation(TestCase):
     """Test the BaseProvider implementation."""
 
     def setUp(self):
@@ -43,3 +44,24 @@ class TestBaseProviderImplementation(unittest.TestCase):
         """Test BaseProvider version handling."""
         provider = MockProvider(self.temp_dir)
         self.assertEqual(str(provider.version), "0")
+
+    def test_base_provider_check_acceptance_edge_cases(self):
+        """Test all edge cases for the check_acceptance method."""
+
+
+        # Test all combinations of acceptance
+        provider = StaticProvider(self.temp_dir)
+        for accepted_eula in [True, False]:
+            for accepted_terms in [True, False]:
+                for accepted_privacy in [True, False]:
+                    if accepted_eula and accepted_terms and accepted_privacy:
+                        self.assertTrue(provider.check_acceptance(accepted_eula, accepted_terms, accepted_privacy))
+                    else:
+                        self.assertFalse(provider.check_acceptance(accepted_eula, accepted_terms, accepted_privacy))
+
+        # Test when requires_acceptance is False
+        provider = StaticProvider(self.temp_dir, requires_acceptance=False)
+        for accepted_eula in [True, False]:
+            for accepted_terms in [True, False]:
+                for accepted_privacy in [True, False]:
+                    self.assertTrue(provider.check_acceptance(accepted_eula, accepted_terms, accepted_privacy))

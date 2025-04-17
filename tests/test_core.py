@@ -9,9 +9,9 @@ from unittest import mock
 from datetime import timedelta
 from packaging.version import Version
 
+from netvelocimeter.core import register_provider
 from netvelocimeter import NetVelocimeter, get_provider
-from netvelocimeter.providers.base import MeasurementResult
-
+from netvelocimeter.providers.base import MeasurementResult, BaseProvider
 
 class TestNetVelocimeter(unittest.TestCase):
     """Tests for NetVelocimeter class."""
@@ -33,6 +33,18 @@ class TestNetVelocimeter(unittest.TestCase):
         """Test getting an invalid provider."""
         with self.assertRaises(ValueError):
             get_provider("nonexistent")
+
+    def test_register_custom_provider(self):
+        """Test registering a custom provider."""
+        # Create a mock provider class
+        mock_provider = mock.MagicMock(spec=BaseProvider)
+
+        # Register it with a new name
+        register_provider("custom_test", mock_provider)
+
+        # Verify it can be retrieved
+        retrieved = get_provider("custom_test")
+        assert retrieved == mock_provider
 
     def test_initialize_with_binary_dir(self):
         """Test initializing with a binary directory."""

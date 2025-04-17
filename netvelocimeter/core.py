@@ -123,11 +123,15 @@ class NetVelocimeter:
         Measure network performance using the configured provider.
 
         Args:
-            server_id: Server ID to use for testing (either integer or string)
-            server_host: Server hostname to use for testing
+            server_id: Server ID (integer or string) for test
+            server_host: Server hostname for test
 
         Returns:
             Measurement results
+
+        Raises:
+            LegalAcceptanceError: If legal requirements are not accepted
+            ValueError: If both server_id and server_host are provided
         """
         if not self.check_legal_requirements():
             legal = self.get_legal_requirements()
@@ -137,5 +141,6 @@ class NetVelocimeter:
                 f"Terms of Service: {legal.terms_url}\n"
                 f"Privacy Policy: {legal.privacy_url}"
             )
-
+        if server_id is not None and server_host is not None:
+            raise ValueError("Only one of server_id or server_host should be provided.")
         return self.provider.measure(server_id=server_id, server_host=server_host)
