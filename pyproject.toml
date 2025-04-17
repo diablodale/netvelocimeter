@@ -1,37 +1,59 @@
+[build-system]
+requires = ["hatchling >= 1.27"]
+build-backend = "hatchling.build"
+
 [project]
 name = "netvelocimeter"
-version = "0.1.0"
+version = "0.1.0" # TODO change to build git driven
 description = "A library for measuring network performance metrics"
+keywords = ["network", "performance", "metrics", "monitoring", "speedtest"]
 authors = [
     {name = "Dale Phurrough", email = "dale@hidale.com"},
 ]
-readme = "README.md"
-requires-python = ">=3.7"
-dependencies = [
-    "packaging>=21.0",
+maintainers = [
+    {name = "Dale Phurrough", email = "dale@hidale.com"},
 ]
+license = "Apache-2.0"
+license-files = ["LICEN[CS]E.*"]
+readme = "README.md"
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+
     "Topic :: System :: Networking",
     "Topic :: System :: Monitoring",
 ]
+requires-python = ">=3.9"
+dependencies = [
+    "packaging>=21.0",
+]
 
 [project.urls]
-"Homepage" = "https://github.com/diablodale/netvelocimeter"
-"Bug Tracker" = "https://github.com/diablodale/netvelocimeter/issues"
+homepage = "https://github.com/diablodale/netvelocimeter"
+documentation = "https://github.com/diablodale/netvelocimeter/README.md"
+source = "https://github.com/diablodale/netvelocimeter"
+issues = "https://github.com/diablodale/netvelocimeter/issues"
+changelog = "https://github.com/diablodale/pinentry-wsl-ps1/commits/main/"
 
 [project.optional-dependencies]
-dev-requirements = {file = "dev-requirements.txt"}
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "isort>=5.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.9.0",
+    "twine>=4.0.0",
+    "build>=0.7.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["netvelocimeter"]
