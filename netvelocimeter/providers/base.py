@@ -156,7 +156,7 @@ class BaseProvider(ABC):
         """
         raise NotImplementedError("This provider does not support listing servers")
 
-    def get_version(self) -> str:
+    def get_version(self) -> Version:
         """
         Get the version of the provider tool.
 

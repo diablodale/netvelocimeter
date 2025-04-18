@@ -4,13 +4,13 @@ A Python library for measuring network performance metrics like bandwidth, laten
 
 ## Installation
 
-```bash
-pip install netvelocimeter
-```
+Use the [development setup](#setting-up-for-development). This is a work in progress and not yet ready for production use.
+
+Eventually, I will publish to [PyPI](https://pypi.org/) and you will `pip install netvelocimeter`
 
 ## Features
 
-<img src="netvelocimeter/assets/icons/netvelocimeter-128.png" alt="NetVelocimeter" width="128" height="128" style="float: right"/>
+<img align="right" src="netvelocimeter/assets/icons/netvelocimeter-128.png" alt="NetVelocimeter" width="128" height="128"/>
 
 - Measure download speed, upload speed, latency, and jitter
 - Support for multiple network speed test providers
@@ -106,7 +106,7 @@ nv = NetVelocimeter(binary_dir="/path/to/custom/directory")
 
 ## Supported Providers
 
-- **Ookla/Speedtest.net**: Uses the official Ookla CLI tool
+- **Ookla Speedtest.net**: uses the official Ookla Speedtest CLI tool
 
 ## Example with Error Handling
 
@@ -149,7 +149,7 @@ except Exception as e:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/netvelocimeter.git
+   git clone https://github.com/diablodale/netvelocimeter.git
    cd netvelocimeter
    ```
 
@@ -163,7 +163,7 @@ except Exception as e:
 
    - On Windows:
 
-     ```bash
+     ```bat
      venv\Scripts\activate
      ```
 
@@ -237,28 +237,28 @@ def test_download_real_binary():
 
 This project uses:
 
-- Black for code formatting
-- Flake8 for linting
+- ~~Black for code formatting~~ tbd
+- ~~Flake8 for linting~~ tbd
 - mypy for type checking
 
 Run the formatters and linters:
 
 ```bash
-black netvelocimeter tests
-flake8 netvelocimeter tests
+# black netvelocimeter tests
+# flake8 netvelocimeter tests
 mypy netvelocimeter
 ```
 
 ### Documentation
 
-Documentation is built with Sphinx. To build the docs:
+~~Documentation is built with Sphinx. To build the docs:~~~~
 
 ```bash
-cd docs
-make html
+# cd docs
+# make html
 ```
 
-Then open `docs/_build/html/index.html` in your browser.
+~~Then open `docs/_build/html/index.html` in your browser.~~
 
 ### Creating a New Provider
 
@@ -285,7 +285,7 @@ python -m twine upload dist/*
 
 ### Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! 😀👍🍰 Please follow these steps:
 
 1. Fork the repository
 2. Create a new branch for your feature or bug fix

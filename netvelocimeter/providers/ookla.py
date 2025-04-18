@@ -157,7 +157,7 @@ class OoklaProvider(BaseProvider):
                 pass
         return Version("0")
 
-    def _run_speedtest(self, args: List[str] = None) -> Dict:
+    def _run_speedtest(self, args: Optional[List[str]] = None) -> Dict:
         """
         Run the speedtest binary with the given arguments.
 
@@ -223,40 +223,45 @@ class OoklaProvider(BaseProvider):
         Returns:
             MeasurementResult with the test results.
         """
-        args = []
+        run_args: List[str] = []
         if server_id is not None:
-            args.extend(["--server-id", str(server_id)])
+            run_args.extend(["--server-id", str(server_id)])
         elif server_host is not None:
-            args.extend(["--host", server_host])
+            run_args.extend(["--host", server_host])
 
-        result = self._run_speedtest(args)
+        result = self._run_speedtest(run_args)
 
-        # Extract server information or throw exception if not found
-        server_data = result.get("server")
-        server_info = ServerInfo(
+        # Extract server information - ensure it exists
+        server_data = result.get("server", None)
+        server_info = None if not server_data else ServerInfo(
             id=server_data.get("id"),
             name=server_data.get("name"),
-            location=server_data.get("location"),
-            country=server_data.get("country"),
-            host=server_data.get("host"),
+            location=server_data.get("location", None),
+            country=server_data.get("country", None),
+            host=server_data.get("host", None),
             raw_server=server_data
         )
 
+        # Get download/upload data with null safety
+        download_data = result.get("download", {})
+        upload_data = result.get("upload", {})
+
         # Convert bytes/s to Mbps (megabits per second)
-        download_mbps = result.get("download").get("bandwidth") * 8 / 1_000_000
-        upload_mbps = result.get("upload").get("bandwidth") * 8 / 1_000_000
+        download_mbps = download_data.get("bandwidth") * 8 / 1_000_000
+        upload_mbps = upload_data.get("bandwidth") * 8 / 1_000_000
 
         # Extract download and upload latency
-        download_latency_ms = result.get("download").get("latency").get("iqm")
-        upload_latency_ms = result.get("upload").get("latency").get("iqm")
+        download_latency_ms = download_data.get("latency", {}).get("iqm", None)
+        upload_latency_ms = upload_data.get("latency", {}).get("iqm", None)
 
         # Extract ping metrics
-        ping_latency_ms = result.get("ping").get("latency")
-        ping_jitter_ms = result.get("ping").get("jitter")
+        ping_latency_ms = result.get("ping", {}).get("latency", None)
+        ping_jitter_ms = result.get("ping", {}).get("jitter", None)
 
         # Extract result ID and persist URL if available
-        result_id = result.get("result", {}).get("id", None)
-        persist_url = result.get("result", {}).get("url", None) if result.get("result", {}).get("persisted", False) else None
+        result_data = result.get("result", {})
+        result_id = result_data.get("id", None)
+        persist_url = result_data.get("url", None) if result_data.get("persisted", False) else None
 
         # Convert to timedeltas
         return MeasurementResult(
