@@ -57,18 +57,18 @@ class MeasurementResult:
             parts.append(f"Download: {self.download_speed:.2f} Mbps")
         if self.upload_speed is not None:
             parts.append(f"Upload: {self.upload_speed:.2f} Mbps")
-        if self.ping_latency is not None:
-            latency_ms = self.ping_latency.total_seconds() * 1000
-            parts.append(f"Ping Latency: {latency_ms:.2f} ms")
-        if self.ping_jitter is not None:
-            jitter_ms = self.ping_jitter.total_seconds() * 1000
-            parts.append(f"Ping Jitter: {jitter_ms:.2f} ms")
         if self.download_latency is not None:
             dl_latency_ms = self.download_latency.total_seconds() * 1000
             parts.append(f"Download Latency: {dl_latency_ms:.2f} ms")
         if self.upload_latency is not None:
             ul_latency_ms = self.upload_latency.total_seconds() * 1000
             parts.append(f"Upload Latency: {ul_latency_ms:.2f} ms")
+        if self.ping_latency is not None:
+            latency_ms = self.ping_latency.total_seconds() * 1000
+            parts.append(f"Ping Latency: {latency_ms:.2f} ms")
+        if self.ping_jitter is not None:
+            jitter_ms = self.ping_jitter.total_seconds() * 1000
+            parts.append(f"Ping Jitter: {jitter_ms:.2f} ms")
         if self.packet_loss is not None:
             parts.append(f"Packet Loss: {self.packet_loss:.2f}%")
 

@@ -539,3 +539,50 @@ class TestNetworkHandling(unittest.TestCase):
         with self.assertRaises(urllib.error.URLError):
             with mock.patch.object(OoklaProvider, '_get_version', return_value=Version("1.0.0")):
                 provider = OoklaProvider(self.temp_dir)
+
+class TestOoklaRealMeasurement(unittest.TestCase):
+    """Test real Ookla measurement."""
+
+    def setUp(self):
+        """Set up a clean test directory."""
+        # Create a fresh temporary directory for each test
+        self.temp_dir = tempfile.mkdtemp(prefix="ookla_test_")
+
+    def tearDown(self):
+        """Clean up test directory."""
+        shutil.rmtree(self.temp_dir)
+
+    @pytest.mark.expensive
+    def test_real_measurement(self):
+        """Test real Ookla measurement."""
+        # Create a provider which will download the real binary for the current platform
+        provider = OoklaProvider(self.temp_dir)
+
+        # Set up acceptance flags
+        provider._accepted_eula = True
+        provider._accepted_terms = True
+        provider._accepted_privacy = True
+
+        # Run a real speed test
+        result = provider.measure()
+
+        # Check if the result is valid
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result.download_speed, (int, float))
+        self.assertIsInstance(result.upload_speed, (int, float))
+        self.assertIsInstance(result.ping_latency, timedelta)
+        self.assertIsInstance(result.ping_jitter, timedelta)
+        self.assertIsInstance(result.download_latency, timedelta)
+        self.assertIsInstance(result.upload_latency, timedelta)
+        self.assertIsInstance(result.packet_loss, (int, float))
+        self.assertIsNotNone(result.server_info)
+        self.assertIsNotNone(result.raw_result)
+        self.assertGreater(result.download_speed, 0)
+        self.assertGreater(result.upload_speed, 0)
+        self.assertGreater(result.ping_latency.total_seconds(), 0)
+        self.assertGreater(result.ping_jitter.total_seconds(), 0)
+        self.assertGreater(result.download_latency.total_seconds(), 0)
+        self.assertGreater(result.upload_latency.total_seconds(), 0)
+        self.assertGreaterEqual(result.packet_loss, 0)
+
+        print(result)
