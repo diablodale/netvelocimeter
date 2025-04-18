@@ -38,6 +38,8 @@ print(f"Upload: {result.upload_speed:.2f} Mbps")
 print(f"Latency: {result.ping_latency.total_seconds() * 1000:.2f} ms")
 print(f"Jitter: {result.ping_jitter.total_seconds() * 1000:.2f} ms")
 print(f"Packet Loss: {result.packet_loss if result.packet_loss is not None else 'N/A'}")
+if result.id:
+    print(f"Measurement ID: {result.id}")
 if result.persist_url:
     print(f"View results online: {result.persist_url}")
 ```
@@ -123,11 +125,14 @@ try:
 
     result = nv.measure()
 
+    print(f"Measurement ID: {result.id if result.id else 'N/A'}")
     print(f"Download: {result.download_speed:.2f} Mbps")
     print(f"Upload: {result.upload_speed:.2f} Mbps")
     print(f"Latency: {result.ping_latency.total_seconds() * 1000:.2f} ms")
     print(f"Jitter: {result.ping_jitter.total_seconds() * 1000:.2f} ms")
     print(f"Packet Loss: {result.packet_loss if result.packet_loss is not None else 'N/A'}")
+    if result.id:
+        print(f"Measurement ID: {result.id}")
     if result.persist_url:
         print(f"View results online: {result.persist_url}")
 

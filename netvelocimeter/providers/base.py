@@ -47,6 +47,7 @@ class MeasurementResult:
     packet_loss: Optional[float] = None          # as percentage
     server_info: Optional[ServerInfo] = None     # server details
     persist_url: Optional[str] = None            # URL to view test results
+    id: Optional[str] = None                     # Provider-assigned measurement ID
     raw_result: Optional[Dict] = None            # raw provider result
 
     def __str__(self) -> str:
@@ -72,6 +73,8 @@ class MeasurementResult:
             parts.append(f"Ping Jitter: {jitter_ms:.2f} ms")
         if self.packet_loss is not None:
             parts.append(f"Packet Loss: {self.packet_loss:.2f}%")
+        if self.id is not None:
+            parts.append(f"ID: {self.id}")
         if self.persist_url is not None:
             parts.append(f"URL: {self.persist_url}")
 

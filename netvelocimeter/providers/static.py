@@ -118,6 +118,8 @@ class StaticProvider(BaseProvider):
 
         # Return a test measurement result
         # generate a server info (1) for id or host or fallback to 1
+        server_num = server_id or (1 if not server_host else server_host[4:5])
+
         return MeasurementResult(
             download_speed=self._download_speed,
             upload_speed=self._upload_speed,
@@ -126,8 +128,9 @@ class StaticProvider(BaseProvider):
             ping_latency=self._ping_latency,
             ping_jitter=self._ping_jitter,
             packet_loss=self._packet_loss,
-            server_info=self._generate_server_info(server_id or (1 if not server_host else server_host[4:5])),
+            server_info=self._generate_server_info(server_num),
             persist_url="https://example.com/results/static-test-1234",
+            id=f"static-test-{server_num}-{hash(self)}"
         )
 
 # Register this provider

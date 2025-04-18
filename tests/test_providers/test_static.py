@@ -132,6 +132,10 @@ class TestStaticProvider(unittest.TestCase):
         # Check the persist_url field
         self.assertEqual(result.persist_url, "https://example.com/results/static-test-1234")
 
+        # Check the id field format
+        self.assertIsNotNone(result.id)
+        self.assertTrue(result.id.startswith("static-test-1-"))
+
     def test_measure_with_server_id(self):
         """Test measurement with specific server ID."""
         provider = StaticProvider(self.temp_dir)
