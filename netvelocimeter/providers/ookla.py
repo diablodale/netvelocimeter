@@ -254,6 +254,9 @@ class OoklaProvider(BaseProvider):
         ping_latency_ms = result.get("ping").get("latency")
         ping_jitter_ms = result.get("ping").get("jitter")
 
+        # Extract persist URL
+        persist_url = result.get("result", {}).get("url", None) if result.get("result", {}).get("persisted", False) else None
+
         # Convert to timedeltas
         return MeasurementResult(
             download_speed=download_mbps,
@@ -264,7 +267,8 @@ class OoklaProvider(BaseProvider):
             ping_jitter=timedelta(milliseconds=ping_jitter_ms),
             packet_loss=result.get("packetLoss"),
             server_info=server_info,
-            raw_result=result
+            persist_url=persist_url,
+            raw_result=result,
         )
 
 

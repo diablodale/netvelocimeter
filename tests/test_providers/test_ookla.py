@@ -316,6 +316,9 @@ class TestOoklaProvider(unittest.TestCase):
             # Verify raw result was stored
             self.assertEqual(result.raw_result, sample_data)
 
+            # Update verification for the persist URL
+            self.assertEqual(result.persist_url, "https://www.speedtest.net/result/c/c37d62b5-52ab-5252-bc06-db205451a1e5")
+
     @mock.patch('subprocess.run')
     def test_error_handling(self, mock_run):
         """Test handling of non-acceptance related errors."""
@@ -333,6 +336,29 @@ class TestOoklaProvider(unittest.TestCase):
             self.provider._run_speedtest()
 
         self.assertIn("Speedtest failed", str(context.exception))
+
+    @mock.patch('subprocess.run')
+    def test_measure_without_persist_url(self, mock_run):
+        """Test measurement without a persist URL in the result."""
+        self.provider._accepted_eula = True
+        self.provider._accepted_terms = True
+        self.provider._accepted_privacy = True
+
+        # Mock response without the result.url field
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = json.dumps({
+            "download": {"bandwidth": 12500000, "latency": {"iqm": 42.985}},
+            "upload": {"bandwidth": 2500000, "latency": {"iqm": 178.546}},
+            "ping": {"latency": 15.5, "jitter": 3.2},
+            "server": {"id": "1234", "name": "Test Server"}
+        })
+        mock_run.return_value = mock_process
+
+        result = self.provider.measure()
+
+        # The persist_url should be None
+        self.assertIsNone(result.persist_url)
 
 class TestOoklaProviderVersionParsing(unittest.TestCase):
     """Separate test class for version parsing functionality."""

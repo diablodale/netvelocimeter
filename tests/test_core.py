@@ -83,7 +83,8 @@ class TestMeasurementResult(unittest.TestCase):
             upload_speed=20.25,
             ping_latency=timedelta(milliseconds=15.75),
             ping_jitter=timedelta(milliseconds=3.5),
-            packet_loss=0.1
+            packet_loss=0.1,
+            persist_url="https://example.com/results/1234",
         )
 
         str_result = str(result)
@@ -93,3 +94,4 @@ class TestMeasurementResult(unittest.TestCase):
         self.assertIn("Ping Latency: 15.75 ms", str_result)
         self.assertIn("Ping Jitter: 3.50 ms", str_result)
         self.assertIn("Packet Loss: 0.10%", str_result)
+        self.assertIn("URL: https://example.com/results/1234", str_result)

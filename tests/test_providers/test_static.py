@@ -129,6 +129,9 @@ class TestStaticProvider(unittest.TestCase):
         self.assertEqual(result.server_info.id, 1)
         self.assertEqual(result.server_info.name, "Test Server 1")
 
+        # Check the persist_url field
+        self.assertEqual(result.persist_url, "https://example.com/results/static-test-1234")
+
     def test_measure_with_server_id(self):
         """Test measurement with specific server ID."""
         provider = StaticProvider(self.temp_dir)
