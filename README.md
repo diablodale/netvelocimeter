@@ -77,7 +77,7 @@ nv = NetVelocimeter(
 
 servers = nv.get_servers()
 for server in servers:
-    print(f"Server {server.id}: {server.name} in {server.location} {server.country}")
+    print(f"Server {server.name} in {server.location or 'unknown location'}")
 
 # Run test with a specific server
 result = nv.measure(server_id=12345)  # By server ID

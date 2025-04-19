@@ -202,8 +202,8 @@ class OoklaProvider(BaseProvider):
         servers = []
         for server in result.get("servers", []):
             servers.append(ServerInfo(
+                name=server.get("name"), # BUGBUG do not allow unknown names
                 id=server.get("id"),
-                name=server.get("name"),
                 location=server.get("location"),
                 country=server.get("country"),
                 host=server.get("host"),
@@ -232,13 +232,15 @@ class OoklaProvider(BaseProvider):
         result = self._run_speedtest(run_args)
 
         # Extract server information - ensure it exists
-        server_data = result.get("server", None)
-        server_info = None if not server_data else ServerInfo(
+        server_data = result.get("server", {})
+        if not server_data:
+            raise ValueError("No server information found in speedtest results")
+        server_info = ServerInfo(
+            name=server_data.get("name"), # BUGBUG do not allow unknown names
             id=server_data.get("id"),
-            name=server_data.get("name"),
-            location=server_data.get("location", None),
-            country=server_data.get("country", None),
-            host=server_data.get("host", None),
+            location=server_data.get("location"),
+            country=server_data.get("country"),
+            host=server_data.get("host"),
             raw_server=server_data
         )
 

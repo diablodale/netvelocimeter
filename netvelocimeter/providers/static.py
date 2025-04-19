@@ -91,13 +91,13 @@ class StaticProvider(BaseProvider):
             requires_acceptance=self._requires_acceptance
         )
 
-    def _generate_server_info(self, server_id: Union[int, str]) -> ServerInfo:
-        """Generate server info based on server ID."""
+    def _generate_server_info(self, server_num: int) -> ServerInfo:
+        """Generate a test server info object with the given server number."""
         return ServerInfo(
-            id=server_id,
-            name=f"Test Server {server_id}",
-            host=f"test{server_id}.example.com",
-            location="Test Location {server_id}",
+            name=f"Test Server {server_num}",
+            id=server_num,
+            host=f"test{server_num}.example.com",
+            location=f"Test Location {server_num}",
             country="Test Country"
         )
 
@@ -118,7 +118,7 @@ class StaticProvider(BaseProvider):
 
         # Return a test measurement result
         # generate a server info (1) for id or host or fallback to 1
-        server_num = server_id or (1 if not server_host else server_host[4:5])
+        server_num = server_id or (1 if not server_host else int(server_host[4:5]))
 
         return MeasurementResult(
             download_speed=self._download_speed,

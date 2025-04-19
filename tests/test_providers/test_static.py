@@ -95,6 +95,10 @@ class TestStaticProvider(unittest.TestCase):
 
         # Should have 5 test servers
         self.assertEqual(len(servers), 5)
+        for server in servers:
+            self.assertIsInstance(server, ServerInfo)
+            self.assertIsInstance(server.name, str)
+            self.assertIsInstance(server.id, int)
 
         # Check first and last servers
         self.assertEqual(servers[0].id, 1)
@@ -126,8 +130,8 @@ class TestStaticProvider(unittest.TestCase):
         self.assertEqual(result.packet_loss, 1.2)
 
         # Check default server info (should use server 1)
-        self.assertEqual(result.server_info.id, 1)
         self.assertEqual(result.server_info.name, "Test Server 1")
+        self.assertEqual(result.server_info.id, 1)
 
         # Check the persist_url field
         self.assertEqual(result.persist_url, "https://example.com/results/static-test-1234")
@@ -159,6 +163,7 @@ class TestStaticProvider(unittest.TestCase):
         # Test with valid server host
         result = provider.measure(server_host="test4.example.com")
         self.assertEqual(result.server_info.host, "test4.example.com")
+        self.assertEqual(result.server_info.id, 4)
 
         # Test with invalid server host (should raise ValueError)
         with self.assertRaises(ValueError):

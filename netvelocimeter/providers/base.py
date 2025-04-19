@@ -11,7 +11,17 @@ from packaging.version import Version
 
 @dataclass
 class ProviderLegalRequirements:
-    """Defines legal requirements for a network provider."""
+    """Defines legal requirements for a network provider.
+
+    Attributes:
+        eula_text: Text of the End User License Agreement (EULA).
+        eula_url: URL to the EULA.
+        terms_text: Text of the Terms of Service.
+        terms_url: URL to the Terms of Service.
+        privacy_text: Text of the Privacy Policy.
+        privacy_url: URL to the Privacy Policy.
+        requires_acceptance: Whether acceptance of legal documents is required.
+    """
 
     eula_text: Optional[str] = None
     eula_url: Optional[str] = None
@@ -24,37 +34,82 @@ class ProviderLegalRequirements:
 
 @dataclass
 class ServerInfo:
-    """Information about a speed test server."""
+    """Information about a speed test server.
 
-    id: Union[int, str]
+    Attributes:
+        name: Descriptive name of the server.
+        id: Server ID (can be int or str).
+        location: Location name of the server.
+        country: Country name of the server.
+        host: Hostname or IP address of the server.
+        raw_server: Raw provider-specific server data.
+    """
+
     name: str
+    id: Optional[Union[int, str]] = None
     location: Optional[str] = None
     country: Optional[str] = None
     host: Optional[str] = None
-    raw_server: Optional[Dict] = None  # Raw provider-specific server data
+    raw_server: Optional[Dict] = None
 
+    def __post_init__(self):
+        """require name to be set"""
+        if not self.name:
+            raise ValueError("Name cannot be empty")
+
+    def __str__(self) -> str:
+        """Return a string representation of the server info."""
+        parts = []
+        if self.id is None:
+            parts.append(f"Server: {self.name}")
+        else:
+            parts.append(f"Server: {self.name} ({self.id})")
+        if self.location:
+            parts.append(f"Location: {self.location}")
+        if self.country:
+            parts.append(f"Country: {self.country}")
+        if self.host:
+            parts.append(f"Host: {self.host}")
+        return ", ".join(parts)
 
 @dataclass
 class MeasurementResult:
-    """Result of a network measurement."""
+    """Result of a network measurement.
+
+    Attributes:
+        download_speed: Download speed in Mbps (megabits per second).
+        upload_speed: Upload speed in Mbps.
+        download_latency: Download latency as timedelta.
+        upload_latency: Upload latency as timedelta.
+        ping_latency: Ping latency as timedelta.
+        ping_jitter: Ping jitter as timedelta.
+        packet_loss: Packet loss percentage.
+        server_info: Information about the server used for testing.
+        persist_url: URL to view test results.
+        id: Provider-assigned measurement ID.
+        raw_result: Raw provider result data.
+    """
 
     download_speed: float  # in Mbps
     upload_speed: float    # in Mbps
-    download_latency: Optional[timedelta] = None # as timedelta
-    upload_latency: Optional[timedelta] = None   # as timedelta
-    ping_latency: Optional[timedelta] = None     # as timedelta
-    ping_jitter: Optional[timedelta] = None      # as timedelta
-    packet_loss: Optional[float] = None          # as percentage
-    server_info: Optional[ServerInfo] = None     # server details
-    persist_url: Optional[str] = None            # URL to view test results
-    id: Optional[str] = None                     # Provider-assigned measurement ID
-    raw_result: Optional[Dict] = None            # raw provider result
+    download_latency: Optional[timedelta] = None
+    upload_latency: Optional[timedelta] = None
+    ping_latency: Optional[timedelta] = None
+    ping_jitter: Optional[timedelta] = None
+    packet_loss: Optional[float] = None
+    server_info: Optional[ServerInfo] = None
+    persist_url: Optional[str] = None
+    id: Optional[str] = None
+    raw_result: Optional[Dict] = None
+
+    def __post_init__(self):
+        """Ensure download and upload speeds are set."""
+        if self.download_speed is None or self.upload_speed is None:
+            raise ValueError("Download and upload speeds must be provided")
 
     def __str__(self) -> str:
         """Return a string representation of the measurement result."""
         parts = []
-        if self.server_info:
-            parts.append(f"Server: {self.server_info.name} ({self.server_info.id})")
         if self.download_speed is not None:
             parts.append(f"Download: {self.download_speed:.2f} Mbps")
         if self.upload_speed is not None:
@@ -77,6 +132,8 @@ class MeasurementResult:
             parts.append(f"ID: {self.id}")
         if self.persist_url is not None:
             parts.append(f"URL: {self.persist_url}")
+        if self.server_info:
+            parts.append(str(self.server_info))
 
         return ", ".join(parts)
 

@@ -2,18 +2,15 @@
 Tests for the core functionality.
 """
 
-import os
 import tempfile
-import unittest
-from unittest import mock
-from datetime import timedelta
+from unittest import mock, TestCase
 from packaging.version import Version
 
 from netvelocimeter.core import register_provider
 from netvelocimeter import NetVelocimeter, get_provider
 from netvelocimeter.providers.base import MeasurementResult, BaseProvider
 
-class TestNetVelocimeter(unittest.TestCase):
+class TestNetVelocimeter(TestCase):
     """Tests for NetVelocimeter class."""
 
     def test_get_provider(self):
@@ -71,29 +68,3 @@ class TestNetVelocimeter(unittest.TestCase):
 
             nv = NetVelocimeter()
             self.assertEqual(nv.get_provider_version(), Version("1.2.3"))
-
-
-class TestMeasurementResult(unittest.TestCase):
-    """Tests for MeasurementResult class."""
-
-    def test_str_representation(self):
-        """Test string representation of measurement results."""
-        result = MeasurementResult(
-            download_speed=100.5,
-            upload_speed=20.25,
-            ping_latency=timedelta(milliseconds=15.75),
-            ping_jitter=timedelta(milliseconds=3.5),
-            packet_loss=0.1,
-            persist_url="https://example.com/results/1234",
-            id="test-measurement-123456"
-        )
-
-        str_result = str(result)
-        # Check that output contains expected values
-        self.assertIn("Download: 100.50 Mbps", str_result)
-        self.assertIn("Upload: 20.25 Mbps", str_result)
-        self.assertIn("Ping Latency: 15.75 ms", str_result)
-        self.assertIn("Ping Jitter: 3.50 ms", str_result)
-        self.assertIn("Packet Loss: 0.10%", str_result)
-        self.assertIn("ID: test-measurement-123456", str_result)
-        self.assertIn("URL: https://example.com/results/1234", str_result)

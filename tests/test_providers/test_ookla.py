@@ -13,6 +13,7 @@ from unittest import mock
 from datetime import timedelta
 from packaging.version import Version
 
+from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.ookla import OoklaProvider
 from netvelocimeter.exceptions import LegalAcceptanceError
 
@@ -117,14 +118,13 @@ class TestOoklaProvider(unittest.TestCase):
         mock_process.stdout = json.dumps({
             "servers": [
                 {
-                    "id": "1",
                     "name": "Server 1",
+                    "id": "1",
                     "location": "Location 1",
                     "country": "Country 1",
                     "host": "server1.example.com"
                 },
                 {
-                    "id": "2",
                     "name": "Server 2",
                     "location": "Location 2",
                     "country": "Country 2",
@@ -141,12 +141,20 @@ class TestOoklaProvider(unittest.TestCase):
         cmd_line = args[0]
         self.assertIn("--servers", cmd_line)
 
+        # Update assertions to account for optional id:
+        for server in servers:
+            self.assertIsInstance(server, ServerInfo)
+            self.assertIsInstance(server.name, str)
+            # Don't assume id is required - it may be None
+            if server.id is not None:
+                self.assertTrue(isinstance(server.id, str) or isinstance(server.id, int))
+
         # Verify server list parsing
         self.assertEqual(len(servers), 2)
         self.assertEqual(servers[0].id, "1")
         self.assertEqual(servers[0].name, "Server 1")
         self.assertEqual(servers[0].host, "server1.example.com")
-        self.assertEqual(servers[1].id, "2")
+        self.assertEqual(servers[1].name, "Server 2")
         self.assertEqual(servers[1].country, "Country 2")
 
     @mock.patch('subprocess.run')
@@ -321,6 +329,12 @@ class TestOoklaProvider(unittest.TestCase):
 
             # Update verification for the measurement ID
             self.assertEqual(result.id, "c37d62b5-52ab-5252-bc06-db205451a1e5")
+
+            # Update assertions if verifying server_info:
+            self.assertEqual(result.server_info.name, "DNS:NET Internet Service GmbH")
+            # If id is expected in the sample, verify it:
+            if "id" in result.server_info.raw_server:
+                self.assertEqual(result.server_info.id, 20507)
 
     @mock.patch('subprocess.run')
     def test_error_handling(self, mock_run):
