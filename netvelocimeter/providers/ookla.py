@@ -7,13 +7,12 @@ import os
 import platform
 import re
 import subprocess
-from typing import Dict, List, Optional, Union
-import shutil
+from typing import Any
 from datetime import timedelta
 from packaging.version import Version, InvalidVersion
 
 from ..core import register_provider
-from .base import BaseProvider, MeasurementResult, ServerInfo, ProviderLegalRequirements
+from .base import BaseProvider, MeasurementResult, ServerInfo, ProviderLegalRequirements, ServerIDType
 from ..exceptions import LegalAcceptanceError
 from ..utils.binary_manager import download_file, ensure_executable, extract_file
 
@@ -157,7 +156,7 @@ class OoklaProvider(BaseProvider):
                 pass
         return Version("0")
 
-    def _run_speedtest(self, args: Optional[List[str]] = None) -> Dict:
+    def _run_speedtest(self, args: list[str] | None = None) -> dict[str, Any]:
         """
         Run the speedtest binary with the given arguments.
 
@@ -190,7 +189,7 @@ class OoklaProvider(BaseProvider):
 
         return json.loads(result.stdout)
 
-    def get_servers(self) -> List[ServerInfo]:
+    def get_servers(self) -> list[ServerInfo]:
         """
         Get a list of available servers.
 
@@ -212,7 +211,7 @@ class OoklaProvider(BaseProvider):
 
         return servers
 
-    def measure(self, server_id: Optional[Union[int, str]] = None, server_host: Optional[str] = None) -> MeasurementResult:
+    def measure(self, server_id: ServerIDType | None = None, server_host: str | None = None) -> MeasurementResult:
         """
         Run a complete speedtest.
 
@@ -223,7 +222,7 @@ class OoklaProvider(BaseProvider):
         Returns:
             MeasurementResult with the test results.
         """
-        run_args: List[str] = []
+        run_args: list[str] = []
         if server_id is not None:
             run_args.extend(["--server-id", str(server_id)])
         elif server_host is not None:

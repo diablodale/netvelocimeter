@@ -8,6 +8,10 @@ Use the [development setup](#setting-up-for-development). This is a work in prog
 
 Eventually, I will publish to [PyPI](https://pypi.org/) and you will `pip install netvelocimeter`
 
+## Requirements
+
+- Python 3.10 or newer
+
 ## Features
 
 <img align="right" src="netvelocimeter/assets/icons/netvelocimeter-128.png" alt="NetVelocimeter" width="128" height="128"/>

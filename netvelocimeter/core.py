@@ -4,17 +4,18 @@ Core functionality for the NetVelocimeter library.
 
 import inspect
 import os
-from typing import Dict, Optional, Type, List, Union, Tuple
+from typing import Type, TypeVar
 from packaging.version import Version
 
-from .providers.base import BaseProvider, ProviderLegalRequirements, MeasurementResult, ServerInfo
+from .providers.base import BaseProvider, ProviderLegalRequirements, MeasurementResult, ServerInfo, ServerIDType
 from .exceptions import LegalAcceptanceError
 
+# Map of provider names to provider classes
+_PROVIDERS: dict[str, Type[BaseProvider]] = {}
 
-_PROVIDERS: Dict[str, Type[BaseProvider]] = {}
+B = TypeVar('B', bound=BaseProvider)
 
-
-def register_provider(name: str, provider_class: Type[BaseProvider]) -> None:
+def register_provider(name: str, provider_class: Type[B]) -> None:
     """
     Register a provider with the library.
 
@@ -73,7 +74,7 @@ def get_provider(name: str) -> Type[BaseProvider]:
     return _PROVIDERS[name]
 
 
-def list_providers(include_info: bool = False) -> Union[List[str], List[Tuple[str, str]]]:
+def list_providers(include_info: bool = False) -> list[str] | list[tuple[str, str]]:
     """
     Get a list of all available providers.
 
@@ -115,7 +116,7 @@ class NetVelocimeter:
     def __init__(
         self,
         provider: str = "ookla",
-        binary_dir: Optional[str] = None,
+        binary_dir: str | None = None,
         accept_eula: bool = False,
         accept_terms: bool = False,
         accept_privacy: bool = False
@@ -171,7 +172,7 @@ class NetVelocimeter:
         """
         return self.provider.legal_requirements
 
-    def get_servers(self) -> List[ServerInfo]:
+    def get_servers(self) -> list[ServerInfo]:
         """
         Get list of available servers.
 
@@ -189,7 +190,7 @@ class NetVelocimeter:
         """
         return self.provider.version
 
-    def measure(self, server_id: Optional[Union[int, str]] = None, server_host: Optional[str] = None) -> MeasurementResult:
+    def measure(self, server_id: ServerIDType | None = None, server_host: str | None = None) -> MeasurementResult:
         """
         Measure network performance using the configured provider.
 
@@ -212,6 +213,6 @@ class NetVelocimeter:
                 f"Terms of Service: {legal.terms_url}\n"
                 f"Privacy Policy: {legal.privacy_url}"
             )
-        if server_id is not None and server_host is not None:
+        if server_id and server_host:
             raise ValueError("Only one of server_id or server_host should be provided.")
         return self.provider.measure(server_id=server_id, server_host=server_host)

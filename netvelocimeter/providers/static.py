@@ -4,27 +4,26 @@ Static provider usually used for testing.
 
 from datetime import timedelta
 from packaging.version import Version
-from typing import Optional, Union
 
 from ..core import register_provider
-from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerInfo, ProviderLegalRequirements
+from .base import BaseProvider, MeasurementResult, ServerInfo, ProviderLegalRequirements, ServerIDType
 
 class StaticProvider(BaseProvider):
     """
-    Cconfigurable test provider that can be used across test cases.
+    Configurable test provider that can be used across test cases.
     All fields default to test values, set any to None to omit them.
-    Six test servers with ids 1 -> 5 are available.
+    Five test servers with ids 1 -> 5 are available.
     """
 
     def __init__(self,
                  binary_dir: str,
                  requires_acceptance: bool = True,
-                 eula_text: Optional[str] = "Test EULA",
-                 eula_url: Optional[str] = "https://example.com/eula",
-                 terms_text: Optional[str] = "Test Terms",
-                 terms_url: Optional[str] = "https://example.com/terms",
-                 privacy_text: Optional[str] = "Test Privacy",
-                 privacy_url: Optional[str] = "https://example.com/privacy",
+                 eula_text: str | None = "Test EULA",
+                 eula_url: str | None = "https://example.com/eula",
+                 terms_text: str | None = "Test Terms",
+                 terms_url: str | None = "https://example.com/terms",
+                 privacy_text: str | None = "Test Privacy",
+                 privacy_url: str | None = "https://example.com/privacy",
                  download_speed: float = 100.0,
                  upload_speed: float = 50.0,
                  download_latency: timedelta = timedelta(milliseconds=30.0),
@@ -48,10 +47,13 @@ class StaticProvider(BaseProvider):
             terms_url: Terms URL (None to omit)
             privacy_text: Privacy text (None to omit)
             privacy_url: Privacy URL (None to omit)
-            download_speed: Download speed to return in test results
-            upload_speed: Upload speed to return in test results
+            download_speed: Download speed to return in test results (Mbps)
+            upload_speed: Upload speed to return in test results (Mbps)
+            download_latency: Download latency to return in test results (ms)
+            upload_latency: Upload latency to return in test results (ms)
             ping_latency: Ping latency to return in test results (ms)
             ping_jitter: Ping jitter to return in test results (ms)
+            packet_loss: Packet loss percentage to return in test results
             version: Provider version string
             accepted_eula: Whether EULA is accepted
             accepted_terms: Whether Terms are accepted
@@ -68,10 +70,10 @@ class StaticProvider(BaseProvider):
         self._privacy_url = privacy_url
         self._download_speed = download_speed
         self._upload_speed = upload_speed
-        self._download_latency: timedelta = download_latency
-        self._upload_latency: timedelta = upload_latency
-        self._ping_latency: timedelta = ping_latency
-        self._ping_jitter: timedelta = ping_jitter
+        self._download_latency = download_latency
+        self._upload_latency = upload_latency
+        self._ping_latency = ping_latency
+        self._ping_jitter = ping_jitter
         self._packet_loss = packet_loss
         self._version = version
         self._accepted_eula = accepted_eula
@@ -101,25 +103,41 @@ class StaticProvider(BaseProvider):
             country="Test Country"
         )
 
-    def get_servers(self):
+    def get_servers(self) -> list[ServerInfo]:
         """Get list of available servers."""
         return [
             self._generate_server_info(i) for i in range(1, 6)
         ]
 
-    def measure(self, server_id=None, server_host=None) -> MeasurementResult:
-        """Measure network speed with the specified parameters."""
-        # check that server_id or server_host is within the list of servers
-        # since it is a static list, then only check that the server_id is an int and between 1 -> 5
-        if server_id and (not isinstance(server_id, int) or not (1 <= server_id <= 5)):
-            raise ValueError("server_id must be an integer between 1 and 6")
-        if server_host and server_host not in [f"test{i}.example.com" for i in range(1, 6)]:
-            raise ValueError("server_host must be a known test server")
+    def measure(self, server_id: ServerIDType | None = None, server_host: str | None = None) -> MeasurementResult:
+        """
+        Measure network speed with the specified parameters.
+
+        Args:
+            server_id: ID of the server to use (1-5)
+            server_host: Hostname of the server to use
+
+        Returns:
+            Measurement results
+
+        Raises:
+            ValueError: If server_id or server_host is invalid
+        """
+        # Check that server_id or server_host is within the list of servers. Either
+        # * server_id can be coerced to an int between 1 -> 5
+        # * server_host is one of the known test servers
+        if server_id:
+            server_num = int(server_id)
+            if not (1 <= server_id <= 5):
+                raise ValueError("server_id must be between 1 and 5")
+        elif server_host:
+            server_num = int(server_host[4:5])
+            if not (1 <= server_num <= 5):
+                raise ValueError("server_host must be testX.example.com where X is between 1 and 5")
+        else:
+            server_num = 1
 
         # Return a test measurement result
-        # generate a server info (1) for id or host or fallback to 1
-        server_num = server_id or (1 if not server_host else int(server_host[4:5]))
-
         return MeasurementResult(
             download_speed=self._download_speed,
             upload_speed=self._upload_speed,

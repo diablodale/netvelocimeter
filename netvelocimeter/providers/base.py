@@ -3,11 +3,13 @@ Base class for all speed test providers.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Dict, List, Optional, Union
 from packaging.version import Version
+from typing import Any
 
+# type alias for server ID
+ServerIDType = int | str
 
 @dataclass
 class ProviderLegalRequirements:
@@ -23,12 +25,12 @@ class ProviderLegalRequirements:
         requires_acceptance: Whether acceptance of legal documents is required.
     """
 
-    eula_text: Optional[str] = None
-    eula_url: Optional[str] = None
-    terms_text: Optional[str] = None
-    terms_url: Optional[str] = None
-    privacy_text: Optional[str] = None
-    privacy_url: Optional[str] = None
+    eula_text: str | None = None
+    eula_url: str | None = None
+    terms_text: str | None = None
+    terms_url: str | None = None
+    privacy_text: str | None = None
+    privacy_url: str | None = None
     requires_acceptance: bool = False
 
 
@@ -46,11 +48,11 @@ class ServerInfo:
     """
 
     name: str
-    id: Optional[Union[int, str]] = None
-    location: Optional[str] = None
-    country: Optional[str] = None
-    host: Optional[str] = None
-    raw_server: Optional[Dict] = None
+    id: ServerIDType | None = None
+    location: str | None = None
+    country: str | None = None
+    host: str | None = None
+    raw_server: dict[str, Any] | None = None
 
     def __post_init__(self):
         """require name to be set"""
@@ -92,15 +94,15 @@ class MeasurementResult:
 
     download_speed: float  # in Mbps
     upload_speed: float    # in Mbps
-    download_latency: Optional[timedelta] = None
-    upload_latency: Optional[timedelta] = None
-    ping_latency: Optional[timedelta] = None
-    ping_jitter: Optional[timedelta] = None
-    packet_loss: Optional[float] = None
-    server_info: Optional[ServerInfo] = None
-    persist_url: Optional[str] = None
-    id: Optional[str] = None
-    raw_result: Optional[Dict] = None
+    download_latency: timedelta | None = None
+    upload_latency: timedelta | None = None
+    ping_latency: timedelta | None = None
+    ping_jitter: timedelta | None = None
+    packet_loss: float | None = None
+    server_info: ServerInfo | None = None
+    persist_url: str | None = None
+    id: str | None = None
+    raw_result: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Ensure download and upload speeds are set."""
@@ -161,7 +163,7 @@ class BaseProvider(ABC):
         return ProviderLegalRequirements(requires_acceptance=False)
 
     @abstractmethod
-    def measure(self, server_id: Optional[Union[int, str]] = None, server_host: Optional[str] = None) -> MeasurementResult:
+    def measure(self, server_id: ServerIDType | None = None, server_host: str | None = None) -> MeasurementResult:
         """
         Measure network performance.
 
@@ -204,7 +206,7 @@ class BaseProvider(ABC):
 
         return True
 
-    def get_servers(self) -> List[ServerInfo]:
+    def get_servers(self) -> list[ServerInfo]:
         """
         Get a list of available servers.
 
