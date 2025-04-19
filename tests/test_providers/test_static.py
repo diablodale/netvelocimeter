@@ -2,15 +2,16 @@
 Tests for the StaticProvider.
 """
 
-import unittest
-import tempfile
-import shutil
 from datetime import timedelta
+import shutil
+import tempfile
+import unittest
+
 from packaging.version import Version
 
 from netvelocimeter import get_provider
+from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.static import StaticProvider
-from netvelocimeter.providers.base import MeasurementResult, ServerInfo
 
 
 class TestStaticProvider(unittest.TestCase):

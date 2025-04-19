@@ -2,13 +2,14 @@
 Tests for the base provider.
 """
 
+from datetime import timedelta
 import shutil
 import tempfile
 from unittest import TestCase
-from datetime import timedelta
 
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerInfo
 from netvelocimeter.providers.static import StaticProvider
+
 
 class MockProvider(BaseProvider):
     """A concrete implementation of BaseProvider for testing."""

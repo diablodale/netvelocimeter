@@ -5,8 +5,9 @@ Base class for all speed test providers.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
-from packaging.version import Version
 from typing import Any
+
+from packaging.version import Version
 
 # type alias for server ID
 ServerIDType = int | str
@@ -54,7 +55,7 @@ class ServerInfo:
     host: str | None = None
     raw_server: dict[str, Any] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """require name to be set"""
         if not self.name:
             raise ValueError("Name cannot be empty")
@@ -104,7 +105,7 @@ class MeasurementResult:
     id: str | None = None
     raw_result: dict[str, Any] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Ensure download and upload speeds are set."""
         if self.download_speed is None or self.upload_speed is None:
             raise ValueError("Download and upload speeds must be provided")

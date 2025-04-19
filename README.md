@@ -21,6 +21,7 @@ Eventually, I will publish to [PyPI](https://pypi.org/) and you will `pip instal
 - Server selection capabilities (auto or manual)
 - Proper handling of legal requirements (EULA, terms, privacy policy)
 - Type-safe time duration handling with `timedelta`
+- Extensible architecture for adding new providers
 
 ## Basic Usage
 
@@ -148,6 +149,11 @@ except Exception as e:
 
 ## Development
 
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen)](https://github.com/pre-commit/pre-commit)
+[![pytest](https://img.shields.io/badge/pytest-enabled-brightgreen)](https://docs.pytest.org/en/latest/)
+[![mypy](https://img.shields.io/badge/mypy-enabled-brightgreen)](http://mypy-lang.org/)
+[![isort](https://img.shields.io/badge/isort-enabled-brightgreen)](https://pycqa.github.io/isort/)
+
 ### Setting Up for Development
 
 1. Clone the repository:
@@ -182,6 +188,12 @@ except Exception as e:
    ```bash
    pip install -e ".[dev]"
    ```
+
+5. Install pre-commit hooks:
+
+   ```bash
+    pre-commit install
+    ```
 
 ### Testing
 

@@ -1,9 +1,9 @@
+from datetime import timedelta
 import unittest
 from unittest import mock
-from datetime import timedelta
 
 from netvelocimeter import NetVelocimeter
-from netvelocimeter.providers.base import ServerInfo, MeasurementResult
+from netvelocimeter.providers.base import MeasurementResult, ServerInfo
 
 
 class TestServerFeatures(unittest.TestCase):

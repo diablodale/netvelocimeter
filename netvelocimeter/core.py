@@ -4,18 +4,25 @@ Core functionality for the NetVelocimeter library.
 
 import inspect
 import os
-from typing import Type, TypeVar
+from typing import TypeVar
+
 from packaging.version import Version
 
-from .providers.base import BaseProvider, ProviderLegalRequirements, MeasurementResult, ServerInfo, ServerIDType
 from .exceptions import LegalAcceptanceError
+from .providers.base import (
+    BaseProvider,
+    MeasurementResult,
+    ProviderLegalRequirements,
+    ServerIDType,
+    ServerInfo,
+)
 
 # Map of provider names to provider classes
-_PROVIDERS: dict[str, Type[BaseProvider]] = {}
+_PROVIDERS: dict[str, type[BaseProvider]] = {}
 
 B = TypeVar('B', bound=BaseProvider)
 
-def register_provider(name: str, provider_class: Type[B]) -> None:
+def register_provider(name: str, provider_class: type[B]) -> None:
     """
     Register a provider with the library.
 
@@ -41,7 +48,7 @@ def register_provider(name: str, provider_class: Type[B]) -> None:
     _PROVIDERS[name.lower()] = provider_class
 
 
-def get_provider(name: str) -> Type[BaseProvider]:
+def get_provider(name: str) -> type[BaseProvider]:
     """
     Get a provider class by name.
 
@@ -106,8 +113,8 @@ def list_providers(include_info: bool = False) -> list[str] | list[tuple[str, st
 
 def _discover_providers() -> None:
     """Automatically discover and register providers."""
-    from .providers import ookla, static
     # Future providers will be imported here
+    from .providers import ookla, static
 
 
 class NetVelocimeter:

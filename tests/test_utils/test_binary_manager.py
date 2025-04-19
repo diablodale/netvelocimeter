@@ -2,19 +2,24 @@
 Tests for binary_manager.py utilities
 """
 
+from io import BytesIO
 import os
 import platform
-import pytest
 import shutil
 import stat
+import tarfile
 import tempfile
 import unittest
-import zipfile
-import tarfile
-from io import BytesIO
 from unittest import mock
+import zipfile
 
-from netvelocimeter.utils.binary_manager import download_file, ensure_executable, extract_file
+import pytest
+
+from netvelocimeter.utils.binary_manager import (
+    download_file,
+    ensure_executable,
+    extract_file,
+)
 
 
 class TestBinaryManager(unittest.TestCase):
@@ -112,7 +117,7 @@ class TestBinaryManager(unittest.TestCase):
         # Verify
         self.assertEqual(extracted_path, os.path.join(self.temp_dir, target_file))
         self.assertTrue(os.path.exists(extracted_path))
-        with open(extracted_path, "r") as f:
+        with open(extracted_path) as f:
             self.assertEqual(f.read(), content)
 
     #@pytest.mark.skipif(platform.system() == "Windows", reason="tarfile with filter not fully compatible on Windows")
@@ -138,7 +143,7 @@ class TestBinaryManager(unittest.TestCase):
         # Verify
         self.assertEqual(extracted_path, os.path.join(self.temp_dir, target_file))
         self.assertTrue(os.path.exists(extracted_path))
-        with open(extracted_path, "r") as f:
+        with open(extracted_path) as f:
             self.assertEqual(f.read(), content)
 
     def test_extract_file_unsupported_format(self):

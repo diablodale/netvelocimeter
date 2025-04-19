@@ -3,10 +3,19 @@ Static provider usually used for testing.
 """
 
 from datetime import timedelta
+import re
+
 from packaging.version import Version
 
 from ..core import register_provider
-from .base import BaseProvider, MeasurementResult, ServerInfo, ProviderLegalRequirements, ServerIDType
+from .base import (
+    BaseProvider,
+    MeasurementResult,
+    ProviderLegalRequirements,
+    ServerIDType,
+    ServerInfo,
+)
+
 
 class StaticProvider(BaseProvider):
     """
@@ -128,12 +137,14 @@ class StaticProvider(BaseProvider):
         # * server_host is one of the known test servers
         if server_id:
             server_num = int(server_id)
-            if not (1 <= server_id <= 5):
+            if not (1 <= server_num <= 5):
                 raise ValueError("server_id must be between 1 and 5")
         elif server_host:
-            server_num = int(server_host[4:5])
-            if not (1 <= server_num <= 5):
+            # Extract server number from host string
+            match = re.match(r"^test([1-5])\.example\.com$", server_host)
+            if not match:
                 raise ValueError("server_host must be testX.example.com where X is between 1 and 5")
+            server_num = int(match.group(1))
         else:
             server_num = 1
 

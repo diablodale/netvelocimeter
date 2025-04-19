@@ -2,19 +2,26 @@
 Ookla Speedtest.net provider implementation.
 """
 
+from datetime import timedelta
 import json
 import os
 import platform
 import re
 import subprocess
 from typing import Any
-from datetime import timedelta
-from packaging.version import Version, InvalidVersion
+
+from packaging.version import InvalidVersion, Version
 
 from ..core import register_provider
-from .base import BaseProvider, MeasurementResult, ServerInfo, ProviderLegalRequirements, ServerIDType
 from ..exceptions import LegalAcceptanceError
 from ..utils.binary_manager import download_file, ensure_executable, extract_file
+from .base import (
+    BaseProvider,
+    MeasurementResult,
+    ProviderLegalRequirements,
+    ServerIDType,
+    ServerInfo,
+)
 
 
 class OoklaProvider(BaseProvider):
@@ -187,7 +194,8 @@ class OoklaProvider(BaseProvider):
                 )
             raise RuntimeError(f"Speedtest failed: {result.stderr}")
 
-        return json.loads(result.stdout)
+        # Use explicit type cast, as JSON requires string keys, and json.loads checks for this
+        return dict[str, Any](json.loads(result.stdout))
 
     def get_servers(self) -> list[ServerInfo]:
         """

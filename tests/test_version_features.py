@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+
 from packaging.version import Version
 
 from netvelocimeter import NetVelocimeter

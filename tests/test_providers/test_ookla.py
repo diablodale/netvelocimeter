@@ -2,20 +2,21 @@
 Tests for the Ookla provider.
 """
 
+from datetime import timedelta
 import json
 import os
 import platform
-import pytest
 import shutil
 import tempfile
 import unittest
 from unittest import mock
-from datetime import timedelta
-from packaging.version import Version
 
+from packaging.version import Version
+import pytest
+
+from netvelocimeter.exceptions import LegalAcceptanceError
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.ookla import OoklaProvider
-from netvelocimeter.exceptions import LegalAcceptanceError
 
 
 class TestOoklaProvider(unittest.TestCase):
@@ -270,7 +271,7 @@ class TestOoklaProvider(unittest.TestCase):
         sample_path = os.path.join(os.path.dirname(__file__), "samples", "ookla.json")
 
         # Load sample data
-        with open(sample_path, "r") as f:
+        with open(sample_path) as f:
             sample_data = json.load(f)
 
         # Mock subprocess.run to return our sample data

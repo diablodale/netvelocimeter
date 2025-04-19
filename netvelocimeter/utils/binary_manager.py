@@ -3,11 +3,12 @@ Utilities for managing binary downloads and execution.
 """
 
 import os
-import stat
 import platform
+import stat
 import tarfile
 import urllib.request
 import zipfile
+
 
 def download_file(url: str, destination: str) -> None:
     """

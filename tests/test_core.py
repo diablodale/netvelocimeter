@@ -3,12 +3,14 @@ Tests for the core functionality.
 """
 
 import tempfile
-from unittest import mock, TestCase
+from unittest import TestCase, mock
+
 from packaging.version import Version
 
-from netvelocimeter.core import register_provider, _PROVIDERS
 from netvelocimeter import NetVelocimeter, get_provider, list_providers
-from netvelocimeter.providers.base import MeasurementResult, BaseProvider
+from netvelocimeter.core import _PROVIDERS, register_provider
+from netvelocimeter.providers.base import BaseProvider, MeasurementResult
+
 
 class TestNetVelocimeter(TestCase):
     """Tests for NetVelocimeter class."""

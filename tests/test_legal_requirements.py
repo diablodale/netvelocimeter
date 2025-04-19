@@ -1,13 +1,12 @@
-import os
+from datetime import timedelta
+import tempfile
 import unittest
 from unittest import mock
-import tempfile
-from datetime import timedelta
 
 from netvelocimeter import NetVelocimeter
 from netvelocimeter.exceptions import LegalAcceptanceError
-from netvelocimeter.providers.base import ProviderLegalRequirements, BaseProvider, MeasurementResult
 from netvelocimeter.providers.static import StaticProvider
+
 
 class TestLegalRequirements(unittest.TestCase):
     """Test legal requirements functionality."""
