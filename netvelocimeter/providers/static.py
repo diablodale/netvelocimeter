@@ -11,7 +11,7 @@ from netvelocimeter.providers.base import BaseProvider, MeasurementResult, Serve
 
 class StaticProvider(BaseProvider):
     """
-    A configurable test provider that can be used across test cases.
+    Cconfigurable test provider that can be used across test cases.
     All fields default to test values, set any to None to omit them.
     Six test servers with ids 1 -> 5 are available.
     """

@@ -7,6 +7,6 @@ such as bandwidth, latency, and ping times using various service providers.
 
 __version__ = "0.1.0"
 
-from .core import NetVelocimeter, get_provider
+from .core import NetVelocimeter, get_provider, list_providers, register_provider
 
-__all__ = ["NetVelocimeter", "get_provider"]
+__all__ = ["NetVelocimeter", "get_provider", "list_providers", "register_provider"]

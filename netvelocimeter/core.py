@@ -4,7 +4,7 @@ Core functionality for the NetVelocimeter library.
 
 import os
 import importlib
-from typing import Dict, Optional, Type, List, Union
+from typing import Dict, Optional, Type, List, Union, Tuple
 from packaging.version import Version
 
 from .providers.base import BaseProvider, ProviderLegalRequirements, MeasurementResult, ServerInfo
@@ -15,12 +15,53 @@ _PROVIDERS: Dict[str, Type[BaseProvider]] = {}
 
 
 def register_provider(name: str, provider_class: Type[BaseProvider]) -> None:
-    """Register a provider with the library."""
+    """
+    Register a provider with the library.
+
+    This function is primarily for internal use and provider developers.
+
+    Args:
+        name: Name to register the provider under
+        provider_class: Provider class to register
+    """
+    if not _PROVIDERS:
+        # Auto-import providers when first needed
+        _discover_providers()
+
+    # validate provider_class
+    if not issubclass(provider_class, BaseProvider):
+        raise ValueError(f"Invalid provider class: {provider_class}. Must be a subclass of BaseProvider.")
+    if name.lower() in _PROVIDERS:
+        raise ValueError(f"Provider '{name}' is already registered.")
+    if not name.isidentifier():
+        raise ValueError(f"Invalid provider name '{name}'. Must be a valid Python identifier.")
+    if not provider_class.__doc__:
+        raise ValueError(f"Provider class '{provider_class.__name__}' must have a docstring.")
     _PROVIDERS[name.lower()] = provider_class
 
 
 def get_provider(name: str) -> Type[BaseProvider]:
-    """Get a provider class by name."""
+    """
+    Get a provider class by name.
+
+    This function allows advanced users to directly access provider classes
+    for customization, extension, or testing purposes.
+
+    Args:
+        name: Name of the provider to retrieve
+
+    Returns:
+        The provider class (not an instance)
+
+    Raises:
+        ValueError: If the requested provider is not found
+
+    Example:
+        # Create a custom provider with specific parameters
+        ProviderClass = get_provider("ookla")
+        custom_provider = ProviderClass(binary_dir="/custom/path",
+                                       custom_option=True)
+    """
     if not _PROVIDERS:
         # Auto-import providers when first needed
         _discover_providers()
@@ -32,9 +73,39 @@ def get_provider(name: str) -> Type[BaseProvider]:
     return _PROVIDERS[name]
 
 
+def list_providers(include_info: bool = False) -> Union[List[str], List[Tuple[str, str]]]:
+    """
+    Get a list of all available providers.
+
+    Args:
+        include_info: If True, returns provider names with their descriptions.
+                     If False, returns just the provider names.
+
+    Returns:
+        Either a list of provider names, or a list of (name, description) tuples
+
+    Examples:
+        # Get just the names
+        providers = list_providers()
+        print(f"Available providers: {', '.join(providers)}")
+
+        # Get names with descriptions
+        for name, description in list_providers(include_info=True):
+            print(f"{name}: {description}")
+    """
+    if not _PROVIDERS:
+        # Auto-import providers when first needed
+        _discover_providers()
+
+    if include_info:
+        return [(name, provider.__doc__.strip().split('\n')[0] if provider.__doc__ else "No description")
+                for name, provider in _PROVIDERS.items()]
+    else:
+        return list(_PROVIDERS.keys())
+
 def _discover_providers() -> None:
     """Automatically discover and register providers."""
-    from .providers import ookla
+    from .providers import ookla, static
     # Future providers will be imported here
 
 
