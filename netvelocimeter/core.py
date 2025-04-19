@@ -2,8 +2,8 @@
 Core functionality for the NetVelocimeter library.
 """
 
+import inspect
 import os
-import importlib
 from typing import Dict, Optional, Type, List, Union, Tuple
 from packaging.version import Version
 
@@ -29,8 +29,8 @@ def register_provider(name: str, provider_class: Type[BaseProvider]) -> None:
         _discover_providers()
 
     # validate provider_class
-    if not issubclass(provider_class, BaseProvider):
-        raise ValueError(f"Invalid provider class: {provider_class}. Must be a subclass of BaseProvider.")
+    if not issubclass(provider_class, BaseProvider) or inspect.isabstract(provider_class):
+        raise ValueError(f"Invalid provider class: {provider_class}. Must be a concrete subclass of BaseProvider.")
     if name.lower() in _PROVIDERS:
         raise ValueError(f"Provider '{name}' is already registered.")
     if not name.isidentifier():
