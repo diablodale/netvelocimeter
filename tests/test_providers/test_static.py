@@ -49,7 +49,6 @@ class TestStaticProvider(unittest.TestCase):
         """Test custom initialization of StaticProvider."""
         provider = StaticProvider(
             binary_dir=self.temp_dir,
-            requires_acceptance=False,
             eula_text="Custom EULA",
             eula_url="https://example.com/custom-eula",
             terms_text=None,  # Test with None value
@@ -74,7 +73,7 @@ class TestStaticProvider(unittest.TestCase):
 
         # Check custom legal requirements
         legal = provider.legal_requirements
-        self.assertFalse(legal.requires_acceptance)
+        self.assertTrue(legal.requires_acceptance)
         self.assertEqual(legal.eula_text, "Custom EULA")
         self.assertEqual(legal.eula_url, "https://example.com/custom-eula")
         self.assertIsNone(legal.terms_text)
@@ -171,7 +170,7 @@ class TestStaticProvider(unittest.TestCase):
     def test_legal_acceptance(self):
         """Test legal acceptance checks."""
         # Provider that requires acceptance
-        provider = StaticProvider(binary_dir=self.temp_dir, requires_acceptance=True)
+        provider = StaticProvider(binary_dir=self.temp_dir)
 
         # Without acceptance should fail
         self.assertFalse(provider.check_acceptance())
@@ -188,7 +187,15 @@ class TestStaticProvider(unittest.TestCase):
         )
 
         # Provider that doesn't require acceptance
-        provider_no_req = StaticProvider(binary_dir=self.temp_dir, requires_acceptance=False)
+        provider_no_req = StaticProvider(
+            binary_dir=self.temp_dir,
+            eula_text=None,
+            eula_url=None,
+            terms_text=None,
+            terms_url=None,
+            privacy_text=None,
+            privacy_url=None,
+        )
 
         # Should pass even without acceptance
         self.assertTrue(provider_no_req.check_acceptance())

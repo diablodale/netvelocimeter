@@ -100,3 +100,16 @@ class TestLegalRequirements(unittest.TestCase):
             binary_dir=self.temp_dir, accept_eula=True, accept_terms=True, accept_privacy=True
         )
         self.assertTrue(nv.check_legal_requirements())
+
+    def test_provider_without_legal_requirements(self):
+        """Test provider with no legal requirements."""
+        provider = StaticProvider(
+            binary_dir=self.temp_dir,
+            eula_text=None,
+            eula_url=None,
+            terms_text=None,
+            terms_url=None,
+            privacy_text=None,
+            privacy_url=None,
+        )
+        self.assertFalse(provider.legal_requirements.requires_acceptance)

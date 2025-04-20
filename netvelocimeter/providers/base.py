@@ -1,7 +1,7 @@
 """Base class for all speed test providers."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
@@ -11,7 +11,7 @@ from packaging.version import Version
 ServerIDType = int | str
 
 
-@dataclass
+@dataclass(frozen=True)
 class ProviderLegalRequirements:
     """Defines legal requirements for a network provider.
 
@@ -23,6 +23,7 @@ class ProviderLegalRequirements:
         privacy_text: Text of the Privacy Policy.
         privacy_url: URL to the Privacy Policy.
         requires_acceptance: Whether acceptance of legal documents is required.
+            Automatically calculated based on whether any legal texts or URLs are provided.
     """
 
     eula_text: str | None = None
@@ -31,7 +32,20 @@ class ProviderLegalRequirements:
     terms_url: str | None = None
     privacy_text: str | None = None
     privacy_url: str | None = None
-    requires_acceptance: bool = False
+    requires_acceptance: bool = field(init=False)
+
+    def __post_init__(self) -> None:
+        """Calculate requires_acceptance based on provided fields."""
+        requires = bool(
+            self.eula_text
+            or self.eula_url
+            or self.terms_text
+            or self.terms_url
+            or self.privacy_text
+            or self.privacy_url
+        )
+        # Use object.__setattr__ since this is a frozen dataclass
+        object.__setattr__(self, "requires_acceptance", requires)
 
 
 @dataclass
@@ -159,8 +173,9 @@ class BaseProvider(ABC):
     @property
     def legal_requirements(self) -> ProviderLegalRequirements:
         """Get legal requirements for this provider."""
-        # Default implementation returns no requirements
-        return ProviderLegalRequirements(requires_acceptance=False)
+        # Default implementation returns an empty requirements object
+        # which will have requires_acceptance=False
+        return ProviderLegalRequirements()
 
     @abstractmethod
     def measure(

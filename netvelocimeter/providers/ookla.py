@@ -97,7 +97,6 @@ class OoklaProvider(BaseProvider):
             "shared, where the data may be transferred and Ookla's contact details, "
             "please see our Privacy Policy.",
             privacy_url="https://www.speedtest.net/about/privacy",
-            requires_acceptance=True,
         )
 
     def _ensure_binary(self) -> str:

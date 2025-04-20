@@ -66,7 +66,15 @@ class TestBaseProviderImplementation(TestCase):
                         )
 
         # Test when requires_acceptance is False
-        provider = StaticProvider(self.temp_dir, requires_acceptance=False)
+        provider = StaticProvider(
+            self.temp_dir,
+            eula_text=None,
+            eula_url=None,
+            terms_text=None,
+            terms_url=None,
+            privacy_text=None,
+            privacy_url=None,
+        )
         for accepted_eula in [True, False]:
             for accepted_terms in [True, False]:
                 for accepted_privacy in [True, False]:

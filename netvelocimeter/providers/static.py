@@ -25,7 +25,6 @@ class StaticProvider(BaseProvider):
     def __init__(
         self,
         binary_dir: str,
-        requires_acceptance: bool = True,
         eula_text: str | None = "Test EULA",
         eula_url: str | None = "https://example.com/eula",
         terms_text: str | None = "Test Terms",
@@ -48,7 +47,6 @@ class StaticProvider(BaseProvider):
 
         Args:
             binary_dir: Directory for binaries
-            requires_acceptance: Whether legal acceptance is required
             eula_text: EULA text (None to omit)
             eula_url: EULA URL (None to omit)
             terms_text: Terms text (None to omit)
@@ -69,7 +67,6 @@ class StaticProvider(BaseProvider):
         """
         super().__init__(binary_dir)
         self.version = Version(version)
-        self._requires_acceptance = requires_acceptance
         self._eula_text = eula_text
         self._eula_url = eula_url
         self._terms_text = terms_text
@@ -98,7 +95,6 @@ class StaticProvider(BaseProvider):
             terms_url=self._terms_url,
             privacy_text=self._privacy_text,
             privacy_url=self._privacy_url,
-            requires_acceptance=self._requires_acceptance,
         )
 
     def _generate_server_info(self, server_num: int) -> ServerInfo:
