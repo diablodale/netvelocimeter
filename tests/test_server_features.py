@@ -1,3 +1,5 @@
+"""Test server list and server selection features."""
+
 from datetime import timedelta
 import unittest
 from unittest import mock
@@ -18,7 +20,7 @@ class TestServerFeatures(unittest.TestCase):
             download_speed=100.0,
             upload_speed=50.0,
             ping_latency=timedelta(milliseconds=10.0),
-            ping_jitter=timedelta(milliseconds=2.0)
+            ping_jitter=timedelta(milliseconds=2.0),
         )
 
         # Create server list
@@ -27,18 +29,18 @@ class TestServerFeatures(unittest.TestCase):
             name="Server 1",
             location="Location 1",
             country="Country 1",
-            host="host1.example.com"
+            host="host1.example.com",
         )
         server2 = ServerInfo(
             id="2",
             name="Server 2",
             location="Location 2",
             country="Country 2",
-            host="host2.example.com"
+            host="host2.example.com",
         )
         self.mock_provider.get_servers.return_value = [server1, server2]
 
-    @mock.patch('netvelocimeter.core.get_provider')
+    @mock.patch("netvelocimeter.core.get_provider")
     def test_get_servers(self, mock_get_provider):
         """Test getting server list."""
         mock_get_provider.return_value = lambda x: self.mock_provider
@@ -54,7 +56,7 @@ class TestServerFeatures(unittest.TestCase):
         self.assertEqual(servers[1].location, "Location 2")
         self.assertEqual(servers[1].country, "Country 2")
 
-    @mock.patch('netvelocimeter.core.get_provider')
+    @mock.patch("netvelocimeter.core.get_provider")
     def test_measurement_with_server_id(self, mock_get_provider):
         """Test measuring with specific server ID."""
         mock_get_provider.return_value = lambda x: self.mock_provider
@@ -62,18 +64,18 @@ class TestServerFeatures(unittest.TestCase):
         nv = NetVelocimeter()
 
         # Test with int ID
-        result = nv.measure(server_id=1)  # Integer
+        _ = nv.measure(server_id=1)  # Integer
 
-        args, kwargs = self.mock_provider.measure.call_args
-        self.assertEqual(kwargs['server_id'], 1)
+        _args, kwargs = self.mock_provider.measure.call_args
+        self.assertEqual(kwargs["server_id"], 1)
 
         # Test with string ID
-        result = nv.measure(server_id="abc123")  # String
+        _ = nv.measure(server_id="abc123")  # String
 
-        args, kwargs = self.mock_provider.measure.call_args
-        self.assertEqual(kwargs['server_id'], "abc123")
+        _args, kwargs = self.mock_provider.measure.call_args
+        self.assertEqual(kwargs["server_id"], "abc123")
 
-    @mock.patch('netvelocimeter.core.get_provider')
+    @mock.patch("netvelocimeter.core.get_provider")
     def test_measurement_with_server_host(self, mock_get_provider):
         """Test measuring with specific server host."""
         mock_get_provider.return_value = lambda x: self.mock_provider
@@ -82,5 +84,5 @@ class TestServerFeatures(unittest.TestCase):
         nv.measure(server_host="example.com")
 
         # Verify server_host was passed to provider's measure method
-        args, kwargs = self.mock_provider.measure.call_args
-        self.assertEqual(kwargs['server_host'], "example.com")
+        _args, kwargs = self.mock_provider.measure.call_args
+        self.assertEqual(kwargs["server_host"], "example.com")

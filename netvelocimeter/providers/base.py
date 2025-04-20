@@ -1,6 +1,4 @@
-"""
-Base class for all speed test providers.
-"""
+"""Base class for all speed test providers."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -11,6 +9,7 @@ from packaging.version import Version
 
 # type alias for server ID
 ServerIDType = int | str
+
 
 @dataclass
 class ProviderLegalRequirements:
@@ -56,7 +55,7 @@ class ServerInfo:
     raw_server: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
-        """require name to be set"""
+        """Require name to be set."""
         if not self.name:
             raise ValueError("Name cannot be empty")
 
@@ -74,6 +73,7 @@ class ServerInfo:
         if self.host:
             parts.append(f"Host: {self.host}")
         return ", ".join(parts)
+
 
 @dataclass
 class MeasurementResult:
@@ -94,7 +94,7 @@ class MeasurementResult:
     """
 
     download_speed: float  # in Mbps
-    upload_speed: float    # in Mbps
+    upload_speed: float  # in Mbps
     download_latency: timedelta | None = None
     upload_latency: timedelta | None = None
     ping_latency: timedelta | None = None
@@ -144,12 +144,11 @@ class MeasurementResult:
 class BaseProvider(ABC):
     """Base class for network performance measurement providers."""
 
-    binary_dir: str # TODO change to Path
+    binary_dir: str  # TODO change to Path
     version: Version
 
     def __init__(self, binary_dir: str):
-        """
-        Initialize the provider.
+        """Initialize the provider.
 
         Args:
             binary_dir: Directory to store provider binaries.
@@ -164,9 +163,10 @@ class BaseProvider(ABC):
         return ProviderLegalRequirements(requires_acceptance=False)
 
     @abstractmethod
-    def measure(self, server_id: ServerIDType | None = None, server_host: str | None = None) -> MeasurementResult:
-        """
-        Measure network performance.
+    def measure(
+        self, server_id: ServerIDType | None = None, server_host: str | None = None
+    ) -> MeasurementResult:
+        """Measure network performance.
 
         Args:
             server_id: Server ID to use for testing (either integer or string)
@@ -177,12 +177,13 @@ class BaseProvider(ABC):
         """
         pass
 
-    def check_acceptance(self,
-                        accepted_eula: bool = False,
-                        accepted_terms: bool = False,
-                        accepted_privacy: bool = False) -> bool:
-        """
-        Check if user has accepted required legal documents.
+    def check_acceptance(
+        self,
+        accepted_eula: bool = False,
+        accepted_terms: bool = False,
+        accepted_privacy: bool = False,
+    ) -> bool:
+        """Check if user has accepted required legal documents.
 
         Args:
             accepted_eula: Whether the user has accepted the EULA
@@ -202,14 +203,10 @@ class BaseProvider(ABC):
         if (legal.terms_text or legal.terms_url) and not accepted_terms:
             return False
 
-        if (legal.privacy_text or legal.privacy_url) and not accepted_privacy:
-            return False
-
-        return True
+        return not ((legal.privacy_text or legal.privacy_url) and not accepted_privacy)
 
     def get_servers(self) -> list[ServerInfo]:
-        """
-        Get a list of available servers.
+        """Get a list of available servers.
 
         Returns:
             List of server information objects.
@@ -217,8 +214,7 @@ class BaseProvider(ABC):
         raise NotImplementedError("This provider does not support listing servers")
 
     def get_version(self) -> Version:
-        """
-        Get the version of the provider tool.
+        """Get the version of the provider tool.
 
         Returns:
             Version string of the provider tool.

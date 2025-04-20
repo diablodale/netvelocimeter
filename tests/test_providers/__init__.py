@@ -1,3 +1,1 @@
-"""
-Tests for the providers module.
-"""
+"""Tests for the providers module."""

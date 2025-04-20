@@ -1,6 +1,4 @@
-"""
-Tests for binary_manager.py utilities
-"""
+"""Tests for binary_manager.py utilities."""
 
 from io import BytesIO
 import os
@@ -11,15 +9,12 @@ import tarfile
 import tempfile
 import unittest
 from unittest import mock
+from urllib.error import URLError
 import zipfile
 
 import pytest
 
-from netvelocimeter.utils.binary_manager import (
-    download_file,
-    ensure_executable,
-    extract_file,
-)
+from netvelocimeter.utils.binary_manager import download_file, ensure_executable, extract_file
 
 
 class TestBinaryManager(unittest.TestCase):
@@ -33,7 +28,7 @@ class TestBinaryManager(unittest.TestCase):
         """Clean up test environment."""
         shutil.rmtree(self.temp_dir)
 
-    @mock.patch('urllib.request.urlopen')
+    @mock.patch("urllib.request.urlopen")
     def test_download_file_success(self, mock_urlopen):
         """Test downloading a file successfully."""
         # Setup mock
@@ -52,18 +47,18 @@ class TestBinaryManager(unittest.TestCase):
         with open(destination, "rb") as f:
             self.assertEqual(f.read(), b"test file content")
 
-    @mock.patch('urllib.request.urlopen')
+    @mock.patch("urllib.request.urlopen")
     def test_download_file_network_error(self, mock_urlopen):
         """Test download failing due to network error."""
         # Setup mock to raise an exception
-        mock_urlopen.side_effect = Exception("Network error")
+        mock_urlopen.side_effect = URLError("Network error")
 
         # Test
         url = "https://example.com/testfile.zip"
         destination = os.path.join(self.temp_dir, "downloads", "testfile.zip")
 
         # Verify exception is propagated
-        with pytest.raises(Exception):
+        with pytest.raises(URLError):
             download_file(url, destination)
 
         # Ensure destination file was not created
@@ -108,7 +103,7 @@ class TestBinaryManager(unittest.TestCase):
         target_file = "testfile.txt"
         content = "test content"
 
-        with zipfile.ZipFile(zip_path, 'w') as zipf:
+        with zipfile.ZipFile(zip_path, "w") as zipf:
             zipf.writestr(target_file, content)
 
         # Extract file
@@ -120,7 +115,6 @@ class TestBinaryManager(unittest.TestCase):
         with open(extracted_path) as f:
             self.assertEqual(f.read(), content)
 
-    #@pytest.mark.skipif(platform.system() == "Windows", reason="tarfile with filter not fully compatible on Windows")
     def test_extract_file_tar_success(self):
         """Test extracting a file from a tar.gz archive successfully."""
         # Create a tar.gz file
@@ -134,7 +128,7 @@ class TestBinaryManager(unittest.TestCase):
             f.write(content)
 
         # Create archive
-        with tarfile.open(archive_path, 'w:gz') as tar:
+        with tarfile.open(archive_path, "w:gz") as tar:
             tar.add(temp_file, arcname=target_file)
 
         # Extract file
@@ -169,7 +163,7 @@ class TestBinaryManager(unittest.TestCase):
         """Test extracting a nonexistent file from an archive."""
         # Create a zip file
         zip_path = os.path.join(self.temp_dir, "test.zip")
-        with zipfile.ZipFile(zip_path, 'w') as zipf:
+        with zipfile.ZipFile(zip_path, "w") as zipf:
             zipf.writestr("actualfile.txt", "content")
 
         # Attempt to extract a file that doesn't exist in the archive
@@ -197,7 +191,7 @@ class TestBinaryManager(unittest.TestCase):
                 safe_path = "safe.txt"
                 safe_data = b"safe content"
                 malicious_data = b"malicious content"
-                with zipfile.ZipFile(archive_path, 'w') as zipf:
+                with zipfile.ZipFile(archive_path, "w") as zipf:
                     # Add safe file
                     zipf.writestr(safe_path, safe_data)
 
@@ -209,7 +203,12 @@ class TestBinaryManager(unittest.TestCase):
                 corrected_path = extract_file(archive_path, malicious_path, self.temp_dir)
 
                 # Corrected path should be flattened direct in the target directory
-                self.assertEqual(corrected_path, os.path.join(self.temp_dir, os.path.basename(malicious_path.replace('\\', '/'))))
+                self.assertEqual(
+                    corrected_path,
+                    os.path.join(
+                        self.temp_dir, os.path.basename(malicious_path.replace("\\", "/"))
+                    ),
+                )
 
                 # Safe file should work
                 extracted_path = extract_file(archive_path, safe_path, self.temp_dir)
@@ -226,14 +225,14 @@ class TestBinaryManager(unittest.TestCase):
                 safe_path = "safe.txt"
                 safe_data = b"safe content"
                 malicious_data = b"malicious content"
-                with tarfile.open(archive_path, 'w:gz') as tar:
+                with tarfile.open(archive_path, "w:gz") as tar:
                     # Add safe file
                     safe_info = tarfile.TarInfo(safe_path)
                     safe_info.size = len(safe_data)
                     tar.addfile(safe_info, BytesIO(safe_data))
 
                     # Add malicious file, normalize to forward slashes as per tarfile spec
-                    malicious_info = tarfile.TarInfo(malicious_path.replace('\\', '/'))
+                    malicious_info = tarfile.TarInfo(malicious_path.replace("\\", "/"))
                     malicious_info.size = len(malicious_data)
                     tar.addfile(malicious_info, BytesIO(malicious_data))
 
@@ -241,13 +240,20 @@ class TestBinaryManager(unittest.TestCase):
                 corrected_path = extract_file(archive_path, malicious_path, self.temp_dir)
 
                 # Corrected path should be flattened direct in the target directory
-                self.assertEqual(corrected_path, os.path.join(self.temp_dir, os.path.basename(malicious_path.replace('\\', '/'))))
+                self.assertEqual(
+                    corrected_path,
+                    os.path.join(
+                        self.temp_dir, os.path.basename(malicious_path.replace("\\", "/"))
+                    ),
+                )
 
                 # Safe file should work
                 extracted_path = extract_file(archive_path, safe_path, self.temp_dir)
                 self.assertTrue(os.path.exists(extracted_path))
 
-    @pytest.mark.skipif(platform.system() == "Windows", reason="Symlink tests not applicable on Windows")
+    @pytest.mark.skipif(
+        platform.system() == "Windows", reason="Symlink tests not applicable on Windows"
+    )
     def test_extract_file_tar_symlink_attack(self):
         """Test protection against symlink attacks in tar."""
         archive_path = os.path.join(self.temp_dir, "malicious.tar.gz")
@@ -263,7 +269,7 @@ class TestBinaryManager(unittest.TestCase):
             f.write("safe content")
 
         # Create archive with symlink attack
-        with tarfile.open(archive_path, 'w:gz') as tar:
+        with tarfile.open(archive_path, "w:gz") as tar:
             # Add the safe file normally
             tar.add(safe_file, arcname=safe_name)
 
@@ -305,7 +311,7 @@ class TestBinaryManager(unittest.TestCase):
             f.write("safe content")
 
         # Create archive with device file attack
-        with tarfile.open(archive_path, 'w:gz') as tar:
+        with tarfile.open(archive_path, "w:gz") as tar:
             # Add the safe file normally
             tar.add(safe_file, arcname=safe_name)
 
@@ -326,7 +332,7 @@ class TestBinaryManager(unittest.TestCase):
         self.assertTrue(os.path.exists(extracted_path))
 
         # Attempt to extract the device file - should fail with filter='data'
-        with pytest.raises(Exception):  # Either KeyError or tarfile.FilterError
+        with pytest.raises((ValueError, RuntimeError, tarfile.ExtractError, KeyError)):
             extract_file(archive_path, device_name, self.temp_dir)
 
         # Verify the device file wasn't created

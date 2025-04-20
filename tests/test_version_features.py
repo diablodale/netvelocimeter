@@ -1,3 +1,5 @@
+"""Unit tests for version-related features."""
+
 import unittest
 from unittest import mock
 
@@ -9,7 +11,7 @@ from netvelocimeter import NetVelocimeter
 class TestVersionFeatures(unittest.TestCase):
     """Test version-related features."""
 
-    @mock.patch('netvelocimeter.core.get_provider')
+    @mock.patch("netvelocimeter.core.get_provider")
     def test_get_provider_version(self, mock_get_provider):
         """Test getting provider version."""
         # Create mock provider with version attribute (not method)

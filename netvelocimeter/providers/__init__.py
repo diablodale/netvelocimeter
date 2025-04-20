@@ -1,3 +1,1 @@
-"""
-Provider implementations for various network speed test services.
-"""
+"""Provider implementations for various network speed test services."""

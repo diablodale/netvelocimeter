@@ -1,6 +1,4 @@
-"""
-Core functionality for the NetVelocimeter library.
-"""
+"""Core functionality for the NetVelocimeter library."""
 
 import inspect
 import os
@@ -20,11 +18,11 @@ from .providers.base import (
 # Map of provider names to provider classes
 _PROVIDERS: dict[str, type[BaseProvider]] = {}
 
-B = TypeVar('B', bound=BaseProvider)
+B = TypeVar("B", bound=BaseProvider)
+
 
 def register_provider(name: str, provider_class: type[B]) -> None:
-    """
-    Register a provider with the library.
+    """Register a provider with the library.
 
     This function is primarily for internal use and provider developers.
 
@@ -38,7 +36,9 @@ def register_provider(name: str, provider_class: type[B]) -> None:
 
     # validate provider_class
     if not issubclass(provider_class, BaseProvider) or inspect.isabstract(provider_class):
-        raise ValueError(f"Invalid provider class: {provider_class}. Must be a concrete subclass of BaseProvider.")
+        raise ValueError(
+            f"Invalid provider class: {provider_class}. Must be a concrete subclass of BaseProvider."
+        )
     if name.lower() in _PROVIDERS:
         raise ValueError(f"Provider '{name}' is already registered.")
     if not name.isidentifier():
@@ -49,8 +49,7 @@ def register_provider(name: str, provider_class: type[B]) -> None:
 
 
 def get_provider(name: str) -> type[BaseProvider]:
-    """
-    Get a provider class by name.
+    """Get a provider class by name.
 
     This function allows advanced users to directly access provider classes
     for customization, extension, or testing purposes.
@@ -76,14 +75,15 @@ def get_provider(name: str) -> type[BaseProvider]:
 
     name = name.lower()
     if name not in _PROVIDERS:
-        raise ValueError(f"Provider '{name}' not found. Available providers: {', '.join(_PROVIDERS.keys())}")
+        raise ValueError(
+            f"Provider '{name}' not found. Available providers: {', '.join(_PROVIDERS.keys())}"
+        )
 
     return _PROVIDERS[name]
 
 
 def list_providers(include_info: bool = False) -> list[str] | list[tuple[str, str]]:
-    """
-    Get a list of all available providers.
+    """Get a list of all available providers.
 
     Args:
         include_info: If True, returns provider names with their descriptions.
@@ -106,15 +106,20 @@ def list_providers(include_info: bool = False) -> list[str] | list[tuple[str, st
         _discover_providers()
 
     if include_info:
-        return [(name, provider.__doc__.strip().split('\n')[0] if provider.__doc__ else "No description")
-                for name, provider in _PROVIDERS.items()]
+        return [
+            (
+                name,
+                provider.__doc__.strip().split("\n")[0] if provider.__doc__ else "No description",
+            )
+            for name, provider in _PROVIDERS.items()
+        ]
     else:
         return list(_PROVIDERS.keys())
+
 
 def _discover_providers() -> None:
     """Automatically discover and register providers."""
     # Future providers will be imported here
-    from .providers import ookla, static
 
 
 class NetVelocimeter:
@@ -126,10 +131,9 @@ class NetVelocimeter:
         binary_dir: str | None = None,
         accept_eula: bool = False,
         accept_terms: bool = False,
-        accept_privacy: bool = False
+        accept_privacy: bool = False,
     ):
-        """
-        Initialize the NetVelocimeter.
+        """Initialize the NetVelocimeter.
 
         Args:
             provider: The name of the provider to use.
@@ -158,8 +162,7 @@ class NetVelocimeter:
             self.provider._accepted_privacy = accept_privacy
 
     def check_legal_requirements(self) -> bool:
-        """
-        Check if all legal requirements are satisfied.
+        """Check if all legal requirements are satisfied.
 
         Returns:
             True if all requirements are met, False otherwise
@@ -167,12 +170,11 @@ class NetVelocimeter:
         return self.provider.check_acceptance(
             accepted_eula=self._accepted_eula,
             accepted_terms=self._accepted_terms,
-            accepted_privacy=self._accepted_privacy
+            accepted_privacy=self._accepted_privacy,
         )
 
     def get_legal_requirements(self) -> ProviderLegalRequirements:
-        """
-        Get legal requirements for the current provider.
+        """Get legal requirements for the current provider.
 
         Returns:
             A ProviderLegalRequirements object
@@ -180,8 +182,7 @@ class NetVelocimeter:
         return self.provider.legal_requirements
 
     def get_servers(self) -> list[ServerInfo]:
-        """
-        Get list of available servers.
+        """Get list of available servers.
 
         Returns:
             List of server information objects.
@@ -189,17 +190,17 @@ class NetVelocimeter:
         return self.provider.get_servers()
 
     def get_provider_version(self) -> Version:
-        """
-        Get the version of the provider.
+        """Get the version of the provider.
 
         Returns:
             Provider version as a Version object.
         """
         return self.provider.version
 
-    def measure(self, server_id: ServerIDType | None = None, server_host: str | None = None) -> MeasurementResult:
-        """
-        Measure network performance using the configured provider.
+    def measure(
+        self, server_id: ServerIDType | None = None, server_host: str | None = None
+    ) -> MeasurementResult:
+        """Measure network performance using the configured provider.
 
         Args:
             server_id: Server ID (integer or string) for test

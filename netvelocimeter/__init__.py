@@ -1,5 +1,4 @@
-"""
-NetVelocimeter - A Python library for measuring network performance.
+"""NetVelocimeter - A Python library for measuring network performance.
 
 This library provides a unified interface for measuring network performance metrics
 such as bandwidth, latency, and ping times using various service providers.

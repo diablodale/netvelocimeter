@@ -1,6 +1,4 @@
-"""
-Utilities for managing binary downloads and execution.
-"""
+"""Utilities for managing binary downloads and execution."""
 
 import os
 import platform
@@ -11,8 +9,7 @@ import zipfile
 
 
 def download_file(url: str, destination: str) -> None:
-    """
-    Download a file from a URL to a local destination.
+    """Download a file from a URL to a local destination.
 
     Args:
         url: URL to download from.
@@ -21,14 +18,12 @@ def download_file(url: str, destination: str) -> None:
     absolute_destination = os.path.abspath(destination)
     os.makedirs(os.path.dirname(absolute_destination), exist_ok=True)
 
-    with urllib.request.urlopen(url) as response:
-        with open(absolute_destination, 'wb') as out_file:
-            out_file.write(response.read())
+    with urllib.request.urlopen(url) as response, open(absolute_destination, "wb") as out_file:
+        out_file.write(response.read())
 
 
 def ensure_executable(path: str) -> None:
-    """
-    Ensure a file is executable by the current user.
+    """Ensure a file is executable by the current user.
 
     Args:
         path: Path to the file to make executable.
@@ -38,9 +33,9 @@ def ensure_executable(path: str) -> None:
         current_permissions = os.stat(path).st_mode
         os.chmod(path, current_permissions | stat.S_IXUSR)
 
+
 def extract_file(archive_path: str, target_path: str, destination_dir: str) -> str:
-    """
-    Extract a specific file from an archive to a destination directory.
+    """Extract a specific file from an archive to a destination directory.
 
     Args:
         archive_path: Path to the archive file (.zip, .tgz, .tar.gz)
@@ -54,14 +49,14 @@ def extract_file(archive_path: str, target_path: str, destination_dir: str) -> s
         RuntimeError: If the archive format is not supported or contains unsafe paths
     """
     # modules internally use forward slashes as directory separators to comply with tar and zip archive specs
-    target_path = target_path.replace('\\', '/')
+    target_path = target_path.replace("\\", "/")
 
     # construct the final path for the extracted file
     final_path = os.path.abspath(os.path.join(destination_dir, os.path.basename(target_path)))
 
     # Extract based on file extension; with safety checks not possible with shutil.unpack_archive
     if archive_path.endswith(".zip"):
-        with zipfile.ZipFile(archive_path, 'r') as zipf:
+        with zipfile.ZipFile(archive_path, "r") as zipf:
             # get info for the target file
             # module internally uses only forward slashes to comply with archive spec
             zip_info = zipf.getinfo(target_path)
@@ -71,12 +66,12 @@ def extract_file(archive_path: str, target_path: str, destination_dir: str) -> s
                 raise RuntimeError(f"File {target_path} is empty or not a file.")
 
             # directly extract and write to the final path
-            with open(final_path, 'wb') as out_file:
+            with open(final_path, "wb") as out_file:
                 out_file.write(zipf.read(zip_info))
 
     elif archive_path.endswith(".tgz") or archive_path.endswith(".tar.gz"):
         # For Linux .tgz files
-        with tarfile.open(archive_path, 'r:gz') as tarf:
+        with tarfile.open(archive_path, "r:gz") as tarf:
             # get info for the target file
             # module internally uses only forward slashes to comply with archive spec
             tar_info = tarf.getmember(target_path)

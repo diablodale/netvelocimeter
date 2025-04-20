@@ -1,6 +1,4 @@
-"""
-Tests for the StaticProvider.
-"""
+"""Tests for the StaticProvider."""
 
 from datetime import timedelta
 import shutil
@@ -68,7 +66,7 @@ class TestStaticProvider(unittest.TestCase):
             version="2.0.0+test",
             accepted_eula=True,
             accepted_terms=True,
-            accepted_privacy=True
+            accepted_privacy=True,
         )
 
         # Check custom version
@@ -118,7 +116,7 @@ class TestStaticProvider(unittest.TestCase):
             upload_speed=30.0,
             ping_latency=timedelta(milliseconds=20.0),
             ping_jitter=timedelta(milliseconds=4.0),
-            packet_loss=1.2
+            packet_loss=1.2,
         )
 
         result = provider.measure()
@@ -173,10 +171,7 @@ class TestStaticProvider(unittest.TestCase):
     def test_legal_acceptance(self):
         """Test legal acceptance checks."""
         # Provider that requires acceptance
-        provider = StaticProvider(
-            binary_dir=self.temp_dir,
-            requires_acceptance=True
-        )
+        provider = StaticProvider(binary_dir=self.temp_dir, requires_acceptance=True)
 
         # Without acceptance should fail
         self.assertFalse(provider.check_acceptance())
@@ -186,17 +181,14 @@ class TestStaticProvider(unittest.TestCase):
         self.assertFalse(provider.check_acceptance(accepted_terms=True, accepted_privacy=True))
 
         # With full acceptance should pass
-        self.assertTrue(provider.check_acceptance(
-            accepted_eula=True,
-            accepted_terms=True,
-            accepted_privacy=True
-        ))
+        self.assertTrue(
+            provider.check_acceptance(
+                accepted_eula=True, accepted_terms=True, accepted_privacy=True
+            )
+        )
 
         # Provider that doesn't require acceptance
-        provider_no_req = StaticProvider(
-            binary_dir=self.temp_dir,
-            requires_acceptance=False
-        )
+        provider_no_req = StaticProvider(binary_dir=self.temp_dir, requires_acceptance=False)
 
         # Should pass even without acceptance
         self.assertTrue(provider_no_req.check_acceptance())

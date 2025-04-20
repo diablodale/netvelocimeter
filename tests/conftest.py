@@ -1,20 +1,25 @@
+"""pytest configuration file for running tests with specific options."""
+
 import pytest
 
 
 def pytest_addoption(parser):
+    """Add custom command line options for pytest."""
     parser.addoption(
-        "--run-expensive", action="store_true", default=False,
-        help="run expensive tests"
+        "--run-expensive", action="store_true", default=False, help="run expensive tests"
     )
     parser.addoption(
-        "--run-only-expensive", action="store_true", default=False,
-        help="run only expensive tests"
+        "--run-only-expensive", action="store_true", default=False, help="run only expensive tests"
     )
+
 
 def pytest_configure(config):
+    """Configure pytest to add custom markers."""
     config.addinivalue_line("markers", "expensive: mark test as expensive to run")
 
+
 def pytest_collection_modifyitems(config, items):
+    """Modify collected test items based on command line options."""
     run_expensive = config.getoption("--run-expensive")
     run_only_expensive = config.getoption("--run-only-expensive")
 

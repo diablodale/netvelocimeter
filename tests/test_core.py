@@ -1,6 +1,4 @@
-"""
-Tests for the core functionality.
-"""
+"""Tests for the core functionality."""
 
 import tempfile
 from unittest import TestCase, mock
@@ -54,19 +52,25 @@ class TestNetVelocimeter(TestCase):
 
     def test_initialize_with_binary_dir(self):
         """Test initializing with a binary directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with mock.patch('netvelocimeter.providers.ookla.OoklaProvider._ensure_binary') as mock_ensure:
-                with mock.patch('netvelocimeter.providers.ookla.OoklaProvider._get_version') as mock_get_version:
-                    mock_ensure.return_value = "/fake/path"
-                    mock_get_version.return_value = "1.0.0-test"
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            mock.patch(
+                "netvelocimeter.providers.ookla.OoklaProvider._ensure_binary"
+            ) as mock_ensure,
+            mock.patch(
+                "netvelocimeter.providers.ookla.OoklaProvider._get_version"
+            ) as mock_get_version,
+        ):
+            mock_ensure.return_value = "/fake/path"
+            mock_get_version.return_value = "1.0.0-test"
 
-                    nv = NetVelocimeter(binary_dir=temp_dir)
-                    self.assertEqual(nv.provider.binary_dir, temp_dir)
+            nv = NetVelocimeter(binary_dir=temp_dir)
+            self.assertEqual(nv.provider.binary_dir, temp_dir)
 
     def test_provider_version_access(self):
         """Test accessing provider version."""
         # Mock the get_provider function instead of the OoklaProvider directly
-        with mock.patch('netvelocimeter.core.get_provider') as mock_get_provider:
+        with mock.patch("netvelocimeter.core.get_provider") as mock_get_provider:
             # Create a mock provider class and instance
             mock_instance = mock.MagicMock()
             mock_instance.version = Version("1.2.3")
@@ -78,14 +82,17 @@ class TestNetVelocimeter(TestCase):
             nv = NetVelocimeter()
             self.assertEqual(nv.get_provider_version(), Version("1.2.3"))
 
+
 class TestProviderRegistration(TestCase):
     """Test the provider-related functions."""
 
     def test_register_custom_provider(self):
         """Test registering a custom provider."""
+
         # Create a test provider class
         class TestProvider(BaseProvider):
-            """Test provider for unit tests"""
+            """Test provider for unit tests."""
+
             def measure(self, server_id=None, server_host=None):
                 return MeasurementResult(download_speed=1.0, upload_speed=1.0)
 
@@ -104,18 +111,21 @@ class TestProviderRegistration(TestCase):
         providers_with_info = list_providers(include_info=True)
         provider_info = {name: desc for name, desc in providers_with_info}
         self.assertIn("test_register_custom_provider", provider_info)
-        self.assertEqual(provider_info["test_register_custom_provider"], "Test provider for unit tests")
+        self.assertEqual(
+            provider_info["test_register_custom_provider"], "Test provider for unit tests."
+        )
 
     def test_register_custom_provider_multiline_doc(self):
         """Test registering a custom provider."""
+
         # Create an actual test provider class instead of a mock instance
         class TestMockProvider(BaseProvider):
-            """
-            Test provider for unit tests.
+            """Test provider for unit tests.
 
             The first line of this __doc__ is an empty line.
             This test ensures registration works with multiline docstrings.
             """
+
             def measure(self, server_id=None, server_host=None):
                 return MeasurementResult(download_speed=1.0, upload_speed=1.0)
 
@@ -134,7 +144,11 @@ class TestProviderRegistration(TestCase):
         providers_with_info = list_providers(include_info=True)
         provider_info = {name: desc for name, desc in providers_with_info}
         self.assertIn("test_register_custom_provider_multiline_doc", provider_info)
-        self.assertEqual(provider_info["test_register_custom_provider_multiline_doc"], "Test provider for unit tests.")
+        self.assertEqual(
+            provider_info["test_register_custom_provider_multiline_doc"],
+            "Test provider for unit tests.",
+        )
+
 
 class TestProviderRegistrationErrors(TestCase):
     """Test error scenarios for provider registration."""
@@ -152,9 +166,11 @@ class TestProviderRegistrationErrors(TestCase):
 
     def test_register_non_provider_class(self):
         """Test registering a class that doesn't inherit from BaseProvider."""
+
         # Create a class that doesn't inherit from BaseProvider
         class NonProviderClass:
-            """Non-provider test class"""
+            """Non-provider test class."""
+
             pass
 
         # Should raise ValueError
@@ -174,9 +190,11 @@ class TestProviderRegistrationErrors(TestCase):
 
     def test_register_duplicate_provider(self):
         """Test registering a provider with a name already in use."""
+
         # Create a valid provider class
         class TestProvider(BaseProvider):
-            """Test provider for duplicates"""
+            """Test provider for duplicates."""
+
             def measure(self, server_id=None, server_host=None):
                 pass
 
@@ -197,9 +215,11 @@ class TestProviderRegistrationErrors(TestCase):
 
     def test_register_invalid_name(self):
         """Test registering a provider with an invalid name."""
+
         # Create a valid provider class
         class TestProvider(BaseProvider):
-            """Test provider with invalid name"""
+            """Test provider with invalid name."""
+
             def measure(self, server_id=None, server_host=None):
                 pass
 
@@ -223,6 +243,7 @@ class TestProviderRegistrationErrors(TestCase):
 
     def test_register_without_docstring(self):
         """Test registering a provider class without a docstring."""
+
         # Create a provider class without a docstring
         class TestProviderNoDoc(BaseProvider):
             def measure(self, server_id=None, server_host=None):
@@ -234,7 +255,7 @@ class TestProviderRegistrationErrors(TestCase):
 
         self.assertIn("must have a docstring", str(context.exception))
 
-    @mock.patch('netvelocimeter.core._discover_providers')
+    @mock.patch("netvelocimeter.core._discover_providers")
     def test_auto_discovery_on_first_registration(self, mock_discover):
         """Test that _discover_providers is called on first registration."""
         # Clear existing providers
@@ -242,7 +263,8 @@ class TestProviderRegistrationErrors(TestCase):
 
         # Create a valid provider
         class TestAutoDiscoverProvider(BaseProvider):
-            """Test provider for auto-discovery"""
+            """Test provider for auto-discovery."""
+
             def measure(self, server_id=None, server_host=None):
                 pass
 
@@ -254,7 +276,8 @@ class TestProviderRegistrationErrors(TestCase):
 
         # Register another provider - should not trigger discovery again
         class TestSecondProvider(BaseProvider):
-            """Second test provider"""
+            """Second test provider."""
+
             def measure(self, server_id=None, server_host=None):
                 pass
 

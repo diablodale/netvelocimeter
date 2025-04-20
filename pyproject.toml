@@ -80,8 +80,8 @@ norecursedirs = [
 ]
 addopts = "--strict-markers --cov=netvelocimeter"
 
-#[tool.ruff]
-#line-length = 88  # formatter wraps lines at this length
+[tool.ruff]
+line-length = 100  # formatter wraps lines at this length
 
 [tool.ruff.lint]
 # On top of the defaults (`E4`, E7`, `E9`, and `F`)
@@ -93,15 +93,21 @@ extend-select = [
     "SIM", # flake8-simplify
     "I",   # isort
 ]
+ignore = [
+    "UP038", # deprecated, use pipe in isinstance and issubclass
+]
 task-tags = ["TODO", "FIXME", "BUGBUG"]
+extend-safe-fixes = [
+    "D415", # first line should end with a period
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.pycodestyle]
-max-line-length = 100  # controls E501 warning; defaults to line-length
 ignore-overlong-task-comments = true  # E501
-#max-doc-length = 100  # W505
+max-line-length = 115  # controls E501 warning; defaults to line-length
+#max-doc-length = 100  # W505 warning; defaults to max-line-length
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

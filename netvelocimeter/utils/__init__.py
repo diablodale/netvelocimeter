@@ -1,3 +1,1 @@
-"""
-Utility functions for the NetVelocimeter library.
-"""
+"""Utility functions for the NetVelocimeter library."""

@@ -1,6 +1,4 @@
-"""
-Ookla Speedtest.net provider implementation.
-"""
+"""Ookla Speedtest.net provider implementation."""
 
 from datetime import timedelta
 import json
@@ -28,22 +26,46 @@ class OoklaProvider(BaseProvider):
     """Provider for Ookla Speedtest.net."""
 
     _BINARY_NAME = "speedtest"
+    _DOWNLOAD_VERSION = "1.2.0"
     _DOWNLOAD_URLS = {
-        ("Windows", "AMD64"): "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-win64.zip",
-        ("Linux", "x86_64"): "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-x86_64.tgz",
-        ("Linux", "i386"): "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-i386.tgz",
-        ("Linux", "aarch64"): "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-aarch64.tgz",
-        ("Linux", "armel"): "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armel.tgz",
-        ("Linux", "armhf"): "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armhf.tgz",
-        ("Darwin", "x86_64"): "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-macosx-universal.tgz",
-        ("Darwin", "arm64"): "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-macosx-universal.tgz",
-        # https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-freebsd12-x86_64.pkg
-        # https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-freebsd13-x86_64.pkg
+        (
+            "Windows",
+            "AMD64",
+        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-win64.zip",
+        (
+            "Linux",
+            "x86_64",
+        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-x86_64.tgz",
+        (
+            "Linux",
+            "i386",
+        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-i386.tgz",
+        (
+            "Linux",
+            "aarch64",
+        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-aarch64.tgz",
+        (
+            "Linux",
+            "armel",
+        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-armel.tgz",
+        (
+            "Linux",
+            "armhf",
+        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-armhf.tgz",
+        (
+            "Darwin",
+            "x86_64",
+        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-macosx-universal.tgz",
+        (
+            "Darwin",
+            "arm64",
+        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-macosx-universal.tgz",
+        # https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd12-x86_64.pkg
+        # https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd13-x86_64.pkg
     }
 
     def __init__(self, binary_dir: str):
-        """
-        Initialize the Ookla provider.
+        """Initialize the Ookla provider.
 
         Args:
             binary_dir: Directory to store the Ookla speedtest binary.
@@ -60,32 +82,32 @@ class OoklaProvider(BaseProvider):
         """Get Ookla's legal requirements."""
         return ProviderLegalRequirements(
             eula_text="You may only use this Speedtest software and information generated "
-                      "from it for personal, non-commercial use, through a command line "
-                      "interface on a personal computer. Your use of this software is subject "
-                      "to the End User License Agreement, Terms of Use and Privacy Policy.",
+            "from it for personal, non-commercial use, through a command line "
+            "interface on a personal computer. Your use of this software is subject "
+            "to the End User License Agreement, Terms of Use and Privacy Policy.",
             eula_url="https://www.speedtest.net/about/eula",
-            #terms_text="By using this Speedtest software, you agree to be bound by Ookla's Terms of Use.",
-            #terms_url="https://www.speedtest.net/about/terms",
+            # terms_text="By using this Speedtest software, you agree to be bound by Ookla's Terms of Use.",
+            # terms_url="https://www.speedtest.net/about/terms",
             privacy_text="Ookla collects certain data through Speedtest that may be considered "
-                         "personally identifiable, such as your IP address, unique device "
-                         "identifiers or location. Ookla believes it has a legitimate interest "
-                         "to share this data with internet providers, hardware manufacturers and "
-                         "industry regulators to help them understand and create a better and "
-                         "faster internet. For further information including how the data may be "
-                         "shared, where the data may be transferred and Ookla's contact details, "
-                         "please see our Privacy Policy.",
+            "personally identifiable, such as your IP address, unique device "
+            "identifiers or location. Ookla believes it has a legitimate interest "
+            "to share this data with internet providers, hardware manufacturers and "
+            "industry regulators to help them understand and create a better and "
+            "faster internet. For further information including how the data may be "
+            "shared, where the data may be transferred and Ookla's contact details, "
+            "please see our Privacy Policy.",
             privacy_url="https://www.speedtest.net/about/privacy",
-            requires_acceptance=True
+            requires_acceptance=True,
         )
 
     def _ensure_binary(self) -> str:
-        """
-        Ensure the Ookla speedtest binary is available.
+        """Ensure the Ookla speedtest binary is available.
 
         Returns:
             Path to the binary.
         """
-        # e.g., Windows, Linux, Darwin; on iOS and Android returns the user-facing OS name (i.e, 'iOS, 'iPadOS' or 'Android')
+        # e.g., Windows, Linux, Darwin;
+        # on iOS and Android returns the user-facing OS name (i.e, 'iOS, 'iPadOS' or 'Android')
         system = platform.system()
 
         # e.g., x86_64, i686, arm64
@@ -110,14 +132,9 @@ class OoklaProvider(BaseProvider):
         if key not in self._DOWNLOAD_URLS:
             raise RuntimeError(f"No Ookla speedtest binary available for {system} {machine}")
 
-        if system == "Windows":
-            binary_filename = "speedtest.exe"
-        else:
-            binary_filename = "speedtest"
-
-        binary_path = os.path.join(self.binary_dir, binary_filename)
-
         # Check if binary already exists
+        binary_filename = "speedtest.exe" if system == "Windows" else "speedtest"
+        binary_path = os.path.join(self.binary_dir, binary_filename)
         if os.path.exists(binary_path):
             return binary_path
 
@@ -143,17 +160,14 @@ class OoklaProvider(BaseProvider):
 
     def _get_version(self) -> Version:
         """Get the version of the speedtest CLI as a Version object."""
-        result = subprocess.run(
-            [self.binary_path, "--version"],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run([self.binary_path, "--version"], capture_output=True, text=True)
 
         if result.returncode != 0:
             # Return a zero version or None when we can't determine the version
             return Version("0")
 
-        # Parse version from output like `Speedtest by Ookla 1.2.0.84 (ea6b6773cf) Linux/x86_64-linux-musl 5.15.167.4-microsoft-standard-WSL2 x86_64`
+        # Parse version from output, e.g.
+        # Speedtest by Ookla 1.2.0.84 (ea6b6773cf) Linux/x86_64-linux-musl 5.15.167.4-microsoft-standard-WSL2 x86_64    # noqa: E501
         match = re.match(r"^\s*[^0-9]+ ([0-9.]+)[^\da-fA-F]+([\da-fA-F]+)", result.stdout)
         if match:
             try:
@@ -164,8 +178,7 @@ class OoklaProvider(BaseProvider):
         return Version("0")
 
     def _run_speedtest(self, args: list[str] | None = None) -> dict[str, Any]:
-        """
-        Run the speedtest binary with the given arguments.
+        """Run the speedtest binary with the given arguments.
 
         Args:
             args: Additional arguments for the speedtest binary.
@@ -198,8 +211,7 @@ class OoklaProvider(BaseProvider):
         return dict[str, Any](json.loads(result.stdout))
 
     def get_servers(self) -> list[ServerInfo]:
-        """
-        Get a list of available servers.
+        """Get a list of available servers.
 
         Returns:
             List of server information objects.
@@ -208,20 +220,23 @@ class OoklaProvider(BaseProvider):
 
         servers = []
         for server in result.get("servers", []):
-            servers.append(ServerInfo(
-                name=server.get("name"), # BUGBUG do not allow unknown names
-                id=server.get("id"),
-                location=server.get("location"),
-                country=server.get("country"),
-                host=server.get("host"),
-                raw_server=server
-            ))
+            servers.append(
+                ServerInfo(
+                    name=server.get("name"),  # BUGBUG do not allow unknown names
+                    id=server.get("id"),
+                    location=server.get("location"),
+                    country=server.get("country"),
+                    host=server.get("host"),
+                    raw_server=server,
+                )
+            )
 
         return servers
 
-    def measure(self, server_id: ServerIDType | None = None, server_host: str | None = None) -> MeasurementResult:
-        """
-        Run a complete speedtest.
+    def measure(
+        self, server_id: ServerIDType | None = None, server_host: str | None = None
+    ) -> MeasurementResult:
+        """Run a complete speedtest.
 
         Args:
             server_id: Specific server ID to use for the test (integer or string)
@@ -243,12 +258,12 @@ class OoklaProvider(BaseProvider):
         if not server_data:
             raise ValueError("No server information found in speedtest results")
         server_info = ServerInfo(
-            name=server_data.get("name"), # BUGBUG do not allow unknown names
+            name=server_data.get("name"),  # BUGBUG do not allow unknown names
             id=server_data.get("id"),
             location=server_data.get("location"),
             country=server_data.get("country"),
             host=server_data.get("host"),
-            raw_server=server_data
+            raw_server=server_data,
         )
 
         # Get download/upload data with null safety

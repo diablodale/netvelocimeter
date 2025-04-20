@@ -1,6 +1,4 @@
-"""
-Static provider usually used for testing.
-"""
+"""Static provider usually used for testing."""
 
 from datetime import timedelta
 import re
@@ -18,34 +16,35 @@ from .base import (
 
 
 class StaticProvider(BaseProvider):
-    """
-    Configurable test provider that can be used across test cases.
+    """Configurable test provider that can be used across test cases.
+
     All fields default to test values, set any to None to omit them.
     Five test servers with ids 1 -> 5 are available.
     """
 
-    def __init__(self,
-                 binary_dir: str,
-                 requires_acceptance: bool = True,
-                 eula_text: str | None = "Test EULA",
-                 eula_url: str | None = "https://example.com/eula",
-                 terms_text: str | None = "Test Terms",
-                 terms_url: str | None = "https://example.com/terms",
-                 privacy_text: str | None = "Test Privacy",
-                 privacy_url: str | None = "https://example.com/privacy",
-                 download_speed: float = 100.0,
-                 upload_speed: float = 50.0,
-                 download_latency: timedelta = timedelta(milliseconds=30.0),
-                 upload_latency: timedelta = timedelta(milliseconds=60.0),
-                 ping_latency: timedelta = timedelta(milliseconds=25.0),
-                 ping_jitter: timedelta = timedelta(milliseconds=20.0),
-                 packet_loss: float = 1.3,
-                 version: str = "1.2.3+c0ffee",
-                 accepted_eula: bool = False,
-                 accepted_terms: bool = False,
-                 accepted_privacy: bool = False):
-        """
-        Initialize a configurable test provider.
+    def __init__(
+        self,
+        binary_dir: str,
+        requires_acceptance: bool = True,
+        eula_text: str | None = "Test EULA",
+        eula_url: str | None = "https://example.com/eula",
+        terms_text: str | None = "Test Terms",
+        terms_url: str | None = "https://example.com/terms",
+        privacy_text: str | None = "Test Privacy",
+        privacy_url: str | None = "https://example.com/privacy",
+        download_speed: float = 100.0,
+        upload_speed: float = 50.0,
+        download_latency: timedelta = timedelta(milliseconds=30.0),
+        upload_latency: timedelta = timedelta(milliseconds=60.0),
+        ping_latency: timedelta = timedelta(milliseconds=25.0),
+        ping_jitter: timedelta = timedelta(milliseconds=20.0),
+        packet_loss: float = 1.3,
+        version: str = "1.2.3+c0ffee",
+        accepted_eula: bool = False,
+        accepted_terms: bool = False,
+        accepted_privacy: bool = False,
+    ):
+        """Initialize a configurable test provider.
 
         Args:
             binary_dir: Directory for binaries
@@ -99,7 +98,7 @@ class StaticProvider(BaseProvider):
             terms_url=self._terms_url,
             privacy_text=self._privacy_text,
             privacy_url=self._privacy_url,
-            requires_acceptance=self._requires_acceptance
+            requires_acceptance=self._requires_acceptance,
         )
 
     def _generate_server_info(self, server_num: int) -> ServerInfo:
@@ -109,18 +108,17 @@ class StaticProvider(BaseProvider):
             id=server_num,
             host=f"test{server_num}.example.com",
             location=f"Test Location {server_num}",
-            country="Test Country"
+            country="Test Country",
         )
 
     def get_servers(self) -> list[ServerInfo]:
         """Get list of available servers."""
-        return [
-            self._generate_server_info(i) for i in range(1, 6)
-        ]
+        return [self._generate_server_info(i) for i in range(1, 6)]
 
-    def measure(self, server_id: ServerIDType | None = None, server_host: str | None = None) -> MeasurementResult:
-        """
-        Measure network speed with the specified parameters.
+    def measure(
+        self, server_id: ServerIDType | None = None, server_host: str | None = None
+    ) -> MeasurementResult:
+        """Measure network speed with the specified parameters.
 
         Args:
             server_id: ID of the server to use (1-5)
@@ -159,8 +157,9 @@ class StaticProvider(BaseProvider):
             packet_loss=self._packet_loss,
             server_info=self._generate_server_info(server_num),
             persist_url="https://example.com/results/static-test-1234",
-            id=f"static-test-{server_num}-{hash(self)}"
+            id=f"static-test-{server_num}-{hash(self)}",
         )
+
 
 # Register this provider
 register_provider("static", StaticProvider)
