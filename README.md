@@ -149,10 +149,11 @@ except Exception as e:
 
 ## Development
 
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen)](https://github.com/pre-commit/pre-commit)
-[![pytest](https://img.shields.io/badge/pytest-enabled-brightgreen)](https://docs.pytest.org/en/latest/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen)](https://pre-commit.com/)
+[![pytest](https://img.shields.io/badge/pytest-enabled-brightgreen)](https://docs.pytest.org/)
 [![mypy](https://img.shields.io/badge/mypy-enabled-brightgreen)](http://mypy-lang.org/)
-[![isort](https://img.shields.io/badge/isort-enabled-brightgreen)](https://pycqa.github.io/isort/)
+[![linter: ruff](https://img.shields.io/badge/linter-ruff-brightgreen.svg)](https://docs.astral.sh/ruff/)
+[![style: ruff](https://img.shields.io/badge/style-ruff-brightgreen.svg)](https://docs.astral.sh/ruff/)
 
 ### Setting Up for Development
 
@@ -253,16 +254,13 @@ def test_download_real_binary():
 
 This project uses:
 
-- ~~Black for code formatting~~ tbd
-- ~~Flake8 for linting~~ tbd
 - mypy for type checking
+- ruff for linting and style checking
 
 Run the formatters and linters:
 
 ```bash
-# black netvelocimeter tests
-# flake8 netvelocimeter tests
-mypy netvelocimeter
+pre-commit run --all-files
 ```
 
 ### Documentation
