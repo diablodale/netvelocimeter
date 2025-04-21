@@ -7,13 +7,8 @@ from typing import TypeVar
 from packaging.version import Version
 
 from .exceptions import LegalAcceptanceError
-from .providers.base import (
-    BaseProvider,
-    MeasurementResult,
-    ProviderLegalRequirements,
-    ServerIDType,
-    ServerInfo,
-)
+from .providers.base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
+from .terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
 
 # Map of provider names to provider classes
 _PROVIDERS: dict[str, type[BaseProvider]] = {}
@@ -129,18 +124,12 @@ class NetVelocimeter:
         self,
         provider: str = "ookla",
         binary_dir: str | None = None,
-        accept_eula: bool = False,
-        accept_terms: bool = False,
-        accept_privacy: bool = False,
     ):
         """Initialize the NetVelocimeter.
 
         Args:
             provider: The name of the provider to use.
             binary_dir: Directory to store provider binaries.
-            accept_eula: Whether to accept the provider's EULA.
-            accept_terms: Whether to accept the provider's terms of service.
-            accept_privacy: Whether to accept the provider's privacy policy.
         """
         provider_class = get_provider(provider)
 
@@ -149,37 +138,40 @@ class NetVelocimeter:
             os.makedirs(binary_dir, exist_ok=True)
 
         self.provider = provider_class(binary_dir)
-        self._accepted_eula = accept_eula
-        self._accepted_terms = accept_terms
-        self._accepted_privacy = accept_privacy
 
-        # Store acceptance status in the provider
-        if hasattr(self.provider, "_accepted_eula"):
-            self.provider._accepted_eula = accept_eula
-        if hasattr(self.provider, "_accepted_terms"):
-            self.provider._accepted_terms = accept_terms
-        if hasattr(self.provider, "_accepted_privacy"):
-            self.provider._accepted_privacy = accept_privacy
+    def legal_terms(
+        self, category: LegalTermsCategory = LegalTermsCategory.ALL
+    ) -> LegalTermsCollection:
+        """Get legal terms for the current provider.
 
-    def check_legal_requirements(self) -> bool:
-        """Check if all legal requirements are satisfied.
+        Args:
+            category: Category of terms to retrieve. Defaults to ALL.
 
         Returns:
-            True if all requirements are met, False otherwise
+            Collection of legal terms that match the requested category
         """
-        return self.provider.check_acceptance(
-            accepted_eula=self._accepted_eula,
-            accepted_terms=self._accepted_terms,
-            accepted_privacy=self._accepted_privacy,
-        )
+        return self.provider.legal_terms(category)
 
-    def get_legal_requirements(self) -> ProviderLegalRequirements:
-        """Get legal requirements for the current provider.
+    def has_accepted_terms(
+        self, terms_or_collection: LegalTerms | LegalTermsCollection | None = None
+    ) -> bool:
+        """Check if the user has accepted the specified terms.
+
+        Args:
+            terms_or_collection: Terms to check. If None, checks all legal terms for the current provider.
 
         Returns:
-            A ProviderLegalRequirements object
+            True if all specified terms have been accepted, False otherwise
         """
-        return self.provider.legal_requirements
+        return self.provider.has_accepted_terms(terms_or_collection)
+
+    def accept_terms(self, terms_or_collection: LegalTerms | LegalTermsCollection) -> None:
+        """Record acceptance of terms.
+
+        Args:
+            terms_or_collection: Terms to accept
+        """
+        self.provider.accept_terms(terms_or_collection)
 
     def get_servers(self) -> list[ServerInfo]:
         """Get list of available servers.
@@ -187,6 +179,8 @@ class NetVelocimeter:
         Returns:
             List of server information objects.
         """
+        if not self.has_accepted_terms():
+            raise LegalAcceptanceError("You must accept all legal terms before using the service.")
         return self.provider.get_servers()
 
     def get_provider_version(self) -> Version:
@@ -213,14 +207,11 @@ class NetVelocimeter:
             LegalAcceptanceError: If legal requirements are not accepted
             ValueError: If both server_id and server_host are provided
         """
-        if not self.check_legal_requirements():
-            legal = self.get_legal_requirements()
-            raise LegalAcceptanceError(
-                "You must accept the legal requirements before running tests.\n"
-                f"EULA: {legal.eula_url}\n"
-                f"Terms of Service: {legal.terms_url}\n"
-                f"Privacy Policy: {legal.privacy_url}"
-            )
+        # Check legal terms acceptance at the NetVelocimeter level
+        if not self.has_accepted_terms():
+            raise LegalAcceptanceError("You must accept all legal terms before using the service.")
+
         if server_id and server_host:
             raise ValueError("Only one of server_id or server_host should be provided.")
+
         return self.provider.measure(server_id=server_id, server_host=server_host)

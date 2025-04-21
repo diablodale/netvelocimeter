@@ -8,6 +8,7 @@ from packaging.version import Version
 from netvelocimeter import NetVelocimeter, get_provider, list_providers
 from netvelocimeter.core import _PROVIDERS, register_provider
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult
+from netvelocimeter.terms import LegalTerms, LegalTermsCategory
 
 
 class TestNetVelocimeter(TestCase):
@@ -81,6 +82,39 @@ class TestNetVelocimeter(TestCase):
 
             nv = NetVelocimeter()
             self.assertEqual(nv.get_provider_version(), Version("1.2.3"))
+
+    def test_netvelocimeter_legal_terms(self):
+        """Test NetVelocimeter legal_terms method."""
+        with mock.patch("netvelocimeter.core.get_provider") as mock_get_provider:
+            # Create a mock provider class
+            class MockProviderWithTerms(BaseProvider):
+                """Mock provider with legal terms."""
+
+                def measure(self, server_id=None, server_host=None):
+                    return MeasurementResult(download_speed=1.0, upload_speed=1.0)
+
+                def legal_terms(self, category=LegalTermsCategory.ALL):
+                    if category == LegalTermsCategory.ALL:
+                        return [
+                            LegalTerms(text="EULA", category=LegalTermsCategory.EULA),
+                            LegalTerms(text="TERMS", category=LegalTermsCategory.SERVICE),
+                            LegalTerms(text="PRIVACY", category=LegalTermsCategory.PRIVACY),
+                        ]
+                    return [term for term in self.legal_terms() if term.category == category]
+
+            mock_get_provider.return_value = MockProviderWithTerms
+
+            # Create NetVelocimeter instance
+            nv = NetVelocimeter()
+
+            # Test getting all terms
+            terms = nv.legal_terms()
+            self.assertEqual(len(terms), 3)
+
+            # Test getting specific category
+            eula_terms = nv.legal_terms(category=LegalTermsCategory.EULA)
+            self.assertEqual(len(eula_terms), 1)
+            self.assertEqual(eula_terms[0].text, "EULA")
 
 
 class TestProviderRegistration(TestCase):

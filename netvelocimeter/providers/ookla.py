@@ -11,15 +11,10 @@ from typing import Any
 from packaging.version import InvalidVersion, Version
 
 from ..core import register_provider
-from ..exceptions import LegalAcceptanceError
+from ..exceptions import LegalAcceptanceError, PlatformNotSupported
+from ..terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
 from ..utils.binary_manager import download_file, ensure_executable, extract_file
-from .base import (
-    BaseProvider,
-    MeasurementResult,
-    ProviderLegalRequirements,
-    ServerIDType,
-    ServerInfo,
-)
+from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
 
 class OoklaProvider(BaseProvider):
@@ -63,6 +58,23 @@ class OoklaProvider(BaseProvider):
         # https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd12-x86_64.pkg
         # https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd13-x86_64.pkg
     }
+    _TERMS_COLLECTION = [
+        LegalTerms(
+            text="By using this application, you agree to be bound by the Ookla End User License Agreement...",
+            url="https://www.speedtest.net/about/eula",
+            category=LegalTermsCategory.EULA,
+        ),
+        LegalTerms(
+            text="By using this application, you agree to the Ookla Terms of Use...",
+            url="https://www.speedtest.net/about/terms",
+            category=LegalTermsCategory.SERVICE,
+        ),
+        LegalTerms(
+            text="By using this application, you acknowledge the Privacy Policy...",
+            url="https://www.speedtest.net/about/privacy",
+            category=LegalTermsCategory.PRIVACY,
+        ),
+    ]
 
     def __init__(self, binary_dir: str):
         """Initialize the Ookla provider.
@@ -77,27 +89,14 @@ class OoklaProvider(BaseProvider):
         self._accepted_terms = False
         self._accepted_privacy = False
 
-    @property
-    def legal_requirements(self) -> ProviderLegalRequirements:
-        """Get Ookla's legal requirements."""
-        return ProviderLegalRequirements(
-            eula_text="You may only use this Speedtest software and information generated "
-            "from it for personal, non-commercial use, through a command line "
-            "interface on a personal computer. Your use of this software is subject "
-            "to the End User License Agreement, Terms of Use and Privacy Policy.",
-            eula_url="https://www.speedtest.net/about/eula",
-            # terms_text="By using this Speedtest software, you agree to be bound by Ookla's Terms of Use.",
-            # terms_url="https://www.speedtest.net/about/terms",
-            privacy_text="Ookla collects certain data through Speedtest that may be considered "
-            "personally identifiable, such as your IP address, unique device "
-            "identifiers or location. Ookla believes it has a legitimate interest "
-            "to share this data with internet providers, hardware manufacturers and "
-            "industry regulators to help them understand and create a better and "
-            "faster internet. For further information including how the data may be "
-            "shared, where the data may be transferred and Ookla's contact details, "
-            "please see our Privacy Policy.",
-            privacy_url="https://www.speedtest.net/about/privacy",
-        )
+    def legal_terms(
+        self, category: LegalTermsCategory = LegalTermsCategory.ALL
+    ) -> LegalTermsCollection:
+        """Get legal terms for Ookla Speedtest."""
+        # Return the terms collection filtered by the requested category
+        if category == LegalTermsCategory.ALL:
+            return self._TERMS_COLLECTION
+        return [term for term in self._TERMS_COLLECTION if term.category == category]
 
     def _ensure_binary(self) -> str:
         """Ensure the Ookla speedtest binary is available.
@@ -129,7 +128,9 @@ class OoklaProvider(BaseProvider):
 
         key = (system, machine)
         if key not in self._DOWNLOAD_URLS:
-            raise RuntimeError(f"No Ookla speedtest binary available for {system} {machine}")
+            raise PlatformNotSupported(
+                f"No Ookla speedtest binary available for {system} {machine}"
+            )
 
         # Check if binary already exists
         binary_filename = "speedtest.exe" if system == "Windows" else "speedtest"
@@ -184,14 +185,17 @@ class OoklaProvider(BaseProvider):
 
         Returns:
             Parsed JSON output from speedtest.
+
+        Raises:
+            RuntimeError: If the speedtest fails
         """
-        # Only add these flags if user has accepted the terms
-        cmd = [self.binary_path, "--format=json", "--progress=no"]
-
-        # These flags won't work unless user has explicitly accepted
-        if self._accepted_eula and self._accepted_terms and self._accepted_privacy:
-            cmd.extend(["--accept-license", "--accept-gdpr"])
-
+        cmd = [
+            self.binary_path,
+            "--format=json",
+            "--progress=no",
+            "--accept-license",
+            "--accept-gdpr",
+        ]
         if args:
             cmd.extend(args)
 

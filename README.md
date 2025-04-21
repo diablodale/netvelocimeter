@@ -28,13 +28,11 @@ Eventually, I will publish to [PyPI](https://pypi.org/) and you will `pip instal
 ```python
 from netvelocimeter import NetVelocimeter
 
-# Use the default Ookla provider with legal agreements acceptance
-nv = NetVelocimeter(
-    provider="ookla",
-    accept_eula=True,
-    accept_terms=True,
-    accept_privacy=True
-)
+# Create NetVelocimeter with the default Ookla provider
+nv = NetVelocimeter(provider="ookla")
+
+# Accept legal terms before running tests
+nv.accept_terms(nv.legal_terms())
 
 # Run a complete measurement
 result = nv.measure()
@@ -49,22 +47,36 @@ if result.persist_url:
     print(f"View results online: {result.persist_url}")
 ```
 
-## Working with Legal Requirements
+## Legal Terms
 
-Some providers require acceptance of legal agreements:
+NetVelocimeter provides a flexible system for handling legal terms from different providers:
 
 ```python
-# Get legal requirements information
-nv = NetVelocimeter(provider="ookla")
-legal = nv.get_legal_requirements()
+from netvelocimeter.terms import LegalTermsCategory
 
-print(f"EULA URL: {legal.eula_url}")
-print(f"Terms URL: {legal.terms_url}")
-print(f"Privacy URL: {legal.privacy_url}")
+# Get all legal terms
+terms = nv.legal_terms()
 
-# Check if legal requirements are met
-if not nv.check_legal_requirements():
-    print("Legal requirements must be accepted before running tests")
+# Get terms by category
+eula_terms = nv.legal_terms(category=LegalTermsCategory.EULA)
+service_terms = nv.legal_terms(category=LegalTermsCategory.SERVICE)
+privacy_terms = nv.legal_terms(category=LegalTermsCategory.PRIVACY)
+
+# Accept specific terms
+nv.accept_terms(eula_terms)
+nv.accept_terms(service_terms)
+nv.accept_terms(privacy_terms)
+
+# Or accept all terms at once
+nv.accept_terms(nv.legal_terms())
+
+# Check if specific terms are accepted
+if nv.has_accepted_terms(eula_terms):
+    print("EULA terms accepted!")
+
+# Check if all terms are accepted
+if nv.has_accepted_terms():
+    print("All terms accepted!")
 ```
 
 ## Server Selection
@@ -72,14 +84,13 @@ if not nv.check_legal_requirements():
 List and select specific test servers:
 
 ```python
-# List available servers
-nv = NetVelocimeter(
-    provider="ookla",
-    accept_eula=True,
-    accept_terms=True,
-    accept_privacy=True
-)
+# Create NetVelocimeter instance
+nv = NetVelocimeter(provider="ookla")
 
+# Accept terms before using
+nv.accept_terms(nv.legal_terms())
+
+# List available servers
 servers = nv.get_servers()
 for server in servers:
     print(f"Server {server.name} in {server.location or 'unknown location'}")
@@ -121,13 +132,13 @@ from netvelocimeter.exceptions import LegalAcceptanceError
 from datetime import timedelta
 
 try:
-    nv = NetVelocimeter(
-        provider="ookla",
-        accept_eula=True,
-        accept_terms=True,
-        accept_privacy=True
-    )
+    # Create the NetVelocimeter instance
+    nv = NetVelocimeter(provider="ookla")
 
+    # Accept all legal terms
+    nv.accept_terms(nv.legal_terms())
+
+    # Run the measurement
     result = nv.measure()
 
     print(f"Measurement ID: {result.id if result.id else 'N/A'}")
@@ -136,8 +147,6 @@ try:
     print(f"Latency: {result.ping_latency.total_seconds() * 1000:.2f} ms")
     print(f"Jitter: {result.ping_jitter.total_seconds() * 1000:.2f} ms")
     print(f"Packet Loss: {result.packet_loss if result.packet_loss is not None else 'N/A'}")
-    if result.id:
-        print(f"Measurement ID: {result.id}")
     if result.persist_url:
         print(f"View results online: {result.persist_url}")
 

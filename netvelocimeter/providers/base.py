@@ -1,51 +1,16 @@
 """Base class for all speed test providers."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
+from typing import Any, final
 
 from packaging.version import Version
 
+from ..terms import AcceptanceTracker, LegalTerms, LegalTermsCategory, LegalTermsCollection
+
 # type alias for server ID
 ServerIDType = int | str
-
-
-@dataclass(frozen=True)
-class ProviderLegalRequirements:
-    """Defines legal requirements for a network provider.
-
-    Attributes:
-        eula_text: Text of the End User License Agreement (EULA).
-        eula_url: URL to the EULA.
-        terms_text: Text of the Terms of Service.
-        terms_url: URL to the Terms of Service.
-        privacy_text: Text of the Privacy Policy.
-        privacy_url: URL to the Privacy Policy.
-        requires_acceptance: Whether acceptance of legal documents is required.
-            Automatically calculated based on whether any legal texts or URLs are provided.
-    """
-
-    eula_text: str | None = None
-    eula_url: str | None = None
-    terms_text: str | None = None
-    terms_url: str | None = None
-    privacy_text: str | None = None
-    privacy_url: str | None = None
-    requires_acceptance: bool = field(init=False)
-
-    def __post_init__(self) -> None:
-        """Calculate requires_acceptance based on provided fields."""
-        requires = bool(
-            self.eula_text
-            or self.eula_url
-            or self.terms_text
-            or self.terms_url
-            or self.privacy_text
-            or self.privacy_url
-        )
-        # Use object.__setattr__ since this is a frozen dataclass
-        object.__setattr__(self, "requires_acceptance", requires)
 
 
 @dataclass
@@ -159,7 +124,7 @@ class BaseProvider(ABC):
     """Base class for network performance measurement providers."""
 
     binary_dir: str  # TODO change to Path
-    version: Version
+    version: Version  # BUGBUG should this be instance variable?
 
     def __init__(self, binary_dir: str):
         """Initialize the provider.
@@ -169,13 +134,47 @@ class BaseProvider(ABC):
         """
         self.binary_dir = binary_dir
         self.version = Version("0")
+        self._acceptance = AcceptanceTracker()
 
-    @property
-    def legal_requirements(self) -> ProviderLegalRequirements:
-        """Get legal requirements for this provider."""
-        # Default implementation returns an empty requirements object
-        # which will have requires_acceptance=False
-        return ProviderLegalRequirements()
+    def legal_terms(
+        self, category: LegalTermsCategory = LegalTermsCategory.ALL
+    ) -> LegalTermsCollection:
+        """Get legal terms for this provider.
+
+        Args:
+            category: Category of terms to retrieve. Defaults to ALL.
+
+        Returns:
+            Collection of legal terms that match the requested category
+        """
+        # Default implementation returns an empty collection
+        return []
+
+    @final
+    def has_accepted_terms(
+        self, terms_or_collection: LegalTerms | LegalTermsCollection | None = None
+    ) -> bool:
+        """Check if the user has accepted the specified terms.
+
+        Args:
+            terms_or_collection: Terms to check. If None, checks all legal terms for this provider.
+
+        Returns:
+            True if all specified terms have been accepted, False otherwise
+        """
+        if terms_or_collection is None:
+            terms_or_collection = self.legal_terms()
+
+        return self._acceptance.is_recorded(terms_or_collection)
+
+    @final
+    def accept_terms(self, terms_or_collection: LegalTerms | LegalTermsCollection) -> None:
+        """Record acceptance of terms.
+
+        Args:
+            terms_or_collection: Terms to accept
+        """
+        self._acceptance.record(terms_or_collection)
 
     @abstractmethod
     def measure(
@@ -192,34 +191,6 @@ class BaseProvider(ABC):
         """
         pass
 
-    def check_acceptance(
-        self,
-        accepted_eula: bool = False,
-        accepted_terms: bool = False,
-        accepted_privacy: bool = False,
-    ) -> bool:
-        """Check if user has accepted required legal documents.
-
-        Args:
-            accepted_eula: Whether the user has accepted the EULA
-            accepted_terms: Whether the user has accepted the terms of service
-            accepted_privacy: Whether the user has accepted the privacy policy
-
-        Returns:
-            True if all requirements are met, False otherwise
-        """
-        legal = self.legal_requirements
-        if not legal.requires_acceptance:
-            return True
-
-        if (legal.eula_text or legal.eula_url) and not accepted_eula:
-            return False
-
-        if (legal.terms_text or legal.terms_url) and not accepted_terms:
-            return False
-
-        return not ((legal.privacy_text or legal.privacy_url) and not accepted_privacy)
-
     def get_servers(self) -> list[ServerInfo]:
         """Get a list of available servers.
 
@@ -227,11 +198,3 @@ class BaseProvider(ABC):
             List of server information objects.
         """
         raise NotImplementedError("This provider does not support listing servers")
-
-    def get_version(self) -> Version:
-        """Get the version of the provider tool.
-
-        Returns:
-            Version string of the provider tool.
-        """
-        return self.version

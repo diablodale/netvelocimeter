@@ -7,6 +7,7 @@ from unittest import TestCase
 
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerInfo
 from netvelocimeter.providers.static import StaticProvider
+from netvelocimeter.terms import LegalTermsCategory
 
 
 class MockProvider(BaseProvider):
@@ -45,28 +46,27 @@ class TestBaseProviderImplementation(TestCase):
         provider = MockProvider(self.temp_dir)
         self.assertEqual(str(provider.version), "0")
 
-    def test_base_provider_check_acceptance_edge_cases(self):
-        """Test all edge cases for the check_acceptance method."""
-        # Test all combinations of acceptance
+    def test_base_provider_legal_terms(self):
+        """Test the legal_terms method."""
+        # Create a provider with terms
         provider = StaticProvider(self.temp_dir)
-        for accepted_eula in [True, False]:
-            for accepted_terms in [True, False]:
-                for accepted_privacy in [True, False]:
-                    if accepted_eula and accepted_terms and accepted_privacy:
-                        self.assertTrue(
-                            provider.check_acceptance(
-                                accepted_eula, accepted_terms, accepted_privacy
-                            )
-                        )
-                    else:
-                        self.assertFalse(
-                            provider.check_acceptance(
-                                accepted_eula, accepted_terms, accepted_privacy
-                            )
-                        )
+        terms = provider.legal_terms()
 
-        # Test when requires_acceptance is False
-        provider = StaticProvider(
+        # Verify it's a collection
+        self.assertIsInstance(terms, list)
+
+        # Verify it has the default categories
+        categories = {term.category for term in terms}
+        self.assertIn(LegalTermsCategory.EULA, categories)
+        self.assertIn(LegalTermsCategory.SERVICE, categories)
+        self.assertIn(LegalTermsCategory.PRIVACY, categories)
+
+        # Test with specified category
+        eula_terms = provider.legal_terms(category=LegalTermsCategory.EULA)
+        self.assertTrue(all(term.category == LegalTermsCategory.EULA for term in eula_terms))
+
+        # Provider with no terms
+        provider_no_terms = StaticProvider(
             self.temp_dir,
             eula_text=None,
             eula_url=None,
@@ -75,12 +75,46 @@ class TestBaseProviderImplementation(TestCase):
             privacy_text=None,
             privacy_url=None,
         )
-        for accepted_eula in [True, False]:
-            for accepted_terms in [True, False]:
-                for accepted_privacy in [True, False]:
-                    self.assertTrue(
-                        provider.check_acceptance(accepted_eula, accepted_terms, accepted_privacy)
-                    )
+
+        no_terms = provider_no_terms.legal_terms()
+        self.assertEqual(len(no_terms), 0)
+
+    def test_base_provider_acceptance(self):
+        """Test terms acceptance tracking."""
+        provider = StaticProvider(self.temp_dir)
+
+        # Initially no terms are accepted
+        self.assertFalse(provider.has_accepted_terms())
+
+        # Accept all terms
+        terms = provider.legal_terms()
+        provider.accept_terms(terms)
+
+        # Now all terms should be accepted
+        self.assertTrue(provider.has_accepted_terms())
+
+        # Test accepting a specific category
+        provider2 = StaticProvider(self.temp_dir)
+        eula_terms = provider2.legal_terms(category=LegalTermsCategory.EULA)
+        provider2.accept_terms(eula_terms)
+
+        # Should have accepted EULA but not all terms
+        self.assertTrue(provider2.has_accepted_terms(eula_terms))
+        self.assertFalse(provider2.has_accepted_terms())
+
+        # Provider with no terms
+        provider_no_terms = StaticProvider(
+            self.temp_dir,
+            eula_text=None,
+            eula_url=None,
+            terms_text=None,
+            terms_url=None,
+            privacy_text=None,
+            privacy_url=None,
+        )
+
+        # With no terms, should be considered accepted
+        self.assertTrue(provider_no_terms.has_accepted_terms())
 
 
 class TestMeasurementResult(TestCase):

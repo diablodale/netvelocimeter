@@ -6,13 +6,8 @@ import re
 from packaging.version import Version
 
 from ..core import register_provider
-from .base import (
-    BaseProvider,
-    MeasurementResult,
-    ProviderLegalRequirements,
-    ServerIDType,
-    ServerInfo,
-)
+from ..terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
+from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
 
 class StaticProvider(BaseProvider):
@@ -39,9 +34,6 @@ class StaticProvider(BaseProvider):
         ping_jitter: timedelta = timedelta(milliseconds=20.0),
         packet_loss: float = 1.3,
         version: str = "1.2.3+c0ffee",
-        accepted_eula: bool = False,
-        accepted_terms: bool = False,
-        accepted_privacy: bool = False,
     ):
         """Initialize a configurable test provider.
 
@@ -61,18 +53,10 @@ class StaticProvider(BaseProvider):
             ping_jitter: Ping jitter to return in test results (ms)
             packet_loss: Packet loss percentage to return in test results
             version: Provider version string
-            accepted_eula: Whether EULA is accepted
-            accepted_terms: Whether Terms are accepted
-            accepted_privacy: Whether Privacy policy is accepted
         """
+        # Call the base provider constructor and persist params
         super().__init__(binary_dir)
         self.version = Version(version)
-        self._eula_text = eula_text
-        self._eula_url = eula_url
-        self._terms_text = terms_text
-        self._terms_url = terms_url
-        self._privacy_text = privacy_text
-        self._privacy_url = privacy_url
         self._download_speed = download_speed
         self._upload_speed = upload_speed
         self._download_latency = download_latency
@@ -80,22 +64,40 @@ class StaticProvider(BaseProvider):
         self._ping_latency = ping_latency
         self._ping_jitter = ping_jitter
         self._packet_loss = packet_loss
-        self._version = version
-        self._accepted_eula = accepted_eula
-        self._accepted_terms = accepted_terms
-        self._accepted_privacy = accepted_privacy
 
-    @property
-    def legal_requirements(self) -> ProviderLegalRequirements:
-        """Get the provider's legal requirements."""
-        return ProviderLegalRequirements(
-            eula_text=self._eula_text,
-            eula_url=self._eula_url,
-            terms_text=self._terms_text,
-            terms_url=self._terms_url,
-            privacy_text=self._privacy_text,
-            privacy_url=self._privacy_url,
-        )
+        # Only add terms that have content
+        self._TERMS_COLLECTION = LegalTermsCollection()
+        if eula_text or eula_url:
+            # Add EULA terms if requested
+            self._TERMS_COLLECTION.append(
+                LegalTerms(text=eula_text, url=eula_url, category=LegalTermsCategory.EULA)
+            )
+        if terms_text or terms_url:
+            # Add service terms if requested
+            self._TERMS_COLLECTION.append(
+                LegalTerms(text=terms_text, url=terms_url, category=LegalTermsCategory.SERVICE)
+            )
+        if privacy_text or privacy_url:
+            # Add privacy terms if requested
+            self._TERMS_COLLECTION.append(
+                LegalTerms(text=privacy_text, url=privacy_url, category=LegalTermsCategory.PRIVACY)
+            )
+
+    def legal_terms(
+        self, category: LegalTermsCategory = LegalTermsCategory.ALL
+    ) -> LegalTermsCollection:
+        """Get legal terms for this provider.
+
+        Args:
+            category: Category of terms to retrieve. Defaults to ALL.
+
+        Returns:
+            Collection of legal terms that match the requested category
+        """
+        # Return the terms collection filtered by the requested category
+        if category == LegalTermsCategory.ALL:
+            return self._TERMS_COLLECTION
+        return [term for term in self._TERMS_COLLECTION if term.category == category]
 
     def _generate_server_info(self, server_num: int) -> ServerInfo:
         """Generate a test server info object with the given server number."""

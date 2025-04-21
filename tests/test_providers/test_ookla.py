@@ -8,13 +8,15 @@ import shutil
 import tempfile
 import unittest
 from unittest import mock
+import urllib.error
 
 from packaging.version import Version
 import pytest
 
-from netvelocimeter.exceptions import LegalAcceptanceError
+from netvelocimeter.exceptions import LegalAcceptanceError, PlatformNotSupported
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.ookla import OoklaProvider
+from netvelocimeter.terms import LegalTermsCategory
 
 
 class TestOoklaProvider(unittest.TestCase):
@@ -53,14 +55,39 @@ class TestOoklaProvider(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_legal_requirements(self):
-        """Test Ookla legal requirements."""
-        legal = self.provider.legal_requirements
+        """Test Ookla legal terms."""
+        # Get legal terms using the API
+        terms = self.provider.legal_terms()
 
-        self.assertTrue(legal.requires_acceptance)
-        self.assertIsNotNone(legal.eula_text)
-        self.assertEqual(legal.eula_url, "https://www.speedtest.net/about/eula")
-        self.assertIsNotNone(legal.privacy_text)
-        self.assertEqual(legal.privacy_url, "https://www.speedtest.net/about/privacy")
+        # Verify we have terms
+        self.assertTrue(terms)  # Collection should not be empty
+
+        # Find EULA terms
+        eula_terms = [term for term in terms if term.category == LegalTermsCategory.EULA]
+        self.assertTrue(eula_terms, "No EULA terms found")
+        self.assertIsNotNone(eula_terms[0].text)
+        self.assertEqual(eula_terms[0].url, "https://www.speedtest.net/about/eula")
+
+        # Find privacy terms
+        privacy_terms = [term for term in terms if term.category == LegalTermsCategory.PRIVACY]
+        self.assertTrue(privacy_terms, "No privacy terms found")
+        self.assertIsNotNone(privacy_terms[0].text)
+        self.assertEqual(privacy_terms[0].url, "https://www.speedtest.net/about/privacy")
+
+        # Find service terms
+        service_terms = [term for term in terms if term.category == LegalTermsCategory.SERVICE]
+        self.assertTrue(service_terms, "No service terms found")
+        self.assertIsNotNone(service_terms[0].text)
+        self.assertEqual(service_terms[0].url, "https://www.speedtest.net/about/terms")
+
+        # Test acceptance tracking
+        self.assertFalse(self.provider.has_accepted_terms())
+
+        # Accept terms
+        self.provider.accept_terms(terms)
+
+        # Verify acceptance was recorded
+        self.assertTrue(self.provider.has_accepted_terms())
 
     @mock.patch("subprocess.run")
     def test_run_speedtest_without_acceptance(self, mock_run):
@@ -71,6 +98,9 @@ class TestOoklaProvider(unittest.TestCase):
         mock_process.stderr = "Error: You must accept the license agreement to use this software"
         mock_run.return_value = mock_process
 
+        # Do NOT accept any terms
+        self.assertFalse(self.provider.has_accepted_terms())
+
         # Verify exception is raised
         with self.assertRaises(LegalAcceptanceError):
             self.provider._run_speedtest()
@@ -78,10 +108,12 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_run_speedtest_with_acceptance(self, mock_run):
         """Test running speedtest with acceptance."""
-        # Set up acceptance flags
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
+        # Accept terms using the proper API
+        terms = self.provider.legal_terms()
+        self.provider.accept_terms(terms)
+
+        # Verify terms are accepted
+        self.assertTrue(self.provider.has_accepted_terms())
 
         # Mock successful subprocess run
         mock_process = mock.Mock()
@@ -165,10 +197,9 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_measure_with_server_id(self, mock_run):
         """Test measurement with specified server ID."""
-        # Set up acceptance flags
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
+        # Accept all terms first
+        terms = self.provider.legal_terms()
+        self.provider.accept_terms(terms)
 
         # Mock successful measurement
         mock_process = mock.Mock()
@@ -344,9 +375,8 @@ class TestOoklaProvider(unittest.TestCase):
 
             # Update assertions if verifying server_info:
             self.assertEqual(result.server_info.name, "DNS:NET Internet Service GmbH")
-            # If id is expected in the sample, verify it:
-            if "id" in result.server_info.raw_server:
-                self.assertEqual(result.server_info.id, 20507)
+
+            self.assertEqual(result.server_info.id, 20507)
 
     @mock.patch("subprocess.run")
     def test_error_handling(self, mock_run):
@@ -416,6 +446,83 @@ class TestOoklaProvider(unittest.TestCase):
         # The id should be None
         self.assertIsNone(result.id)
 
+    @mock.patch("subprocess.run")
+    def test_measure_download(self, mock_run):
+        """Test download speed calculation."""
+        self.provider._accepted_eula = True
+        self.provider._accepted_terms = True
+        self.provider._accepted_privacy = True
+
+        # Mock with different bandwidth values
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = json.dumps(
+            {
+                "download": {"bandwidth": 10000000, "latency": {"iqm": 42.985}},  # 80 Mbps
+                "upload": {"bandwidth": 2500000, "latency": {"iqm": 178.546}},
+                "ping": {"latency": 15.5, "jitter": 3.2},
+                "server": {"id": "1234", "name": "Test Server"},
+            }
+        )
+        mock_run.return_value = mock_process
+
+        result = self.provider.measure()
+
+        # 10000000 bytes/s * 8 bits/byte / 1,000,000 bits/Mbps = 80 Mbps
+        self.assertAlmostEqual(result.download_speed, 80.0, places=2)
+
+    @mock.patch("subprocess.run")
+    def test_measure_upload(self, mock_run):
+        """Test upload speed calculation."""
+        self.provider._accepted_eula = True
+        self.provider._accepted_terms = True
+        self.provider._accepted_privacy = True
+
+        # Mock with different bandwidth values
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = json.dumps(
+            {
+                "download": {"bandwidth": 12500000, "latency": {"iqm": 42.985}},
+                "upload": {"bandwidth": 5000000, "latency": {"iqm": 178.546}},  # 40 Mbps
+                "ping": {"latency": 15.5, "jitter": 3.2},
+                "server": {"id": "1234", "name": "Test Server"},
+            }
+        )
+        mock_run.return_value = mock_process
+
+        result = self.provider.measure()
+
+        # 5000000 bytes/s * 8 bits/byte / 1,000,000 bits/Mbps = 40 Mbps
+        self.assertAlmostEqual(result.upload_speed, 40.0, places=2)
+
+    @mock.patch("subprocess.run")
+    def test_measure_latency(self, mock_run):
+        """Test latency handling."""
+        self.provider._accepted_eula = True
+        self.provider._accepted_terms = True
+        self.provider._accepted_privacy = True
+
+        # Mock with different latency values
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = json.dumps(
+            {
+                "download": {"bandwidth": 12500000, "latency": {"iqm": 100.5}},  # 100.5ms
+                "upload": {"bandwidth": 2500000, "latency": {"iqm": 200.75}},  # 200.75ms
+                "ping": {"latency": 50.25, "jitter": 10.5},  # 50.25ms, 10.5ms
+                "server": {"id": "1234", "name": "Test Server"},
+            }
+        )
+        mock_run.return_value = mock_process
+
+        result = self.provider.measure()
+
+        self.assertAlmostEqual(result.download_latency.total_seconds() * 1000, 100.5, places=2)
+        self.assertAlmostEqual(result.upload_latency.total_seconds() * 1000, 200.75, places=2)
+        self.assertAlmostEqual(result.ping_latency.total_seconds() * 1000, 50.25, places=2)
+        self.assertAlmostEqual(result.ping_jitter.total_seconds() * 1000, 10.5, places=2)
+
 
 class TestOoklaProviderVersionParsing(unittest.TestCase):
     """Separate test class for version parsing functionality."""
@@ -476,6 +583,19 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
                     ["speedtest_path_1234", "--version"], capture_output=True, text=True
                 )
 
+    def test_get_version_invalid_format(self):
+        """Test handling completely different format than expected."""
+        with mock.patch("subprocess.run") as mock_run:
+            mock_process = mock.Mock()
+            mock_process.returncode = 0
+            # Test with completely different format than expected
+            mock_process.stdout = "Version: ABC123"
+            mock_run.return_value = mock_process
+
+            with mock.patch.object(OoklaProvider, "_ensure_binary", return_value="speedtest_path"):
+                provider = OoklaProvider("/temp/dir")
+                self.assertEqual(provider.version, Version("0.0.0"))
+
 
 class TestOoklaProviderPlatformDetection(unittest.TestCase):
     """Test platform detection for OoklaProvider."""
@@ -516,6 +636,13 @@ class TestOoklaProviderPlatformDetection(unittest.TestCase):
                 url_arg,
                 f"Machine type 'armv7l' not correctly mapped to 'armhf' in URL: {url_arg}",
             )
+
+    @mock.patch("platform.system", return_value="UnsupportedOS")
+    @mock.patch("platform.machine", return_value="UnsupportedCPU")
+    def test_unsupported_architecture(self, mock_machine, mock_system):
+        """Test handling of unsupported OS/CPU combinations."""
+        with self.assertRaises(PlatformNotSupported):
+            _ = OoklaProvider(self.temp_dir)
 
 
 class TestOoklaRealBinaries(unittest.TestCase):
@@ -649,8 +776,6 @@ class TestNetworkHandling(unittest.TestCase):
     @mock.patch("netvelocimeter.utils.binary_manager.urllib.request.urlopen")
     def test_network_errors(self, mock_urlopen):
         """Test handling of network errors."""
-        import urllib.error
-
         mock_urlopen.side_effect = urllib.error.URLError("Network unreachable")
 
         with (
