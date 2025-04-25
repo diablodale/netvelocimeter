@@ -15,11 +15,11 @@ class StaticProvider(BaseProvider):
 
     All fields default to test values, set any to None to omit them.
     Five test servers with ids 1 -> 5 are available.
+    All constructor parameters are persisted for each instance of this class.
     """
 
     def __init__(
         self,
-        binary_dir: str,
         eula_text: str | None = "Test EULA",
         eula_url: str | None = "https://example.com/eula",
         terms_text: str | None = "Test Terms",
@@ -38,7 +38,6 @@ class StaticProvider(BaseProvider):
         """Initialize a configurable test provider.
 
         Args:
-            binary_dir: Directory for binaries
             eula_text: EULA text (None to omit)
             eula_url: EULA URL (None to omit)
             terms_text: Terms text (None to omit)
@@ -54,9 +53,10 @@ class StaticProvider(BaseProvider):
             packet_loss: Packet loss percentage to return in test results
             version: Provider version string
         """
-        # Call the base provider constructor and persist params
-        super().__init__(binary_dir)
-        self.version = Version(version)
+        # Call the base provider constructor
+        super().__init__()
+
+        #  persist params
         self._download_speed = download_speed
         self._upload_speed = upload_speed
         self._download_latency = download_latency
@@ -64,6 +64,7 @@ class StaticProvider(BaseProvider):
         self._ping_latency = ping_latency
         self._ping_jitter = ping_jitter
         self._packet_loss = packet_loss
+        self._version = Version(version)
 
         # Only add terms that have content
         self._TERMS_COLLECTION = LegalTermsCollection()
@@ -82,6 +83,15 @@ class StaticProvider(BaseProvider):
             self._TERMS_COLLECTION.append(
                 LegalTerms(text=privacy_text, url=privacy_url, category=LegalTermsCategory.PRIVACY)
             )
+
+    @property
+    def version(self) -> Version:
+        """Get the provider version.
+
+        Returns:
+            Version for this provider
+        """
+        return self._version
 
     def legal_terms(
         self, category: LegalTermsCategory = LegalTermsCategory.ALL
@@ -109,7 +119,8 @@ class StaticProvider(BaseProvider):
             country="Test Country",
         )
 
-    def get_servers(self) -> list[ServerInfo]:
+    @property
+    def servers(self) -> list[ServerInfo]:
         """Get list of available servers."""
         return [self._generate_server_info(i) for i in range(1, 6)]
 

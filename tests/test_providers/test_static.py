@@ -1,8 +1,6 @@
 """Tests for the StaticProvider."""
 
 from datetime import timedelta
-import shutil
-import tempfile
 import unittest
 
 from packaging.version import Version
@@ -16,14 +14,6 @@ from netvelocimeter.terms import LegalTermsCategory
 class TestStaticProvider(unittest.TestCase):
     """Test the StaticProvider implementation."""
 
-    def setUp(self):
-        """Set up test environment."""
-        self.temp_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        """Clean up test environment."""
-        shutil.rmtree(self.temp_dir)
-
     def test_get_provider(self):
         """Test getting the provider."""
         provider_class = get_provider("static")
@@ -31,7 +21,7 @@ class TestStaticProvider(unittest.TestCase):
 
     def test_default_initialization(self):
         """Test default initialization of StaticProvider."""
-        provider = StaticProvider(self.temp_dir)
+        provider = StaticProvider()
 
         # Check default version
         self.assertEqual(str(provider.version), "1.2.3+c0ffee")
@@ -55,10 +45,15 @@ class TestStaticProvider(unittest.TestCase):
         self.assertEqual(privacy_terms[0].text, "Test Privacy")
         self.assertEqual(privacy_terms[0].url, "https://example.com/privacy")
 
+    def test_attribute_separation(self):
+        """Test attribute separation in StaticProvider."""
+        provider1 = StaticProvider(version="1.0.0")
+        provider2 = StaticProvider(version="2.0.0")
+        self.assertNotEqual(provider1.version, provider2.version)
+
     def test_custom_initialization(self):
         """Test custom initialization of StaticProvider."""
         provider = StaticProvider(
-            binary_dir=self.temp_dir,
             eula_text="Custom EULA",
             eula_url="https://example.com/custom-eula",
             terms_text=None,  # Test with None value
@@ -100,8 +95,8 @@ class TestStaticProvider(unittest.TestCase):
 
     def test_get_servers(self):
         """Test getting server list."""
-        provider = StaticProvider(self.temp_dir)
-        servers = provider.get_servers()
+        provider = StaticProvider()
+        servers = provider.servers
 
         # Should have 5 test servers
         self.assertEqual(len(servers), 5)
@@ -122,7 +117,6 @@ class TestStaticProvider(unittest.TestCase):
     def test_measure_without_server(self):
         """Test measurement without server specification."""
         provider = StaticProvider(
-            binary_dir=self.temp_dir,
             download_speed=150.0,
             upload_speed=30.0,
             ping_latency=timedelta(milliseconds=20.0),
@@ -155,7 +149,7 @@ class TestStaticProvider(unittest.TestCase):
 
     def test_measure_with_server_id(self):
         """Test measurement with specific server ID."""
-        provider = StaticProvider(self.temp_dir)
+        provider = StaticProvider()
 
         # Accept all legal terms first
         provider.accept_terms(provider.legal_terms())
@@ -174,7 +168,7 @@ class TestStaticProvider(unittest.TestCase):
 
     def test_measure_with_server_host(self):
         """Test measurement with specific server host."""
-        provider = StaticProvider(self.temp_dir)
+        provider = StaticProvider()
 
         # Accept all legal terms first
         provider.accept_terms(provider.legal_terms())
@@ -191,7 +185,7 @@ class TestStaticProvider(unittest.TestCase):
     def test_static_provider_legal_terms(self):
         """Test legal terms handling in StaticProvider."""
         # Create a provider with default terms
-        provider = StaticProvider(self.temp_dir)
+        provider = StaticProvider()
 
         # Get the terms
         terms = provider.legal_terms()
@@ -219,7 +213,7 @@ class TestStaticProvider(unittest.TestCase):
 
     def test_static_provider_acceptance(self):
         """Test acceptance tracking in StaticProvider."""
-        provider = StaticProvider(self.temp_dir)
+        provider = StaticProvider()
 
         # Initially terms are not accepted
         self.assertFalse(provider.has_accepted_terms())
@@ -232,7 +226,7 @@ class TestStaticProvider(unittest.TestCase):
         self.assertTrue(provider.has_accepted_terms())
 
         # Test partial acceptance
-        provider2 = StaticProvider(self.temp_dir)
+        provider2 = StaticProvider()
         eula_terms = provider2.legal_terms(category=LegalTermsCategory.EULA)
         provider2.accept_terms(eula_terms)
 
@@ -253,7 +247,6 @@ class TestStaticProvider(unittest.TestCase):
     def test_static_provider_without_terms(self):
         """Test StaticProvider with no legal terms."""
         provider = StaticProvider(
-            self.temp_dir,
             eula_text=None,
             eula_url=None,
             terms_text=None,

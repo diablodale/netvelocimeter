@@ -1,7 +1,6 @@
 """Test legal requirements functionality."""
 
 from datetime import timedelta
-import tempfile
 import unittest
 from unittest import mock
 
@@ -15,24 +14,12 @@ class TestLegalRequirements(unittest.TestCase):
     """Test legal requirements functionality."""
 
     @mock.patch("netvelocimeter.core.get_provider")
-    def setUp(self, mock_get_provider):
-        """Set up test environment."""
-        mock_get_provider.return_value = StaticProvider
-        self.temp_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        """Clean up test environment."""
-        import shutil
-
-        shutil.rmtree(self.temp_dir)
-
-    @mock.patch("netvelocimeter.core.get_provider")
     def test_default_no_acceptance(self, mock_get_provider):
         """Test that measurements fail without legal acceptance."""
         mock_get_provider.return_value = StaticProvider
 
         # Create NetVelocimeter without accepting terms
-        nv = NetVelocimeter(binary_dir=self.temp_dir)
+        nv = NetVelocimeter()
 
         # Verify that measurement fails without accepting terms
         with self.assertRaises(LegalAcceptanceError):
@@ -44,7 +31,7 @@ class TestLegalRequirements(unittest.TestCase):
         mock_get_provider.return_value = StaticProvider
 
         # Create NetVelocimeter
-        nv = NetVelocimeter(binary_dir=self.temp_dir)
+        nv = NetVelocimeter()
 
         # Only accept EULA terms
         eula_terms = nv.legal_terms(category=LegalTermsCategory.EULA)
@@ -55,7 +42,7 @@ class TestLegalRequirements(unittest.TestCase):
             nv.measure()
 
         # Create fresh instance and accept EULA and Service terms but not Privacy
-        nv2 = NetVelocimeter(binary_dir=self.temp_dir)
+        nv2 = NetVelocimeter()
         nv2.accept_terms(nv2.legal_terms(category=LegalTermsCategory.EULA))
         nv2.accept_terms(nv2.legal_terms(category=LegalTermsCategory.SERVICE))
 
@@ -69,7 +56,7 @@ class TestLegalRequirements(unittest.TestCase):
         mock_get_provider.return_value = StaticProvider
 
         # Create NetVelocimeter
-        nv = NetVelocimeter(binary_dir=self.temp_dir)
+        nv = NetVelocimeter()
 
         # Accept all terms
         nv.accept_terms(nv.legal_terms())
@@ -85,7 +72,7 @@ class TestLegalRequirements(unittest.TestCase):
         """Test retrieving legal terms."""
         mock_get_provider.return_value = StaticProvider
 
-        nv = NetVelocimeter(binary_dir=self.temp_dir)
+        nv = NetVelocimeter()
         terms = nv.legal_terms()
 
         # Check that we have terms
@@ -113,11 +100,11 @@ class TestLegalRequirements(unittest.TestCase):
         mock_get_provider.return_value = StaticProvider
 
         # No acceptance
-        nv = NetVelocimeter(binary_dir=self.temp_dir)
+        nv = NetVelocimeter()
         self.assertFalse(nv.has_accepted_terms())
 
         # Partial acceptance
-        nv = NetVelocimeter(binary_dir=self.temp_dir)
+        nv = NetVelocimeter()
         nv.accept_terms(nv.legal_terms(category=LegalTermsCategory.EULA))
         self.assertFalse(nv.has_accepted_terms())  # Should be false for all terms
         self.assertTrue(
@@ -125,14 +112,13 @@ class TestLegalRequirements(unittest.TestCase):
         )  # But true for just EULA
 
         # Full acceptance
-        nv = NetVelocimeter(binary_dir=self.temp_dir)
+        nv = NetVelocimeter()
         nv.accept_terms(nv.legal_terms())
         self.assertTrue(nv.has_accepted_terms())
 
     def test_provider_without_terms(self):
         """Test provider with no legal terms."""
         provider = StaticProvider(
-            binary_dir=self.temp_dir,
             eula_text=None,
             eula_url=None,
             terms_text=None,
