@@ -12,12 +12,20 @@ from unittest import mock
 from urllib.error import URLError
 import zipfile
 
+from packaging.version import Version
 import pytest
 
-from netvelocimeter.utils.binary_manager import download_file, ensure_executable, extract_file
+from netvelocimeter.providers.base import BaseProvider
+from netvelocimeter.utils.binary_manager import (
+    BinaryManager,
+    download_file,
+    ensure_executable,
+    extract_file,
+)
+from netvelocimeter.utils.hash import hash_b64encode
 
 
-class TestBinaryManager(unittest.TestCase):
+class TestBinaryManagerFunctions(unittest.TestCase):
     """Tests for binary manager utilities."""
 
     def setUp(self):  # Changed from setup_method
@@ -65,8 +73,8 @@ class TestBinaryManager(unittest.TestCase):
         self.assertFalse(os.path.exists(destination))
 
     @pytest.mark.skipif(platform.system() == "Windows", reason="Not applicable on Windows")
-    def test_ensure_executable_unix(self):
-        """Test making a file executable on Unix-like systems."""
+    def test_ensure_executable_posix(self):
+        """Test making a file executable on posix systems."""
         # Create a test file
         test_file = os.path.join(self.temp_dir, "testfile.sh")
         with open(test_file, "w") as f:
@@ -338,3 +346,382 @@ class TestBinaryManager(unittest.TestCase):
         # Verify the device file wasn't created
         device_path = os.path.join(self.temp_dir, device_name)
         self.assertFalse(os.path.exists(device_path))
+
+
+# Create a concrete implementation of BaseProvider for testing
+class TestProvider(BaseProvider):
+    """Test provider used for binary manager testing."""
+
+    def __init__(self):
+        """Initialize test provider."""
+        super().__init__()
+
+    @property
+    def version(self) -> Version:
+        """Get the provider version.
+
+        Returns:
+            Version for this provider
+        """
+        return Version("1.0.0+test")
+
+    def measure(self, server_id=None, server_host=None):
+        """Implement required measure method."""
+        pass
+
+
+class TestBinaryManagerCaching(unittest.TestCase):
+    """Tests for BinaryManager caching functionality."""
+
+    def setUp(self):
+        """Set up test environment."""
+        self.temp_dir = tempfile.mkdtemp(prefix="binary_manager_test_")
+        self.cache_dir = os.path.join(self.temp_dir, "cache")
+        self.download_dir = os.path.join(self.temp_dir, "downloads")
+        self.extract_dir = os.path.join(self.temp_dir, "extracts")
+
+        # Create directories
+        os.makedirs(self.cache_dir, exist_ok=True)
+        os.makedirs(self.download_dir, exist_ok=True)
+        os.makedirs(self.extract_dir, exist_ok=True)
+
+        # Create test archive
+        self.test_url = "https://example.com/test.zip"
+        self.internal_file = "testfile.txt"
+        self.file_content = "test content"
+
+        # Create a BinaryManager instance
+        self.manager = BinaryManager(TestProvider, self.cache_dir)
+
+    def tearDown(self):
+        """Clean up test environment."""
+        shutil.rmtree(self.temp_dir)
+
+    def create_test_archive(self, archive_path):
+        """Create a test ZIP archive with a single file."""
+        with zipfile.ZipFile(archive_path, "w") as zipf:
+            zipf.writestr(self.internal_file, self.file_content)
+        return archive_path
+
+    def test_init_with_custom_cache_root(self):
+        """Test initialization with custom cache root."""
+        manager = BinaryManager(TestProvider, self.cache_dir)
+
+        # Verify cache path structure
+        expected_cache_path = os.path.join(
+            self.cache_dir, platform.system(), platform.machine(), "testprovider"
+        )
+
+        # Convert both to absolute paths for comparison
+        expected_path = os.path.abspath(expected_cache_path)
+        actual_path = os.path.abspath(manager._cache_root)
+
+        self.assertEqual(actual_path, expected_path)
+        self.assertTrue(os.path.isdir(actual_path))
+
+    def test_init_with_relative_path(self):
+        """Test initialization with relative path that gets expanded."""
+        # Mock expanduser to return a predictable path
+        with mock.patch("os.path.expanduser") as mock_expanduser:
+            # Return an absolute path when expanduser is called
+            mock_expanduser.return_value = os.path.join(self.temp_dir, "expanded")
+
+            # Initialize with user-relative path
+            manager = BinaryManager(TestProvider, "~/expanded_cache")
+
+            # Verify expanduser was called
+            mock_expanduser.assert_called_once_with("~/expanded_cache")
+
+            # Verify the expanded path was used
+            self.assertTrue(manager._cache_root.startswith(os.path.join(self.temp_dir, "expanded")))
+
+    def test_init_with_invalid_relative_path(self):
+        """Test initialization with invalid relative path."""
+        # Mock expanduser to return a still-relative path
+        with mock.patch("os.path.expanduser") as mock_expanduser:
+            mock_expanduser.return_value = "still_relative"
+
+            # Should raise an error
+            with self.assertRaises(ValueError):
+                BinaryManager(TestProvider, "invalid_relative")
+
+    def test_init_with_default_cache_root(self):
+        """Test initialization with default cache root."""
+        # Mock platform.system to ensure predictable behavior
+        with (
+            mock.patch("platform.system") as mock_system,
+            mock.patch("platform.machine") as mock_machine,
+        ):
+            mock_system.return_value = "TestOS"
+            mock_machine.return_value = "TestArch"
+
+            # Mock expanduser to return a predictable path
+            with mock.patch("os.path.expanduser") as mock_expanduser:
+                mock_expanduser.return_value = os.path.join(
+                    self.temp_dir, "home_dir", ".local", "bin"
+                )
+
+                # Mock os.makedirs to avoid actually creating directories
+                with mock.patch("os.makedirs"):
+                    manager = BinaryManager(TestProvider)
+
+                    # Verify cache path structure
+                    expected_cache_path = os.path.join(
+                        self.temp_dir,
+                        "home_dir",
+                        ".local",
+                        "bin",
+                        "netvelocimeter",
+                        "TestOS",
+                        "TestArch",
+                        "testprovider",
+                    )
+
+                    # Verify the path contains the expected components
+                    self.assertEqual(manager._cache_root, expected_cache_path)
+
+    def test_cache_dir_for_url(self):
+        """Test _cache_dir_for_url method."""
+        # Get cache directory for a URL
+        url = "https://example.com/test.zip"
+        cache_dir = self.manager._cache_dir_for_url(url)
+
+        # Verify directory exists and is within the cache root
+        self.assertTrue(os.path.isdir(cache_dir))
+        self.assertTrue(cache_dir.startswith(self.manager._cache_root))
+
+        # Verify URL hashing is consistent
+        cache_dir2 = self.manager._cache_dir_for_url(url)
+        self.assertEqual(cache_dir, cache_dir2)
+
+        # Verify different URLs get different directories
+        other_url = "https://example.com/other.zip"
+        other_cache_dir = self.manager._cache_dir_for_url(other_url)
+        self.assertNotEqual(cache_dir, other_cache_dir)
+
+    def test_retrieve_from_cache_nonexistent(self):
+        """Test _retrieve_from_cache when file is not in cache."""
+        # Try to retrieve a file that doesn't exist
+        result = self.manager._retrieve_from_cache(self.test_url, "nonexistent.txt")
+        self.assertIsNone(result)
+
+    def test_retrieve_from_cache_exists(self):
+        """Test _retrieve_from_cache when file is in cache."""
+        # Create a file in the cache
+        cache_dir = self.manager._cache_dir_for_url(self.test_url)
+        cached_file = os.path.join(cache_dir, "cached.txt")
+        with open(cached_file, "w") as f:
+            f.write("cached content")
+
+        # Retrieve the file
+        result = self.manager._retrieve_from_cache(self.test_url, "cached.txt")
+        self.assertEqual(result, cached_file)
+
+    @mock.patch("netvelocimeter.utils.binary_manager.download_file")
+    @mock.patch("netvelocimeter.utils.binary_manager.extract_file")
+    def test_download_extract_with_caching(self, mock_extract, mock_download):
+        """Test download_extract with caching."""
+        # Set up mocks
+        mock_download.return_value = "/path/to/downloaded.zip"
+        mock_extract.return_value = "/path/to/extracted.txt"
+
+        # Mock _retrieve_from_cache to initially return None (not cached)
+        with mock.patch.object(self.manager, "_retrieve_from_cache", return_value=None):
+            # First call should download and extract
+            result1 = self.manager.download_extract(self.test_url, self.internal_file)
+
+            # Verify calls
+            mock_download.assert_called_once()
+            mock_extract.assert_called_once()
+            self.assertEqual(result1, "/path/to/extracted.txt")
+
+        # Mock _retrieve_from_cache to now return a cached file
+        with mock.patch.object(
+            self.manager, "_retrieve_from_cache", return_value="/path/to/cached.txt"
+        ):
+            # Second call should use cache
+            result2 = self.manager.download_extract(self.test_url, self.internal_file)
+
+            # Verify download and extract were not called again
+            self.assertEqual(mock_download.call_count, 1)  # Still only one call
+            self.assertEqual(mock_extract.call_count, 1)  # Still only one call
+            self.assertEqual(result2, "/path/to/cached.txt")
+
+    @mock.patch("netvelocimeter.utils.binary_manager.download_file")
+    @mock.patch("netvelocimeter.utils.binary_manager.extract_file")
+    def test_download_extract_force_download(self, mock_extract, mock_download):
+        """Test download_extract with forced download (dest_dir provided)."""
+        # Set up mocks
+        mock_download.return_value = "/path/to/downloaded.zip"
+        mock_extract.return_value = "/path/to/extracted.txt"
+
+        # Call with dest_dir to force download
+        result = self.manager.download_extract(
+            self.test_url, self.internal_file, dest_dir=self.extract_dir
+        )
+
+        # Verify calls
+        mock_download.assert_called_once()
+        mock_extract.assert_called_once()
+        self.assertEqual(result, "/path/to/extracted.txt")
+
+        # Verify dest_dir was passed correctly
+        _, kwargs = mock_extract.call_args
+        self.assertEqual(kwargs.get("dest_dir"), self.extract_dir)
+
+    @mock.patch("urllib.request.urlopen")
+    def test_full_download_extract_cache_flow(self, mock_urlopen):
+        """Test the full flow of download, extract, and caching."""
+        # Create a real archive for testing
+        archive_path = os.path.join(self.download_dir, "test.zip")
+        self.create_test_archive(archive_path)
+
+        # Mock the URL response
+        mock_response = mock.MagicMock()
+        with open(archive_path, "rb") as f:
+            mock_response.read.return_value = f.read()
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        # First call - should download, extract, and cache
+        result1 = self.manager.download_extract(self.test_url, self.internal_file)
+
+        # Verify file was extracted and exists
+        self.assertTrue(os.path.exists(result1))
+        with open(result1) as f:
+            self.assertEqual(f.read(), self.file_content)
+
+        # Reset mock to verify it's not called on the second attempt
+        mock_urlopen.reset_mock()
+
+        # Second call - should use cache
+        result2 = self.manager.download_extract(self.test_url, self.internal_file)
+
+        # Verify same file is returned and urlopen was not called
+        self.assertEqual(result1, result2)
+        mock_urlopen.assert_not_called()
+
+    def test_invalid_provider_class(self):
+        """Test initialization with invalid provider class."""
+        # Try with a class that's not a BaseProvider subclass
+        with self.assertRaises(ValueError):
+            BinaryManager(object)
+
+        # Try with abstract BaseProvider class
+        with self.assertRaises(ValueError):
+            BinaryManager(BaseProvider)
+
+    def test_cache_structure(self):
+        """Test the structure of the cache directory."""
+        # Download and extract a file
+        with (
+            mock.patch("urllib.request.urlopen"),
+            mock.patch("netvelocimeter.utils.binary_manager.download_file") as mock_download,
+            mock.patch("netvelocimeter.utils.binary_manager.extract_file") as mock_extract,
+        ):
+            mock_download.return_value = "/path/to/downloaded.zip"
+            mock_extract.return_value = "/path/to/extracted.txt"
+            self.manager.download_extract(self.test_url, self.internal_file)
+
+        # Verify the cache structure
+        # Root/System/Machine/ProviderName/UrlHash/
+        expected_path_parts = [
+            platform.system(),
+            platform.machine(),
+            "testprovider",
+            hash_b64encode(self.test_url),
+        ]
+
+        # Get the URL hash directory
+        url_hash_dir = self.manager._cache_dir_for_url(self.test_url)
+
+        # Check each part is in the cache path
+        self.assertEqual(os.path.join(self.cache_dir, *expected_path_parts), url_hash_dir)
+
+        # Verify URL cache directory was created
+        self.assertTrue(os.path.isdir(url_hash_dir))
+
+    @mock.patch("netvelocimeter.utils.binary_manager.download_file")
+    def test_download_extract_error_handling(self, mock_download):
+        """Test error handling in download_extract."""
+        # Set up mock to raise an exception
+        mock_download.side_effect = URLError("Network error")
+
+        # Call should raise the same exception
+        with self.assertRaises(URLError):
+            self.manager.download_extract(self.test_url, self.internal_file)
+
+    @mock.patch("netvelocimeter.utils.binary_manager.extract_file")
+    @mock.patch("netvelocimeter.utils.binary_manager.download_file")
+    def test_filename_verification(self, mock_download, mock_extract):
+        """Test filename verification in download_extract."""
+        # Set up mocks
+        mock_download.return_value = "/path/to/downloaded.zip"
+        mock_extract.return_value = "/path/to/extracted.txt"
+
+        # Test with invalid internal filepath
+        with self.assertRaises(ValueError):
+            self.manager.download_extract(self.test_url, "")
+
+        # Test with None internal filepath
+        with self.assertRaises(ValueError):
+            self.manager.download_extract(self.test_url, None)
+
+
+class TestBinaryManagerWindowsSpecific(unittest.TestCase):
+    """Windows-specific tests for BinaryManager."""
+
+    def setUp(self):
+        """Set up test environment."""
+        self.temp_dir = tempfile.mkdtemp(prefix="binary_manager_test_")
+
+    def tearDown(self):
+        """Clean up test environment."""
+        shutil.rmtree(self.temp_dir)
+
+    @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
+    def test_windows_default_cache_location(self):
+        """Test Windows-specific default cache location."""
+        # Mock os.getenv to return a known value for LOCALAPPDATA
+        with mock.patch("os.getenv") as mock_getenv:
+            mock_getenv.return_value = os.path.join(self.temp_dir, "localappdata")
+
+            # Mock os.makedirs to avoid creating directories
+            with mock.patch("os.makedirs"):
+                manager = BinaryManager(TestProvider)
+
+                # Verify Windows path is used
+                self.assertEqual(
+                    os.path.normpath(os.path.join(self.temp_dir, "localappdata", "netvelocimeter")),
+                    os.path.normpath(os.path.join(manager._cache_root, "..", "..", "..")),
+                )
+
+
+class TestBinaryManagerPosixSpecific(unittest.TestCase):
+    """POSIX-specific tests for BinaryManager."""
+
+    def setUp(self):
+        """Set up test environment."""
+        self.temp_dir = tempfile.mkdtemp(prefix="binary_manager_test_")
+
+    def tearDown(self):
+        """Clean up test environment."""
+        shutil.rmtree(self.temp_dir)
+
+    @pytest.mark.skipif(platform.system() == "Windows", reason="POSIX-specific test")
+    def test_posix_default_cache_location(self):
+        """Test POSIX-specific default cache location."""
+        # Mock os.path.expanduser to return a known path
+        with mock.patch("os.path.expanduser") as mock_expanduser:
+            mock_expanduser.return_value = os.path.join(self.temp_dir, ".local", "bin")
+
+            # Mock os.makedirs to avoid creating directories
+            with mock.patch("os.makedirs"):
+                manager = BinaryManager(TestProvider)
+
+                # Verify POSIX path is used
+                self.assertEqual(
+                    os.path.normpath(
+                        os.path.join(self.temp_dir, ".local", "bin", "netvelocimeter")
+                    ),
+                    os.path.normpath(os.path.join(manager._cache_root, "..", "..", "..")),
+                )
