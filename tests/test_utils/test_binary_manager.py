@@ -365,6 +365,17 @@ class TestProvider(BaseProvider):
         """
         return Version("1.0.0+test")
 
+    def legal_terms(self, category=None):
+        """Get legal terms for this provider.
+
+        Args:
+            category: Category of terms to retrieve. Defaults to ALL.
+
+        Returns:
+            Collection of legal terms that match the requested category
+        """
+        return []
+
     def measure(self, server_id=None, server_host=None):
         """Implement required measure method."""
         pass
