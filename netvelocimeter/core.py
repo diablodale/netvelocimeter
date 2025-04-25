@@ -1,8 +1,7 @@
 """Core functionality for the NetVelocimeter library."""
 
 import inspect
-import os
-from typing import TypeVar
+from typing import Any, TypeVar, final
 
 from packaging.version import Version
 
@@ -34,13 +33,16 @@ def register_provider(name: str, provider_class: type[B]) -> None:
         raise ValueError(
             f"Invalid provider class: {provider_class}. Must be a concrete subclass of BaseProvider."
         )
-    if name.lower() in _PROVIDERS:
+
+    # validate name
+    name = name.lower()
+    if name in _PROVIDERS:
         raise ValueError(f"Provider '{name}' is already registered.")
     if not name.isidentifier():
         raise ValueError(f"Invalid provider name '{name}'. Must be a valid Python identifier.")
     if not provider_class.__doc__:
         raise ValueError(f"Provider class '{provider_class.__name__}' must have a docstring.")
-    _PROVIDERS[name.lower()] = provider_class
+    _PROVIDERS[name] = provider_class
 
 
 def get_provider(name: str) -> type[BaseProvider]:
@@ -61,8 +63,7 @@ def get_provider(name: str) -> type[BaseProvider]:
     Example:
         # Create a custom provider with specific parameters
         ProviderClass = get_provider("ookla")
-        custom_provider = ProviderClass(binary_dir="/custom/path",
-                                       custom_option=True)
+        custom_provider = ProviderClass(custom_option=True)
     """
     if not _PROVIDERS:
         # Auto-import providers when first needed
@@ -114,7 +115,8 @@ def list_providers(include_info: bool = False) -> list[str] | list[tuple[str, st
 
 def _discover_providers() -> None:
     """Automatically discover and register providers."""
-    # Future providers will be imported here
+    import netvelocimeter.providers.ookla  # noqa: F401
+    import netvelocimeter.providers.static  # noqa: F401
 
 
 class NetVelocimeter:
@@ -123,22 +125,20 @@ class NetVelocimeter:
     def __init__(
         self,
         provider: str = "ookla",
-        binary_dir: str | None = None,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Initialize the NetVelocimeter.
 
         Args:
             provider: The name of the provider to use.
-            binary_dir: Directory to store provider binaries.
+            kwargs: Additional arguments to pass to the provider.
+
         """
+        # Check if the provider is registered
         provider_class = get_provider(provider)
+        self.provider = provider_class(**kwargs)
 
-        if binary_dir is None:
-            binary_dir = os.path.expanduser("~/.netvelocimeter/bin/")
-            os.makedirs(binary_dir, exist_ok=True)
-
-        self.provider = provider_class(binary_dir)
-
+    @final
     def legal_terms(
         self, category: LegalTermsCategory = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
@@ -152,6 +152,7 @@ class NetVelocimeter:
         """
         return self.provider.legal_terms(category)
 
+    @final
     def has_accepted_terms(
         self, terms_or_collection: LegalTerms | LegalTermsCollection | None = None
     ) -> bool:
@@ -165,6 +166,7 @@ class NetVelocimeter:
         """
         return self.provider.has_accepted_terms(terms_or_collection)
 
+    @final
     def accept_terms(self, terms_or_collection: LegalTerms | LegalTermsCollection) -> None:
         """Record acceptance of terms.
 
@@ -173,7 +175,9 @@ class NetVelocimeter:
         """
         self.provider.accept_terms(terms_or_collection)
 
-    def get_servers(self) -> list[ServerInfo]:
+    @final
+    @property
+    def servers(self) -> list[ServerInfo]:
         """Get list of available servers.
 
         Returns:
@@ -181,9 +185,11 @@ class NetVelocimeter:
         """
         if not self.has_accepted_terms():
             raise LegalAcceptanceError("You must accept all legal terms before using the service.")
-        return self.provider.get_servers()
+        return self.provider.servers
 
-    def get_provider_version(self) -> Version:
+    @final
+    @property
+    def provider_version(self) -> Version:
         """Get the version of the provider.
 
         Returns:
@@ -191,6 +197,7 @@ class NetVelocimeter:
         """
         return self.provider.version
 
+    @final
     def measure(
         self, server_id: ServerIDType | None = None, server_host: str | None = None
     ) -> MeasurementResult:

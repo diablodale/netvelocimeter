@@ -1,14 +1,39 @@
 """Tests for the core functionality."""
 
-import tempfile
 from unittest import TestCase, mock
 
 from packaging.version import Version
 
-from netvelocimeter import NetVelocimeter, get_provider, list_providers
-from netvelocimeter.core import _PROVIDERS, register_provider
-from netvelocimeter.providers.base import BaseProvider, MeasurementResult
+from netvelocimeter import NetVelocimeter, get_provider, list_providers, register_provider
+from netvelocimeter.core import _PROVIDERS
+from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerIDType
 from netvelocimeter.terms import LegalTerms, LegalTermsCategory
+
+
+class MockProviderWithTerms(BaseProvider):
+    """Mock provider with legal terms."""
+
+    @property
+    def version(self) -> Version:
+        """Return a mock version."""
+        return Version("2.1.3+g123456")
+
+    def measure(
+        self, server_id: ServerIDType | None = None, server_host: str | None = None
+    ) -> MeasurementResult:
+        """Mock measurement method."""
+        return MeasurementResult(download_speed=1.0, upload_speed=1.0)
+
+    def legal_terms(self, category=LegalTermsCategory.ALL):
+        """Return mock legal terms."""
+        corpus = [
+            LegalTerms(text="EULA", category=LegalTermsCategory.EULA),
+            LegalTerms(text="TERMS", category=LegalTermsCategory.SERVICE),
+            LegalTerms(text="PRIVACY", category=LegalTermsCategory.PRIVACY),
+        ]
+        if category == LegalTermsCategory.ALL:
+            return corpus
+        return [term for term in corpus if term.category == category]
 
 
 class TestNetVelocimeter(TestCase):
@@ -51,22 +76,10 @@ class TestNetVelocimeter(TestCase):
         info_names = {name for name, _ in providers_with_info}
         self.assertTrue(plain_names.intersection(info_names))
 
-    def test_initialize_with_binary_dir(self):
-        """Test initializing with a binary directory."""
-        with (
-            tempfile.TemporaryDirectory() as temp_dir,
-            mock.patch(
-                "netvelocimeter.providers.ookla.OoklaProvider._ensure_binary"
-            ) as mock_ensure,
-            mock.patch(
-                "netvelocimeter.providers.ookla.OoklaProvider._get_version"
-            ) as mock_get_version,
-        ):
-            mock_ensure.return_value = "/fake/path"
-            mock_get_version.return_value = "1.0.0-test"
-
-            nv = NetVelocimeter(binary_dir=temp_dir)
-            self.assertEqual(nv.provider.binary_dir, temp_dir)
+    def test_initialize_with_unknown_parameter(self):
+        """Test initializing with an unknown parameter."""
+        with self.assertRaises(TypeError):
+            NetVelocimeter(unknown_param="test")
 
     def test_provider_version_access(self):
         """Test accessing provider version."""
@@ -81,27 +94,12 @@ class TestNetVelocimeter(TestCase):
             mock_get_provider.return_value = mock_provider_class
 
             nv = NetVelocimeter()
-            self.assertEqual(nv.get_provider_version(), Version("1.2.3"))
+            self.assertEqual(nv.provider_version, Version("1.2.3"))
 
     def test_netvelocimeter_legal_terms(self):
         """Test NetVelocimeter legal_terms method."""
         with mock.patch("netvelocimeter.core.get_provider") as mock_get_provider:
             # Create a mock provider class
-            class MockProviderWithTerms(BaseProvider):
-                """Mock provider with legal terms."""
-
-                def measure(self, server_id=None, server_host=None):
-                    return MeasurementResult(download_speed=1.0, upload_speed=1.0)
-
-                def legal_terms(self, category=LegalTermsCategory.ALL):
-                    if category == LegalTermsCategory.ALL:
-                        return [
-                            LegalTerms(text="EULA", category=LegalTermsCategory.EULA),
-                            LegalTerms(text="TERMS", category=LegalTermsCategory.SERVICE),
-                            LegalTerms(text="PRIVACY", category=LegalTermsCategory.PRIVACY),
-                        ]
-                    return [term for term in self.legal_terms() if term.category == category]
-
             mock_get_provider.return_value = MockProviderWithTerms
 
             # Create NetVelocimeter instance
@@ -126,6 +124,15 @@ class TestProviderRegistration(TestCase):
         # Create a test provider class
         class TestProvider(BaseProvider):
             """Test provider for unit tests."""
+
+            @property
+            def version(self) -> Version:
+                """Return a mock version."""
+                return Version("1.0.0")
+
+            def legal_terms(self, category=LegalTermsCategory.ALL):
+                """Return mock legal terms."""
+                return []
 
             def measure(self, server_id=None, server_host=None):
                 return MeasurementResult(download_speed=1.0, upload_speed=1.0)
@@ -159,6 +166,15 @@ class TestProviderRegistration(TestCase):
             The first line of this __doc__ is an empty line.
             This test ensures registration works with multiline docstrings.
             """
+
+            @property
+            def version(self) -> Version:
+                """Return a mock version."""
+                return Version("1.0.0")
+
+            def legal_terms(self, category=LegalTermsCategory.ALL):
+                """Return mock legal terms."""
+                return []
 
             def measure(self, server_id=None, server_host=None):
                 return MeasurementResult(download_speed=1.0, upload_speed=1.0)
@@ -229,6 +245,15 @@ class TestProviderRegistrationErrors(TestCase):
         class TestProvider(BaseProvider):
             """Test provider for duplicates."""
 
+            @property
+            def version(self) -> Version:
+                """Return a mock version."""
+                return Version("1.0.0")
+
+            def legal_terms(self, category=LegalTermsCategory.ALL):
+                """Return mock legal terms."""
+                return []
+
             def measure(self, server_id=None, server_host=None):
                 pass
 
@@ -253,6 +278,15 @@ class TestProviderRegistrationErrors(TestCase):
         # Create a valid provider class
         class TestProvider(BaseProvider):
             """Test provider with invalid name."""
+
+            @property
+            def version(self) -> Version:
+                """Return a mock version."""
+                return Version("1.0.0")
+
+            def legal_terms(self, category=LegalTermsCategory.ALL):
+                """Return mock legal terms."""
+                return []
 
             def measure(self, server_id=None, server_host=None):
                 pass
@@ -280,7 +314,17 @@ class TestProviderRegistrationErrors(TestCase):
 
         # Create a provider class without a docstring
         class TestProviderNoDoc(BaseProvider):
+            @property
+            def version(self) -> Version:
+                """Mock version."""
+                return Version("1.0.0")
+
+            def legal_terms(self, category=LegalTermsCategory.ALL):
+                """Mock legal terms."""
+                return []
+
             def measure(self, server_id=None, server_host=None):
+                """Mock measurement."""
                 pass
 
         # Should raise ValueError
@@ -299,7 +343,17 @@ class TestProviderRegistrationErrors(TestCase):
         class TestAutoDiscoverProvider(BaseProvider):
             """Test provider for auto-discovery."""
 
+            @property
+            def version(self) -> Version:
+                """Mock version."""
+                return Version("1.0.0")
+
+            def legal_terms(self, category=LegalTermsCategory.ALL):
+                """Mock legal terms."""
+                return []
+
             def measure(self, server_id=None, server_host=None):
+                """Mock measurement."""
                 pass
 
         # Register a provider - should trigger discovery
@@ -312,7 +366,17 @@ class TestProviderRegistrationErrors(TestCase):
         class TestSecondProvider(BaseProvider):
             """Second test provider."""
 
+            @property
+            def version(self) -> Version:
+                """Mock version."""
+                return Version("1.0.0")
+
+            def legal_terms(self, category=LegalTermsCategory.ALL):
+                """Mock legal terms."""
+                return []
+
             def measure(self, server_id=None, server_host=None):
+                """Mock measurement."""
                 pass
 
         register_provider("test_auto_discovery_on_first_registration_2", TestSecondProvider)

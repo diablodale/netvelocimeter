@@ -123,19 +123,24 @@ class MeasurementResult:
 class BaseProvider(ABC):
     """Base class for network performance measurement providers."""
 
-    binary_dir: str  # TODO change to Path
-    version: Version  # BUGBUG should this be instance variable?
+    def __init__(self) -> None:
+        """Initialize the provider."""
+        self._acceptance = AcceptanceTracker()  # BUGBUG make attribute of derived class?
 
-    def __init__(self, binary_dir: str):
-        """Initialize the provider.
+    @property
+    @abstractmethod
+    def version(self) -> Version:
+        """Get the provider version.
 
-        Args:
-            binary_dir: Directory to store provider binaries.
+        Each provider type must implement this property to return
+        its specific version.
+
+        Returns:
+            The version of the provider implementation
         """
-        self.binary_dir = binary_dir
-        self.version = Version("0")
-        self._acceptance = AcceptanceTracker()
+        pass
 
+    @abstractmethod
     def legal_terms(
         self, category: LegalTermsCategory = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
@@ -147,8 +152,31 @@ class BaseProvider(ABC):
         Returns:
             Collection of legal terms that match the requested category
         """
-        # Default implementation returns an empty collection
-        return []
+        pass
+
+    @abstractmethod
+    def measure(
+        self, server_id: ServerIDType | None = None, server_host: str | None = None
+    ) -> MeasurementResult:
+        """Measure network performance.
+
+        Args:
+            server_id: Server ID to use for testing (either integer or string)
+            server_host: Server hostname to use for testing
+
+        Returns:
+            Measurement results
+        """
+        pass
+
+    @property
+    def servers(self) -> list[ServerInfo]:
+        """Get a list of available servers.
+
+        Returns:
+            List of server information objects.
+        """
+        raise NotImplementedError("This provider does not support listing servers")
 
     @final
     def has_accepted_terms(
@@ -175,26 +203,3 @@ class BaseProvider(ABC):
             terms_or_collection: Terms to accept
         """
         self._acceptance.record(terms_or_collection)
-
-    @abstractmethod
-    def measure(
-        self, server_id: ServerIDType | None = None, server_host: str | None = None
-    ) -> MeasurementResult:
-        """Measure network performance.
-
-        Args:
-            server_id: Server ID to use for testing (either integer or string)
-            server_host: Server hostname to use for testing
-
-        Returns:
-            Measurement results
-        """
-        pass
-
-    def get_servers(self) -> list[ServerInfo]:
-        """Get a list of available servers.
-
-        Returns:
-            List of server information objects.
-        """
-        raise NotImplementedError("This provider does not support listing servers")

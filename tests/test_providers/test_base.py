@@ -1,9 +1,9 @@
 """Tests for the base provider."""
 
 from datetime import timedelta
-import shutil
-import tempfile
 from unittest import TestCase
+
+from packaging.version import Version
 
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerInfo
 from netvelocimeter.providers.static import StaticProvider
@@ -23,33 +23,31 @@ class MockProvider(BaseProvider):
             ping_jitter=timedelta(milliseconds=5),
         )
 
+    @property
+    def version(self) -> Version:
+        """Return a mock version."""
+        return Version("2.1.3+g123456")
+
 
 class TestBaseProviderImplementation(TestCase):
     """Test the BaseProvider implementation."""
 
-    def setUp(self):
-        """Set up a test directory."""
-        self.temp_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        """Clean up test directory."""
-        shutil.rmtree(self.temp_dir)
-
     def test_base_provider_get_servers(self):
         """Test default get_servers implementation raises NotImplementedError."""
-        provider = MockProvider(self.temp_dir)
+        provider = MockProvider()
         with self.assertRaises(NotImplementedError):
-            provider.get_servers()
+            _ = provider.servers
 
     def test_base_provider_version(self):
         """Test BaseProvider version handling."""
-        provider = MockProvider(self.temp_dir)
-        self.assertEqual(str(provider.version), "0")
+        provider = MockProvider()
+        self.assertEqual(str(provider.version), "2.1.3+g123456")
+        self.assertEqual(provider.version, Version("2.1.3+g123456"))
 
     def test_base_provider_legal_terms(self):
         """Test the legal_terms method."""
         # Create a provider with terms
-        provider = StaticProvider(self.temp_dir)
+        provider = StaticProvider()
         terms = provider.legal_terms()
 
         # Verify it's a collection
@@ -67,7 +65,6 @@ class TestBaseProviderImplementation(TestCase):
 
         # Provider with no terms
         provider_no_terms = StaticProvider(
-            self.temp_dir,
             eula_text=None,
             eula_url=None,
             terms_text=None,
@@ -81,7 +78,7 @@ class TestBaseProviderImplementation(TestCase):
 
     def test_base_provider_acceptance(self):
         """Test terms acceptance tracking."""
-        provider = StaticProvider(self.temp_dir)
+        provider = StaticProvider()
 
         # Initially no terms are accepted
         self.assertFalse(provider.has_accepted_terms())
@@ -94,7 +91,7 @@ class TestBaseProviderImplementation(TestCase):
         self.assertTrue(provider.has_accepted_terms())
 
         # Test accepting a specific category
-        provider2 = StaticProvider(self.temp_dir)
+        provider2 = StaticProvider()
         eula_terms = provider2.legal_terms(category=LegalTermsCategory.EULA)
         provider2.accept_terms(eula_terms)
 
@@ -104,7 +101,6 @@ class TestBaseProviderImplementation(TestCase):
 
         # Provider with no terms
         provider_no_terms = StaticProvider(
-            self.temp_dir,
             eula_text=None,
             eula_url=None,
             terms_text=None,

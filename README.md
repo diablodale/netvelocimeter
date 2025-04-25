@@ -91,7 +91,7 @@ nv = NetVelocimeter(provider="ookla")
 nv.accept_terms(nv.legal_terms())
 
 # List available servers
-servers = nv.get_servers()
+servers = nv.servers
 for server in servers:
     print(f"Server {server.name} in {server.location or 'unknown location'}")
 
@@ -108,7 +108,7 @@ Get information about the provider:
 ```python
 # Get provider version
 nv = NetVelocimeter()
-version = nv.get_provider_version()
+version = nv.provider_version
 print(f"Provider version: {version}")
 ```
 
