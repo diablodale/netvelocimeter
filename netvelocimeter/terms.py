@@ -3,18 +3,30 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum, auto
-import hashlib
+
+from .utils.hash import hash_b64encode
 
 
 class LegalTermsCategory(Enum):
     """Categories of legal terms."""
 
     EULA = auto()
+    """End User License Agreement"""
+
     SERVICE = auto()
+    """Service Terms of Use"""
+
     PRIVACY = auto()
+    """Privacy Policy"""
+
     NDA = auto()
+    """Non-Disclosure Agreement"""
+
     OTHER = auto()
-    ALL = auto()  # Special value to represent all categories
+    """Other legal terms that do not fit into predefined categories"""
+
+    ALL = auto()
+    """Special value to represent all categories"""
 
 
 @dataclass
@@ -30,13 +42,15 @@ class LegalTerms:
         # Use a combination of text, URL, and category to create a unique hash
         content = f"{self.text or ''}|{self.url or ''}|{self.category.name}"
         # label it with `1` as the hash methodology version
-        return f"1:{hashlib.sha256(content.encode('utf-8')).hexdigest()}"  # TODO base64 encode
+        return f"1:{hash_b64encode(content)}"
 
 
 # Type alias for a collection of LegalTerms
 LegalTermsCollection = list[LegalTerms]
 
 
+# TODO persist acceptance to linux: ~/.config/netvelocimeter/ or windows: %APPDATA%\netvelocimeter\
+# via config_dir: bool | str = True,
 class AcceptanceTracker:
     """Tracks which legal terms have been accepted."""
 
