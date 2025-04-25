@@ -13,8 +13,17 @@ from netvelocimeter.terms import LegalTermsCategory
 class MockProvider(BaseProvider):
     """A concrete implementation of BaseProvider for testing."""
 
+    @property
+    def version(self) -> Version:
+        """Mock version."""
+        return Version("2.1.3+g123456")
+
+    def legal_terms(self, category=LegalTermsCategory.ALL):
+        """Mock legal terms."""
+        return []
+
     def measure(self, server_id=None, server_host=None):
-        """Implement the abstract method."""
+        """Mock measurement method."""
         # Return a minimal measurement result
         return MeasurementResult(
             download_speed=100.0,
@@ -22,11 +31,6 @@ class MockProvider(BaseProvider):
             ping_latency=timedelta(milliseconds=20),
             ping_jitter=timedelta(milliseconds=5),
         )
-
-    @property
-    def version(self) -> Version:
-        """Return a mock version."""
-        return Version("2.1.3+g123456")
 
 
 class TestBaseProviderImplementation(TestCase):
