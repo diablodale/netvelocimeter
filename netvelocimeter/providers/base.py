@@ -129,7 +129,7 @@ class BaseProvider(ABC):
 
     @property
     @abstractmethod
-    def version(self) -> Version:
+    def _version(self) -> Version:
         """Get the provider version.
 
         Each provider type must implement this property to return
@@ -141,7 +141,7 @@ class BaseProvider(ABC):
         pass
 
     @abstractmethod
-    def legal_terms(
+    def _legal_terms(
         self, category: LegalTermsCategory = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
         """Get legal terms for this provider.
@@ -155,7 +155,7 @@ class BaseProvider(ABC):
         pass
 
     @abstractmethod
-    def measure(
+    def _measure(
         self, server_id: ServerIDType | None = None, server_host: str | None = None
     ) -> MeasurementResult:
         """Measure network performance.
@@ -170,7 +170,7 @@ class BaseProvider(ABC):
         pass
 
     @property
-    def servers(self) -> list[ServerInfo]:
+    def _servers(self) -> list[ServerInfo]:
         """Get a list of available servers.
 
         Returns:
@@ -179,7 +179,7 @@ class BaseProvider(ABC):
         raise NotImplementedError("This provider does not support listing servers")
 
     @final
-    def has_accepted_terms(
+    def _has_accepted_terms(
         self, terms_or_collection: LegalTerms | LegalTermsCollection | None = None
     ) -> bool:
         """Check if the user has accepted the specified terms.
@@ -191,12 +191,12 @@ class BaseProvider(ABC):
             True if all specified terms have been accepted, False otherwise
         """
         if terms_or_collection is None:
-            terms_or_collection = self.legal_terms()
+            terms_or_collection = self._legal_terms()
 
         return self._acceptance.is_recorded(terms_or_collection)
 
     @final
-    def accept_terms(self, terms_or_collection: LegalTerms | LegalTermsCollection) -> None:
+    def _accept_terms(self, terms_or_collection: LegalTerms | LegalTermsCollection) -> None:
         """Record acceptance of terms.
 
         Args:

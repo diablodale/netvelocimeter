@@ -150,7 +150,7 @@ class NetVelocimeter:
         Returns:
             Collection of legal terms that match the requested category
         """
-        return self.provider.legal_terms(category)
+        return self.provider._legal_terms(category)
 
     @final
     def has_accepted_terms(
@@ -164,7 +164,7 @@ class NetVelocimeter:
         Returns:
             True if all specified terms have been accepted, False otherwise
         """
-        return self.provider.has_accepted_terms(terms_or_collection)
+        return self.provider._has_accepted_terms(terms_or_collection)
 
     @final
     def accept_terms(self, terms_or_collection: LegalTerms | LegalTermsCollection) -> None:
@@ -173,7 +173,7 @@ class NetVelocimeter:
         Args:
             terms_or_collection: Terms to accept
         """
-        self.provider.accept_terms(terms_or_collection)
+        self.provider._accept_terms(terms_or_collection)
 
     @final
     @property
@@ -185,7 +185,7 @@ class NetVelocimeter:
         """
         if not self.has_accepted_terms():
             raise LegalAcceptanceError("You must accept all legal terms before using the service.")
-        return self.provider.servers
+        return self.provider._servers
 
     @final
     @property
@@ -195,7 +195,7 @@ class NetVelocimeter:
         Returns:
             Provider version as a Version object.
         """
-        return self.provider.version
+        return self.provider._version
 
     @final
     def measure(
@@ -221,4 +221,4 @@ class NetVelocimeter:
         if server_id and server_host:
             raise ValueError("Only one of server_id or server_host should be provided.")
 
-        return self.provider.measure(server_id=server_id, server_host=server_host)
+        return self.provider._measure(server_id=server_id, server_host=server_host)

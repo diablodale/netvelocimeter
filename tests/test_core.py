@@ -14,17 +14,17 @@ class MockProviderWithTerms(BaseProvider):
     """Mock provider with legal terms."""
 
     @property
-    def version(self) -> Version:
+    def _version(self) -> Version:
         """Return a mock version."""
         return Version("2.1.3+g123456")
 
-    def measure(
+    def _measure(
         self, server_id: ServerIDType | None = None, server_host: str | None = None
     ) -> MeasurementResult:
         """Mock measurement method."""
         return MeasurementResult(download_speed=1.0, upload_speed=1.0)
 
-    def legal_terms(self, category=LegalTermsCategory.ALL):
+    def _legal_terms(self, category=LegalTermsCategory.ALL):
         """Return mock legal terms."""
         corpus = [
             LegalTerms(text="EULA", category=LegalTermsCategory.EULA),
@@ -87,7 +87,7 @@ class TestNetVelocimeter(TestCase):
         with mock.patch("netvelocimeter.core.get_provider") as mock_get_provider:
             # Create a mock provider class and instance
             mock_instance = mock.MagicMock()
-            mock_instance.version = Version("1.2.3")
+            mock_instance._version = Version("1.2.3")
             mock_provider_class = mock.MagicMock(return_value=mock_instance)
 
             # Set up get_provider to return our mock provider class
@@ -126,15 +126,15 @@ class TestProviderRegistration(TestCase):
             """Test provider for unit tests."""
 
             @property
-            def version(self) -> Version:
+            def _version(self) -> Version:
                 """Return a mock version."""
                 return Version("1.0.0")
 
-            def legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, category=LegalTermsCategory.ALL):
                 """Return mock legal terms."""
                 return []
 
-            def measure(self, server_id=None, server_host=None):
+            def _measure(self, server_id=None, server_host=None):
                 return MeasurementResult(download_speed=1.0, upload_speed=1.0)
 
         # Register it
@@ -168,15 +168,15 @@ class TestProviderRegistration(TestCase):
             """
 
             @property
-            def version(self) -> Version:
+            def _version(self) -> Version:
                 """Return a mock version."""
                 return Version("1.0.0")
 
-            def legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, category=LegalTermsCategory.ALL):
                 """Return mock legal terms."""
                 return []
 
-            def measure(self, server_id=None, server_host=None):
+            def _measure(self, server_id=None, server_host=None):
                 return MeasurementResult(download_speed=1.0, upload_speed=1.0)
 
         # Register it
@@ -246,15 +246,15 @@ class TestProviderRegistrationErrors(TestCase):
             """Test provider for duplicates."""
 
             @property
-            def version(self) -> Version:
+            def _version(self) -> Version:
                 """Return a mock version."""
                 return Version("1.0.0")
 
-            def legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, category=LegalTermsCategory.ALL):
                 """Return mock legal terms."""
                 return []
 
-            def measure(self, server_id=None, server_host=None):
+            def _measure(self, server_id=None, server_host=None):
                 pass
 
         # Register first time - should succeed
@@ -280,15 +280,15 @@ class TestProviderRegistrationErrors(TestCase):
             """Test provider with invalid name."""
 
             @property
-            def version(self) -> Version:
+            def _version(self) -> Version:
                 """Return a mock version."""
                 return Version("1.0.0")
 
-            def legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, category=LegalTermsCategory.ALL):
                 """Return mock legal terms."""
                 return []
 
-            def measure(self, server_id=None, server_host=None):
+            def _measure(self, server_id=None, server_host=None):
                 pass
 
         # Test with invalid identifier (contains spaces)
@@ -315,15 +315,15 @@ class TestProviderRegistrationErrors(TestCase):
         # Create a provider class without a docstring
         class TestProviderNoDoc(BaseProvider):
             @property
-            def version(self) -> Version:
+            def _version(self) -> Version:
                 """Mock version."""
                 return Version("1.0.0")
 
-            def legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, category=LegalTermsCategory.ALL):
                 """Mock legal terms."""
                 return []
 
-            def measure(self, server_id=None, server_host=None):
+            def _measure(self, server_id=None, server_host=None):
                 """Mock measurement."""
                 pass
 
@@ -344,15 +344,15 @@ class TestProviderRegistrationErrors(TestCase):
             """Test provider for auto-discovery."""
 
             @property
-            def version(self) -> Version:
+            def _version(self) -> Version:
                 """Mock version."""
                 return Version("1.0.0")
 
-            def legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, category=LegalTermsCategory.ALL):
                 """Mock legal terms."""
                 return []
 
-            def measure(self, server_id=None, server_host=None):
+            def _measure(self, server_id=None, server_host=None):
                 """Mock measurement."""
                 pass
 
@@ -367,15 +367,15 @@ class TestProviderRegistrationErrors(TestCase):
             """Second test provider."""
 
             @property
-            def version(self) -> Version:
+            def _version(self) -> Version:
                 """Mock version."""
                 return Version("1.0.0")
 
-            def legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, category=LegalTermsCategory.ALL):
                 """Mock legal terms."""
                 return []
 
-            def measure(self, server_id=None, server_host=None):
+            def _measure(self, server_id=None, server_host=None):
                 """Mock measurement."""
                 pass
 

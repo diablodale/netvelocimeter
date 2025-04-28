@@ -349,15 +349,11 @@ class TestBinaryManagerFunctions(unittest.TestCase):
 
 
 # Create a concrete implementation of BaseProvider for testing
-class TestProvider(BaseProvider):
+class MockProvider(BaseProvider):
     """Test provider used for binary manager testing."""
 
-    def __init__(self):
-        """Initialize test provider."""
-        super().__init__()
-
     @property
-    def version(self) -> Version:
+    def _version(self) -> Version:
         """Get the provider version.
 
         Returns:
@@ -365,7 +361,7 @@ class TestProvider(BaseProvider):
         """
         return Version("1.0.0+test")
 
-    def legal_terms(self, category=None):
+    def _legal_terms(self, category=None):
         """Get legal terms for this provider.
 
         Args:
@@ -376,7 +372,7 @@ class TestProvider(BaseProvider):
         """
         return []
 
-    def measure(self, server_id=None, server_host=None):
+    def _measure(self, server_id=None, server_host=None):
         """Implement required measure method."""
         pass
 
@@ -402,7 +398,7 @@ class TestBinaryManagerCaching(unittest.TestCase):
         self.file_content = "test content"
 
         # Create a BinaryManager instance
-        self.manager = BinaryManager(TestProvider, self.cache_dir)
+        self.manager = BinaryManager(MockProvider, self.cache_dir)
 
     def tearDown(self):
         """Clean up test environment."""
@@ -416,11 +412,11 @@ class TestBinaryManagerCaching(unittest.TestCase):
 
     def test_init_with_custom_cache_root(self):
         """Test initialization with custom cache root."""
-        manager = BinaryManager(TestProvider, self.cache_dir)
+        manager = BinaryManager(MockProvider, self.cache_dir)
 
         # Verify cache path structure
         expected_cache_path = os.path.join(
-            self.cache_dir, platform.system(), platform.machine(), "testprovider"
+            self.cache_dir, platform.system(), platform.machine(), MockProvider.__name__.lower()
         )
 
         # Convert both to absolute paths for comparison
@@ -438,7 +434,7 @@ class TestBinaryManagerCaching(unittest.TestCase):
             mock_expanduser.return_value = os.path.join(self.temp_dir, "expanded")
 
             # Initialize with user-relative path
-            manager = BinaryManager(TestProvider, "~/expanded_cache")
+            manager = BinaryManager(MockProvider, "~/expanded_cache")
 
             # Verify expanduser was called
             mock_expanduser.assert_called_once_with("~/expanded_cache")
@@ -454,7 +450,7 @@ class TestBinaryManagerCaching(unittest.TestCase):
 
             # Should raise an error
             with self.assertRaises(ValueError):
-                BinaryManager(TestProvider, "invalid_relative")
+                BinaryManager(MockProvider, "invalid_relative")
 
     def test_init_with_default_cache_root(self):
         """Test initialization with default cache root."""
@@ -474,7 +470,7 @@ class TestBinaryManagerCaching(unittest.TestCase):
 
                 # Mock os.makedirs to avoid actually creating directories
                 with mock.patch("os.makedirs"):
-                    manager = BinaryManager(TestProvider)
+                    manager = BinaryManager(MockProvider)
 
                     # Verify cache path structure
                     expected_cache_path = os.path.join(
@@ -485,7 +481,7 @@ class TestBinaryManagerCaching(unittest.TestCase):
                         "netvelocimeter",
                         "TestOS",
                         "TestArch",
-                        "testprovider",
+                        MockProvider.__name__.lower(),
                     )
 
                     # Verify the path contains the expected components
@@ -638,7 +634,7 @@ class TestBinaryManagerCaching(unittest.TestCase):
         expected_path_parts = [
             platform.system(),
             platform.machine(),
-            "testprovider",
+            MockProvider.__name__.lower(),
             hash_b64encode(self.test_url),
         ]
 
@@ -698,7 +694,7 @@ class TestBinaryManagerWindowsSpecific(unittest.TestCase):
 
             # Mock os.makedirs to avoid creating directories
             with mock.patch("os.makedirs"):
-                manager = BinaryManager(TestProvider)
+                manager = BinaryManager(MockProvider)
 
                 # Verify Windows path is used
                 self.assertEqual(
@@ -727,7 +723,7 @@ class TestBinaryManagerPosixSpecific(unittest.TestCase):
 
             # Mock os.makedirs to avoid creating directories
             with mock.patch("os.makedirs"):
-                manager = BinaryManager(TestProvider)
+                manager = BinaryManager(MockProvider)
 
                 # Verify POSIX path is used
                 self.assertEqual(

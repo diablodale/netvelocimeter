@@ -128,8 +128,8 @@ class TestLegalRequirements(unittest.TestCase):
         )
 
         # When there are no terms, should return empty collection
-        terms = provider.legal_terms()
+        terms = provider._legal_terms()
         self.assertEqual(len(terms), 0)
 
         # Provider with no terms should be considered to have all terms accepted
-        self.assertTrue(provider.has_accepted_terms())
+        self.assertTrue(provider._has_accepted_terms())

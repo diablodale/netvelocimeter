@@ -15,16 +15,16 @@ class ServerFeaturesMockProvider(BaseProvider):
     """Mock provider for testing server features."""
 
     @property
-    def version(self) -> Version:
+    def _version(self) -> Version:
         """Return a mock version."""
         return Version("1.0.0")
 
-    def legal_terms(self, category=LegalTermsCategory.ALL):
+    def _legal_terms(self, category=LegalTermsCategory.ALL):
         """Return mock legal terms."""
         return []
 
     @property
-    def servers(self) -> list[ServerInfo]:
+    def _servers(self) -> list[ServerInfo]:
         """Return a list of mock servers."""
         return [
             ServerInfo(
@@ -43,7 +43,7 @@ class ServerFeaturesMockProvider(BaseProvider):
             ),
         ]
 
-    def measure(self, server_id=None, server_host=None):
+    def _measure(self, server_id=None, server_host=None):
         """Return mock measurement results."""
         return MeasurementResult(
             download_speed=100.0,

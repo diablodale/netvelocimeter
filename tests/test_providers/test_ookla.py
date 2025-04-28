@@ -70,7 +70,7 @@ class TestOoklaProvider(unittest.TestCase):
     def test_legal_requirements(self):
         """Test Ookla legal terms."""
         # Get legal terms using the API
-        terms = self.provider.legal_terms()
+        terms = self.provider._legal_terms()
 
         # Verify we have terms
         self.assertTrue(terms)  # Collection should not be empty
@@ -94,13 +94,13 @@ class TestOoklaProvider(unittest.TestCase):
         self.assertEqual(service_terms[0].url, "https://www.speedtest.net/about/terms")
 
         # Test acceptance tracking api inherited from BaseProvider
-        self.assertFalse(self.provider.has_accepted_terms())
+        self.assertFalse(self.provider._has_accepted_terms())
 
         # Accept terms with api inherited from BaseProvider
-        self.provider.accept_terms(terms)
+        self.provider._accept_terms(terms)
 
         # Verify acceptance was recorded with api inherited from BaseProvider
-        self.assertTrue(self.provider.has_accepted_terms())
+        self.assertTrue(self.provider._has_accepted_terms())
 
     @mock.patch("subprocess.run")
     def test_run_speedtest_error_not_terms_acceptance(self, mock_run):
@@ -112,7 +112,7 @@ class TestOoklaProvider(unittest.TestCase):
         mock_run.return_value = mock_process
 
         # Do NOT accept any terms
-        self.assertFalse(self.provider.has_accepted_terms())
+        self.assertFalse(self.provider._has_accepted_terms())
 
         # Verify low-level provider exception is raised due to subprocess.run and not legal terms
         with self.assertRaises(RuntimeError) as context:
@@ -175,10 +175,10 @@ class TestOoklaProvider(unittest.TestCase):
         mock_run.return_value = mock_process
 
         # verify has not accepted terms
-        self.assertFalse(self.provider.has_accepted_terms())
+        self.assertFalse(self.provider._has_accepted_terms())
 
         # should run without accepting terms because provider-level apis do not enforce
-        servers = self.provider.servers
+        servers = self.provider._servers
 
         # Verify --servers flag was included
         args, _kwargs = mock_run.call_args
@@ -217,7 +217,7 @@ class TestOoklaProvider(unittest.TestCase):
         )
         mock_run.return_value = mock_process
 
-        result = self.provider.measure(server_id=1234)
+        result = self.provider._measure(server_id=1234)
 
         # Verify timedelta conversion
         self.assertIsInstance(result.ping_latency, timedelta)
@@ -247,7 +247,7 @@ class TestOoklaProvider(unittest.TestCase):
         )
         mock_run.return_value = mock_process
 
-        result = self.provider.measure(server_host="example.com")
+        result = self.provider._measure(server_host="example.com")
 
         # Verify timedelta conversion
         self.assertIsInstance(result.ping_latency, timedelta)
@@ -262,7 +262,7 @@ class TestOoklaProvider(unittest.TestCase):
     def test_parse_version(self):
         """Test getting provider version."""
         # Version is already mocked in setUp
-        version = self.provider.version
+        version = self.provider._version
         self.assertEqual(version, Version("1.0.0"))
 
     def test_measure_with_sample_data(self):
@@ -282,7 +282,7 @@ class TestOoklaProvider(unittest.TestCase):
             mock_run.return_value = mock_process
 
             # Run measurement
-            result = self.provider.measure()
+            result = self.provider._measure()
 
             # Verify subprocess was called correctly
             mock_run.assert_called_once()
@@ -355,7 +355,7 @@ class TestOoklaProvider(unittest.TestCase):
         )
         mock_run.return_value = mock_process
 
-        result = self.provider.measure()
+        result = self.provider._measure()
 
         # The persist_url should be None
         self.assertIsNone(result.persist_url)
@@ -376,7 +376,7 @@ class TestOoklaProvider(unittest.TestCase):
         )
         mock_run.return_value = mock_process
 
-        result = self.provider.measure()
+        result = self.provider._measure()
 
         # The id should be None
         self.assertIsNone(result.id)
@@ -397,7 +397,7 @@ class TestOoklaProvider(unittest.TestCase):
         )
         mock_run.return_value = mock_process
 
-        result = self.provider.measure()
+        result = self.provider._measure()
 
         # 10000000 bytes/s * 8 bits/byte / 1,000,000 bits/Mbps = 80 Mbps
         self.assertAlmostEqual(result.download_speed, 80.0, places=2)
@@ -418,7 +418,7 @@ class TestOoklaProvider(unittest.TestCase):
         )
         mock_run.return_value = mock_process
 
-        result = self.provider.measure()
+        result = self.provider._measure()
 
         # 5000000 bytes/s * 8 bits/byte / 1,000,000 bits/Mbps = 40 Mbps
         self.assertAlmostEqual(result.upload_speed, 40.0, places=2)
@@ -439,7 +439,7 @@ class TestOoklaProvider(unittest.TestCase):
         )
         mock_run.return_value = mock_process
 
-        result = self.provider.measure()
+        result = self.provider._measure()
 
         self.assertAlmostEqual(result.download_latency.total_seconds() * 1000, 100.5, places=2)
         self.assertAlmostEqual(result.upload_latency.total_seconds() * 1000, 200.75, places=2)
@@ -449,6 +449,14 @@ class TestOoklaProvider(unittest.TestCase):
 
 class TestOoklaProviderVersionParsing(unittest.TestCase):
     """Separate test class for version parsing functionality."""
+
+    def setUp(self):
+        """Set up a clean test directory."""
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Clean up test directory."""
+        shutil.rmtree(self.temp_dir)
 
     def test_invalid_version_format(self):
         """Test handling of invalid version format."""
@@ -466,7 +474,7 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
                 # Create a new provider instance
                 # This should call _parse_version with our mocked subprocess.run and raise an error
                 with self.assertRaises(InvalidVersion):
-                    _ = OoklaProvider("/temp/dir")
+                    _ = OoklaProvider(self.temp_dir)
 
                 # Verify subprocess was called
                 mock_run.assert_called_once()
@@ -490,10 +498,10 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
             mock_run.return_value = mock_process
 
             # Create a clean provider instance
-            provider = OoklaProvider("/temp/dir")
+            provider = OoklaProvider(self.temp_dir)
 
             # Version should be parsed correctly
-            self.assertEqual(provider.version, Version("1.2.0.84+ea6b6773cf"))
+            self.assertEqual(provider._version, Version("1.2.0.84+ea6b6773cf"))
 
             # Verify subprocess call
             mock_run.assert_called_once_with(
@@ -521,7 +529,7 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
                 mock.patch.object(BinaryManager, "download_extract", return_value="speedtest_path"),
                 self.assertRaises(InvalidVersion),
             ):
-                _ = OoklaProvider("/temp/dir")
+                _ = OoklaProvider(self.temp_dir)
 
 
 class TestOoklaProviderPlatformDetection(unittest.TestCase):
@@ -558,7 +566,7 @@ class TestOoklaProviderPlatformDetection(unittest.TestCase):
 
             # Verify the binary path and version
             self.assertEqual(provider._BINARY_PATH, "/mock/path/speedtest")
-            self.assertEqual(provider.version, Version("1.0.0"))
+            self.assertEqual(provider._version, Version("1.0.0"))
 
             # After creation, call the original method to get the URL that would be used
             # This avoids the recursion issue
@@ -615,17 +623,17 @@ class TestOoklaRealBinaries(unittest.TestCase):
                     provider = OoklaProvider(platform_dir)
 
                     # Check if binary exists
-                    binary_exists = os.path.exists(provider.binary_path)
+                    binary_exists = os.path.exists(provider._BINARY_PATH)
 
                     # Get file size if it exists
-                    file_size = os.path.getsize(provider.binary_path) if binary_exists else 0
+                    file_size = os.path.getsize(provider._BINARY_PATH) if binary_exists else 0
 
                     # Record result
                     results.append(
                         {
                             "system": sys_name,
                             "machine": machine,
-                            "binary_path": provider.binary_path,
+                            "binary_path": provider._BINARY_PATH,
                             "exists": binary_exists,
                             "file_size": file_size,
                         }
@@ -644,8 +652,8 @@ class TestOoklaRealBinaries(unittest.TestCase):
                     )
 
                     # Verify the binary filename is correct
-                    expected_filename = "speedtest.exe" if sys_name == "Windows" else "speedtest"
-                    actual_filename = os.path.basename(provider.binary_path)
+                    expected_filename = "speedtest.exe" if sys_name == "windows" else "speedtest"
+                    actual_filename = os.path.basename(provider._BINARY_PATH)
                     self.assertEqual(
                         actual_filename,
                         expected_filename,
@@ -676,23 +684,24 @@ class TestOoklaRealBinaries(unittest.TestCase):
 
         # Verify binary was downloaded
         self.assertTrue(
-            os.path.exists(provider.binary_path), f"Binary not downloaded at {provider.binary_path}"
+            os.path.exists(provider._BINARY_PATH),
+            f"Binary not downloaded at {provider._BINARY_PATH}",
         )
 
         # Verify binary has reasonable size
-        file_size = os.path.getsize(provider.binary_path)
+        file_size = os.path.getsize(provider._BINARY_PATH)
         self.assertGreater(file_size, 500000, f"Binary file is too small: {file_size} bytes")
 
         # Check that we got a real version (not 0)
         self.assertNotEqual(
-            provider.version, Version("0"), "Failed to get a valid version from the binary"
+            provider._version, Version("0"), "Failed to get a valid version from the binary"
         )
 
         print("\nSuccessfully downloaded and verified Ookla binary:")
         print(f"  Platform: {platform.system()} {platform.machine()}")
-        print(f"  Binary path: {provider.binary_path}")
+        print(f"  Binary path: {provider._BINARY_PATH}")
         print(f"  File size: {file_size:,} bytes")
-        print(f"  Version: {provider.version}")
+        print(f"  Version: {provider._version}")
 
 
 class TestNetworkHandling(unittest.TestCase):
@@ -737,7 +746,7 @@ class TestOoklaRealMeasurement(unittest.TestCase):
         provider = OoklaProvider(self.temp_dir)
 
         # Run a real speed test
-        result = provider.measure()
+        result = provider._measure()
 
         # Check if the result is valid
         self.assertIsNotNone(result)

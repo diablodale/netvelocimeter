@@ -24,23 +24,23 @@ class TestStaticProvider(unittest.TestCase):
         provider = StaticProvider()
 
         # Check default version
-        self.assertEqual(str(provider.version), "1.2.3+c0ffee")
+        self.assertEqual(str(provider._version), "1.2.3+c0ffee")
 
         # Check default legal terms
-        all_terms = provider.legal_terms()
+        all_terms = provider._legal_terms()
         self.assertEqual(len(all_terms), 3)  # EULA, Service, Privacy
 
-        eula_terms = provider.legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider._legal_terms(category=LegalTermsCategory.EULA)
         self.assertEqual(len(eula_terms), 1)
         self.assertEqual(eula_terms[0].text, "Test EULA")
         self.assertEqual(eula_terms[0].url, "https://example.com/eula")
 
-        service_terms = provider.legal_terms(category=LegalTermsCategory.SERVICE)
+        service_terms = provider._legal_terms(category=LegalTermsCategory.SERVICE)
         self.assertEqual(len(service_terms), 1)
         self.assertEqual(service_terms[0].text, "Test Terms")
         self.assertEqual(service_terms[0].url, "https://example.com/terms")
 
-        privacy_terms = provider.legal_terms(category=LegalTermsCategory.PRIVACY)
+        privacy_terms = provider._legal_terms(category=LegalTermsCategory.PRIVACY)
         self.assertEqual(len(privacy_terms), 1)
         self.assertEqual(privacy_terms[0].text, "Test Privacy")
         self.assertEqual(privacy_terms[0].url, "https://example.com/privacy")
@@ -49,7 +49,7 @@ class TestStaticProvider(unittest.TestCase):
         """Test attribute separation in StaticProvider."""
         provider1 = StaticProvider(version="1.0.0")
         provider2 = StaticProvider(version="2.0.0")
-        self.assertNotEqual(provider1.version, provider2.version)
+        self.assertNotEqual(provider1._version, provider2._version)
 
     def test_custom_initialization(self):
         """Test custom initialization of StaticProvider."""
@@ -71,24 +71,24 @@ class TestStaticProvider(unittest.TestCase):
         )
 
         # Check custom version
-        self.assertEqual(provider.version, Version("2.0.0+test"))
+        self.assertEqual(provider._version, Version("2.0.0+test"))
 
         # Check custom legal terms
-        all_terms = provider.legal_terms()
+        all_terms = provider._legal_terms()
         self.assertEqual(len(all_terms), 2)  # EULA and Privacy, but no Service
 
         # Verify EULA terms
-        eula_terms = provider.legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider._legal_terms(category=LegalTermsCategory.EULA)
         self.assertEqual(len(eula_terms), 1)
         self.assertEqual(eula_terms[0].text, "Custom EULA")
         self.assertEqual(eula_terms[0].url, "https://example.com/custom-eula")
 
         # Verify Service terms (should be empty)
-        service_terms = provider.legal_terms(category=LegalTermsCategory.SERVICE)
+        service_terms = provider._legal_terms(category=LegalTermsCategory.SERVICE)
         self.assertEqual(len(service_terms), 0)
 
         # Verify Privacy terms
-        privacy_terms = provider.legal_terms(category=LegalTermsCategory.PRIVACY)
+        privacy_terms = provider._legal_terms(category=LegalTermsCategory.PRIVACY)
         self.assertEqual(len(privacy_terms), 1)
         self.assertEqual(privacy_terms[0].text, "Custom Privacy")
         self.assertEqual(privacy_terms[0].url, "https://example.com/custom-privacy")
@@ -96,7 +96,7 @@ class TestStaticProvider(unittest.TestCase):
     def test_get_servers(self):
         """Test getting server list."""
         provider = StaticProvider()
-        servers = provider.servers
+        servers = provider._servers
 
         # Should have 5 test servers
         self.assertEqual(len(servers), 5)
@@ -125,9 +125,9 @@ class TestStaticProvider(unittest.TestCase):
         )
 
         # Accept all legal terms first
-        provider.accept_terms(provider.legal_terms())
+        provider._accept_terms(provider._legal_terms())
 
-        result = provider.measure()
+        result = provider._measure()
 
         # Check measurement results
         self.assertEqual(result.download_speed, 150.0)
@@ -152,35 +152,35 @@ class TestStaticProvider(unittest.TestCase):
         provider = StaticProvider()
 
         # Accept all legal terms first
-        provider.accept_terms(provider.legal_terms())
+        provider._accept_terms(provider._legal_terms())
 
         # Test with valid server ID
-        result = provider.measure(server_id=3)
+        result = provider._measure(server_id=3)
         self.assertEqual(result.server_info.id, 3)
         self.assertEqual(result.server_info.name, "Test Server 3")
 
         # Test with invalid server ID (should raise ValueError)
         with self.assertRaises(ValueError):
-            provider.measure(server_id=10)  # Out of range
+            provider._measure(server_id=10)  # Out of range
 
         with self.assertRaises(ValueError):
-            provider.measure(server_id="invalid")  # Wrong type
+            provider._measure(server_id="invalid")  # Wrong type
 
     def test_measure_with_server_host(self):
         """Test measurement with specific server host."""
         provider = StaticProvider()
 
         # Accept all legal terms first
-        provider.accept_terms(provider.legal_terms())
+        provider._accept_terms(provider._legal_terms())
 
         # Test with valid server host
-        result = provider.measure(server_host="test4.example.com")
+        result = provider._measure(server_host="test4.example.com")
         self.assertEqual(result.server_info.host, "test4.example.com")
         self.assertEqual(result.server_info.id, 4)
 
         # Test with invalid server host (should raise ValueError)
         with self.assertRaises(ValueError):
-            provider.measure(server_host="invalid.example.com")
+            provider._measure(server_host="invalid.example.com")
 
     def test_static_provider_legal_terms(self):
         """Test legal terms handling in StaticProvider."""
@@ -188,7 +188,7 @@ class TestStaticProvider(unittest.TestCase):
         provider = StaticProvider()
 
         # Get the terms
-        terms = provider.legal_terms()
+        terms = provider._legal_terms()
 
         # Check it returns a list
         self.assertIsInstance(terms, list)
@@ -207,7 +207,7 @@ class TestStaticProvider(unittest.TestCase):
         )
 
         # Check filtering by category
-        privacy_terms = provider.legal_terms(category=LegalTermsCategory.PRIVACY)
+        privacy_terms = provider._legal_terms(category=LegalTermsCategory.PRIVACY)
         self.assertEqual(len(privacy_terms), 1)
         self.assertEqual(privacy_terms[0].category, LegalTermsCategory.PRIVACY)
 
@@ -216,33 +216,33 @@ class TestStaticProvider(unittest.TestCase):
         provider = StaticProvider()
 
         # Initially terms are not accepted
-        self.assertFalse(provider.has_accepted_terms())
+        self.assertFalse(provider._has_accepted_terms())
 
         # Accept the terms
-        terms = provider.legal_terms()
-        provider.accept_terms(terms)
+        terms = provider._legal_terms()
+        provider._accept_terms(terms)
 
         # Now terms should be accepted
-        self.assertTrue(provider.has_accepted_terms())
+        self.assertTrue(provider._has_accepted_terms())
 
         # Test partial acceptance
         provider2 = StaticProvider()
-        eula_terms = provider2.legal_terms(category=LegalTermsCategory.EULA)
-        provider2.accept_terms(eula_terms)
+        eula_terms = provider2._legal_terms(category=LegalTermsCategory.EULA)
+        provider2._accept_terms(eula_terms)
 
         # Only EULA terms should be accepted
-        self.assertTrue(provider2.has_accepted_terms(eula_terms))
+        self.assertTrue(provider2._has_accepted_terms(eula_terms))
         # But not all terms
-        self.assertFalse(provider2.has_accepted_terms())
+        self.assertFalse(provider2._has_accepted_terms())
 
         # Accept all remaining terms
-        service_terms = provider2.legal_terms(category=LegalTermsCategory.SERVICE)
-        privacy_terms = provider2.legal_terms(category=LegalTermsCategory.PRIVACY)
-        provider2.accept_terms(service_terms)
-        provider2.accept_terms(privacy_terms)
+        service_terms = provider2._legal_terms(category=LegalTermsCategory.SERVICE)
+        privacy_terms = provider2._legal_terms(category=LegalTermsCategory.PRIVACY)
+        provider2._accept_terms(service_terms)
+        provider2._accept_terms(privacy_terms)
 
         # Now all terms should be accepted
-        self.assertTrue(provider2.has_accepted_terms())
+        self.assertTrue(provider2._has_accepted_terms())
 
     def test_static_provider_without_terms(self):
         """Test StaticProvider with no legal terms."""
@@ -256,8 +256,8 @@ class TestStaticProvider(unittest.TestCase):
         )
 
         # Should return empty list of terms
-        terms = provider.legal_terms()
+        terms = provider._legal_terms()
         self.assertEqual(len(terms), 0)
 
         # With no terms, has_accepted_terms should return True
-        self.assertTrue(provider.has_accepted_terms())
+        self.assertTrue(provider._has_accepted_terms())

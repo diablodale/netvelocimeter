@@ -64,7 +64,7 @@ class StaticProvider(BaseProvider):
         self._ping_latency = ping_latency
         self._ping_jitter = ping_jitter
         self._packet_loss = packet_loss
-        self._version = Version(version)
+        self.__version = Version(version)
 
         # Only add terms that have content
         self._TERMS_COLLECTION = LegalTermsCollection()
@@ -85,15 +85,15 @@ class StaticProvider(BaseProvider):
             )
 
     @property
-    def version(self) -> Version:
+    def _version(self) -> Version:
         """Get the provider version.
 
         Returns:
             Version for this provider
         """
-        return self._version
+        return self.__version
 
-    def legal_terms(
+    def _legal_terms(
         self, category: LegalTermsCategory = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
         """Get legal terms for this provider.
@@ -120,11 +120,11 @@ class StaticProvider(BaseProvider):
         )
 
     @property
-    def servers(self) -> list[ServerInfo]:
+    def _servers(self) -> list[ServerInfo]:
         """Get list of available servers."""
         return [self._generate_server_info(i) for i in range(1, 6)]
 
-    def measure(
+    def _measure(
         self, server_id: ServerIDType | None = None, server_host: str | None = None
     ) -> MeasurementResult:
         """Measure network speed with the specified parameters.

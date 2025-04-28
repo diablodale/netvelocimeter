@@ -14,15 +14,15 @@ class MockProvider(BaseProvider):
     """A concrete implementation of BaseProvider for testing."""
 
     @property
-    def version(self) -> Version:
+    def _version(self) -> Version:
         """Mock version."""
         return Version("2.1.3+g123456")
 
-    def legal_terms(self, category=LegalTermsCategory.ALL):
+    def _legal_terms(self, category=LegalTermsCategory.ALL):
         """Mock legal terms."""
         return []
 
-    def measure(self, server_id=None, server_host=None):
+    def _measure(self, server_id=None, server_host=None):
         """Mock measurement method."""
         # Return a minimal measurement result
         return MeasurementResult(
@@ -40,19 +40,19 @@ class TestBaseProviderImplementation(TestCase):
         """Test default get_servers implementation raises NotImplementedError."""
         provider = MockProvider()
         with self.assertRaises(NotImplementedError):
-            _ = provider.servers
+            _ = provider._servers
 
     def test_base_provider_version(self):
         """Test BaseProvider version handling."""
         provider = MockProvider()
-        self.assertEqual(str(provider.version), "2.1.3+g123456")
-        self.assertEqual(provider.version, Version("2.1.3+g123456"))
+        self.assertEqual(str(provider._version), "2.1.3+g123456")
+        self.assertEqual(provider._version, Version("2.1.3+g123456"))
 
     def test_base_provider_legal_terms(self):
         """Test the legal_terms method."""
         # Create a provider with terms
         provider = StaticProvider()
-        terms = provider.legal_terms()
+        terms = provider._legal_terms()
 
         # Verify it's a collection
         self.assertIsInstance(terms, list)
@@ -64,7 +64,7 @@ class TestBaseProviderImplementation(TestCase):
         self.assertIn(LegalTermsCategory.PRIVACY, categories)
 
         # Test with specified category
-        eula_terms = provider.legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider._legal_terms(category=LegalTermsCategory.EULA)
         self.assertTrue(all(term.category == LegalTermsCategory.EULA for term in eula_terms))
 
         # Provider with no terms
@@ -77,7 +77,7 @@ class TestBaseProviderImplementation(TestCase):
             privacy_url=None,
         )
 
-        no_terms = provider_no_terms.legal_terms()
+        no_terms = provider_no_terms._legal_terms()
         self.assertEqual(len(no_terms), 0)
 
     def test_base_provider_acceptance(self):
@@ -85,23 +85,23 @@ class TestBaseProviderImplementation(TestCase):
         provider = StaticProvider()
 
         # Initially no terms are accepted
-        self.assertFalse(provider.has_accepted_terms())
+        self.assertFalse(provider._has_accepted_terms())
 
         # Accept all terms
-        terms = provider.legal_terms()
-        provider.accept_terms(terms)
+        terms = provider._legal_terms()
+        provider._accept_terms(terms)
 
         # Now all terms should be accepted
-        self.assertTrue(provider.has_accepted_terms())
+        self.assertTrue(provider._has_accepted_terms())
 
         # Test accepting a specific category
         provider2 = StaticProvider()
-        eula_terms = provider2.legal_terms(category=LegalTermsCategory.EULA)
-        provider2.accept_terms(eula_terms)
+        eula_terms = provider2._legal_terms(category=LegalTermsCategory.EULA)
+        provider2._accept_terms(eula_terms)
 
         # Should have accepted EULA but not all terms
-        self.assertTrue(provider2.has_accepted_terms(eula_terms))
-        self.assertFalse(provider2.has_accepted_terms())
+        self.assertTrue(provider2._has_accepted_terms(eula_terms))
+        self.assertFalse(provider2._has_accepted_terms())
 
         # Provider with no terms
         provider_no_terms = StaticProvider(
@@ -114,7 +114,7 @@ class TestBaseProviderImplementation(TestCase):
         )
 
         # With no terms, should be considered accepted
-        self.assertTrue(provider_no_terms.has_accepted_terms())
+        self.assertTrue(provider_no_terms._has_accepted_terms())
 
 
 class TestMeasurementResult(TestCase):

@@ -120,7 +120,7 @@ class OoklaProvider(BaseProvider):
         self._VERSION = self._parse_version()
 
     @property
-    def version(self) -> Version:
+    def _version(self) -> Version:
         """Get the provider version.
 
         Returns:
@@ -129,7 +129,7 @@ class OoklaProvider(BaseProvider):
         return self._VERSION
 
     @classmethod
-    def legal_terms(
+    def _legal_terms(
         cls, category: LegalTermsCategory = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
         """Get legal terms for Ookla Speedtest."""
@@ -229,7 +229,7 @@ class OoklaProvider(BaseProvider):
         return {"stdout": result.stdout, "stderr": result.stderr}
 
     @property
-    def servers(self) -> list[ServerInfo]:
+    def _servers(self) -> list[ServerInfo]:
         """Get a list of available servers.
 
         Returns:
@@ -252,7 +252,7 @@ class OoklaProvider(BaseProvider):
 
         return servers
 
-    def measure(
+    def _measure(
         self, server_id: ServerIDType | None = None, server_host: str | None = None
     ) -> MeasurementResult:
         """Run a complete speedtest.
