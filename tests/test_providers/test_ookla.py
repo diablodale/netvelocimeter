@@ -1,22 +1,26 @@
 """Tests for the Ookla provider."""
 
 from datetime import timedelta
+from io import BytesIO
 import json
 import os
 import platform
 import shutil
+import tarfile
 import tempfile
 import unittest
 from unittest import mock
-import urllib.error
+from urllib.error import URLError
+from urllib.request import pathname2url
 
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 import pytest
 
-from netvelocimeter.exceptions import LegalAcceptanceError, PlatformNotSupported
+from netvelocimeter.exceptions import PlatformNotSupported
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.ookla import OoklaProvider
 from netvelocimeter.terms import LegalTermsCategory
+from netvelocimeter.utils.binary_manager import BinaryManager
 
 
 class TestOoklaProvider(unittest.TestCase):
@@ -24,23 +28,32 @@ class TestOoklaProvider(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
+        # Create a temporary directory for the tests
         self.temp_dir = tempfile.mkdtemp()
+        self.archive_path = os.path.join(self.temp_dir, "simulate_internet", "linux.tgz")
+        os.makedirs(os.path.dirname(self.archive_path), exist_ok=True)
+        self.archive_url = f"file:{pathname2url(self.archive_path)}"
+
+        # Create archive
+        internal_path = "speedtest.exe" if platform.system().lower() == "windows" else "speedtest"
+        file_data = b"This is a test binary"
+        with tarfile.open(self.archive_path, "w:gz") as tar:
+            info = tarfile.TarInfo(internal_path)
+            info.size = len(file_data)
+            info.mode = 0o755
+            tar.addfile(info, BytesIO(file_data))
 
         # More robust patching
         self.patchers = []
 
-        # Patch _ensure_binary
-        patcher = mock.patch.object(OoklaProvider, "_ensure_binary")
-        self.mock_ensure_binary = patcher.start()
-        self.mock_ensure_binary.return_value = os.path.join(
-            self.temp_dir, "speedtest.exe" if platform.system() == "Windows" else "speedtest"
-        )
+        # Patch OoklaProvider _download_url to return self.archive_url
+        patcher = mock.patch.object(OoklaProvider, "_download_url", return_value=self.archive_url)
+        patcher.start()
         self.patchers.append(patcher)
 
-        # Patch _get_version to return a Version object
-        patcher = mock.patch.object(OoklaProvider, "_get_version")
-        self.mock_get_version = patcher.start()
-        self.mock_get_version.return_value = Version("1.0.0")
+        # Patch _parse_version to return a Version object
+        patcher = mock.patch.object(OoklaProvider, "_parse_version", return_value=Version("1.0.0"))
+        patcher.start()
         self.patchers.append(patcher)
 
         # With these patches in place, now create the provider
@@ -80,41 +93,36 @@ class TestOoklaProvider(unittest.TestCase):
         self.assertIsNotNone(service_terms[0].text)
         self.assertEqual(service_terms[0].url, "https://www.speedtest.net/about/terms")
 
-        # Test acceptance tracking
+        # Test acceptance tracking api inherited from BaseProvider
         self.assertFalse(self.provider.has_accepted_terms())
 
-        # Accept terms
+        # Accept terms with api inherited from BaseProvider
         self.provider.accept_terms(terms)
 
-        # Verify acceptance was recorded
+        # Verify acceptance was recorded with api inherited from BaseProvider
         self.assertTrue(self.provider.has_accepted_terms())
 
     @mock.patch("subprocess.run")
-    def test_run_speedtest_without_acceptance(self, mock_run):
+    def test_run_speedtest_error_not_terms_acceptance(self, mock_run):
         """Test running speedtest without acceptance."""
         # Mock subprocess to simulate error when license not accepted
         mock_process = mock.Mock()
         mock_process.returncode = 1
-        mock_process.stderr = "Error: You must accept the license agreement to use this software"
+        mock_process.stderr = "Simulated app error: something is wrong"
         mock_run.return_value = mock_process
 
         # Do NOT accept any terms
         self.assertFalse(self.provider.has_accepted_terms())
 
-        # Verify exception is raised
-        with self.assertRaises(LegalAcceptanceError):
+        # Verify low-level provider exception is raised due to subprocess.run and not legal terms
+        with self.assertRaises(RuntimeError) as context:
             self.provider._run_speedtest()
 
+        self.assertIn("Simulated app error", str(context.exception))
+
     @mock.patch("subprocess.run")
-    def test_run_speedtest_with_acceptance(self, mock_run):
-        """Test running speedtest with acceptance."""
-        # Accept terms using the proper API
-        terms = self.provider.legal_terms()
-        self.provider.accept_terms(terms)
-
-        # Verify terms are accepted
-        self.assertTrue(self.provider.has_accepted_terms())
-
+    def test_run_speedtest_terms_flags(self, mock_run):
+        """Test running speedtest with legal terms flags."""
         # Mock successful subprocess run
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -142,11 +150,6 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_get_servers(self, mock_run):
         """Test getting server list."""
-        # Set up acceptance flags
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
         # Mock server list response
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -171,10 +174,14 @@ class TestOoklaProvider(unittest.TestCase):
         )
         mock_run.return_value = mock_process
 
-        servers = self.provider.get_servers()
+        # verify has not accepted terms
+        self.assertFalse(self.provider.has_accepted_terms())
+
+        # should run without accepting terms because provider-level apis do not enforce
+        servers = self.provider.servers
 
         # Verify --servers flag was included
-        args, kwargs = mock_run.call_args
+        args, _kwargs = mock_run.call_args
         cmd_line = args[0]
         self.assertIn("--servers", cmd_line)
 
@@ -197,10 +204,6 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_measure_with_server_id(self, mock_run):
         """Test measurement with specified server ID."""
-        # Accept all terms first
-        terms = self.provider.legal_terms()
-        self.provider.accept_terms(terms)
-
         # Mock successful measurement
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -231,11 +234,6 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_measure_with_server_host(self, mock_run):
         """Test measurement with specified server host."""
-        # Set up acceptance flags
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
         # Mock successful measurement
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -261,51 +259,14 @@ class TestOoklaProvider(unittest.TestCase):
         self.assertIn("--host", cmd_line)
         self.assertIn("example.com", cmd_line)
 
-    def test_get_version(self):
+    def test_parse_version(self):
         """Test getting provider version."""
         # Version is already mocked in setUp
         version = self.provider.version
         self.assertEqual(version, Version("1.0.0"))
 
-    @mock.patch("netvelocimeter.providers.ookla.OoklaProvider._get_version")
-    @mock.patch("netvelocimeter.providers.ookla.OoklaProvider._ensure_binary")
-    def test_get_version_parsing(self, mock_ensure_binary, mock_get_version):
-        """Test version extraction from speedtest output."""
-        # Create fresh mocks for this test only
-        mock_ensure_binary.return_value = "speedtest_path"
-
-        # Override _get_version to return our test version
-        mock_get_version.return_value = Version("1.2.3")
-
-        # Create a new provider instance
-        provider = OoklaProvider(self.temp_dir)
-
-        # Check the version
-        self.assertEqual(provider.version, Version("1.2.3"))
-
-    @mock.patch("netvelocimeter.providers.ookla.OoklaProvider._get_version")
-    @mock.patch("netvelocimeter.providers.ookla.OoklaProvider._ensure_binary")
-    def test_get_version_error(self, mock_ensure_binary, mock_get_version):
-        """Test handling failed version check."""
-        # Create fresh mocks for this test only
-        mock_ensure_binary.return_value = "speedtest_path"
-
-        # Override _get_version to return zero version
-        mock_get_version.return_value = Version("0.0.0")
-
-        # Create a new provider instance
-        provider = OoklaProvider(self.temp_dir)
-
-        # Check the version
-        self.assertEqual(provider.version, Version("0.0.0"))
-
     def test_measure_with_sample_data(self):
         """Test measurement using sample data from JSON file."""
-        # Set up acceptance flags
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
         # Path to sample data file
         sample_path = os.path.join(os.path.dirname(__file__), "samples", "ookla.json")
 
@@ -379,30 +340,8 @@ class TestOoklaProvider(unittest.TestCase):
             self.assertEqual(result.server_info.id, 20507)
 
     @mock.patch("subprocess.run")
-    def test_error_handling(self, mock_run):
-        """Test handling of non-acceptance related errors."""
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
-        # Mock a general error
-        mock_process = mock.Mock()
-        mock_process.returncode = 1
-        mock_process.stderr = "Connection error: could not reach server"
-        mock_run.return_value = mock_process
-
-        with self.assertRaises(RuntimeError) as context:
-            self.provider._run_speedtest()
-
-        self.assertIn("Speedtest failed", str(context.exception))
-
-    @mock.patch("subprocess.run")
     def test_measure_without_persist_url(self, mock_run):
         """Test measurement without a persist URL in the result."""
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
         # Mock response without the result.url field
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -424,10 +363,6 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_measure_without_result_id(self, mock_run):
         """Test measurement without a result ID in the response."""
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
         # Mock response without the result.id field
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -449,10 +384,6 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_measure_download(self, mock_run):
         """Test download speed calculation."""
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
         # Mock with different bandwidth values
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -474,10 +405,6 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_measure_upload(self, mock_run):
         """Test upload speed calculation."""
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
         # Mock with different bandwidth values
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -499,10 +426,6 @@ class TestOoklaProvider(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_measure_latency(self, mock_run):
         """Test latency handling."""
-        self.provider._accepted_eula = True
-        self.provider._accepted_terms = True
-        self.provider._accepted_privacy = True
-
         # Mock with different latency values
         mock_process = mock.Mock()
         mock_process.returncode = 0
@@ -529,7 +452,6 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
 
     def test_invalid_version_format(self):
         """Test handling of invalid version format."""
-        # Create a provider with direct mocks, no setUp complications
         with mock.patch("subprocess.run") as mock_run:
             # Set up mock for invalid version output
             mock_process = mock.Mock()
@@ -537,26 +459,26 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
             mock_process.stdout = "Something invalid"
             mock_run.return_value = mock_process
 
-            # Patch _ensure_binary directly
-            with mock.patch(
-                "netvelocimeter.providers.ookla.OoklaProvider._ensure_binary",
-                return_value="speedtest_path_1234",
+            # Need to patch the download_extract method to avoid actual downloads
+            with mock.patch.object(
+                BinaryManager, "download_extract", return_value="/path/to/speedtest"
             ):
-                # Create a clean provider instance
-                provider = OoklaProvider("/temp/dir")
+                # Create a new provider instance
+                # This should call _parse_version with our mocked subprocess.run and raise an error
+                with self.assertRaises(InvalidVersion):
+                    _ = OoklaProvider("/temp/dir")
 
-                # Version should be 0.0.0 when it can't be parsed
-                self.assertEqual(provider.version, Version("0.0.0"))
-
-                # Verify subprocess call
-                mock_run.assert_called_once_with(
-                    ["speedtest_path_1234", "--version"], capture_output=True, text=True
-                )
+                # Verify subprocess was called
+                mock_run.assert_called_once()
 
     def test_valid_version_format(self):
         """Test handling of valid version format."""
-        # Create a provider with direct mocks, no setUp complications
-        with mock.patch("subprocess.run") as mock_run:
+        with (
+            mock.patch("subprocess.run") as mock_run,
+            mock.patch.object(
+                BinaryManager, "download_extract", return_value="speedtest_path_1234"
+            ),
+        ):
             # Set up mock for valid version output
             mock_process = mock.Mock()
             mock_process.returncode = 0
@@ -567,23 +489,26 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
             )
             mock_run.return_value = mock_process
 
-            # Patch _ensure_binary directly
-            with mock.patch(
-                "netvelocimeter.providers.ookla.OoklaProvider._ensure_binary",
-                return_value="speedtest_path_1234",
-            ):
-                # Create a clean provider instance
-                provider = OoklaProvider("/temp/dir")
+            # Create a clean provider instance
+            provider = OoklaProvider("/temp/dir")
 
-                # Version should be parsed correctly
-                self.assertEqual(provider.version, Version("1.2.0.84+ea6b6773cf"))
+            # Version should be parsed correctly
+            self.assertEqual(provider.version, Version("1.2.0.84+ea6b6773cf"))
 
-                # Verify subprocess call
-                mock_run.assert_called_once_with(
-                    ["speedtest_path_1234", "--version"], capture_output=True, text=True
-                )
+            # Verify subprocess call
+            mock_run.assert_called_once_with(
+                [
+                    "speedtest_path_1234",
+                    "--progress=no",
+                    "--accept-license",
+                    "--accept-gdpr",
+                    "--version",
+                ],
+                capture_output=True,
+                text=True,
+            )
 
-    def test_get_version_invalid_format(self):
+    def test_parse_version_invalid_format(self):
         """Test handling completely different format than expected."""
         with mock.patch("subprocess.run") as mock_run:
             mock_process = mock.Mock()
@@ -592,9 +517,11 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
             mock_process.stdout = "Version: ABC123"
             mock_run.return_value = mock_process
 
-            with mock.patch.object(OoklaProvider, "_ensure_binary", return_value="speedtest_path"):
-                provider = OoklaProvider("/temp/dir")
-                self.assertEqual(provider.version, Version("0.0.0"))
+            with (
+                mock.patch.object(BinaryManager, "download_extract", return_value="speedtest_path"),
+                self.assertRaises(InvalidVersion),
+            ):
+                _ = OoklaProvider("/temp/dir")
 
 
 class TestOoklaProviderPlatformDetection(unittest.TestCase):
@@ -616,26 +543,32 @@ class TestOoklaProviderPlatformDetection(unittest.TestCase):
         mock_system.return_value = "Linux"
         mock_machine.return_value = "armv7l"
 
-        # We need to patch where the function is *used*, not where it's defined
+        # Save the original method to avoid recursion
+        original_download_url = OoklaProvider._download_url
+
+        # We need to patch binary manager methods
         with (
-            mock.patch("netvelocimeter.providers.ookla.download_file") as mock_download,
-            mock.patch("netvelocimeter.providers.ookla.extract_file"),
-            mock.patch("netvelocimeter.providers.ookla.ensure_executable"),
-            mock.patch.object(OoklaProvider, "_get_version", return_value=Version("1.0.0")),
+            mock.patch.object(
+                BinaryManager, "download_extract", return_value="/mock/path/speedtest"
+            ),
+            mock.patch.object(OoklaProvider, "_parse_version", return_value=Version("1.0.0")),
         ):
-            # Now create the provider - this will call the real _ensure_binary
-            _ = OoklaProvider(self.temp_dir)
+            # Create the provider
+            provider = OoklaProvider(self.temp_dir)
 
-            # The download URL should have been passed to download_file
-            mock_download.assert_called_once()
-            url_arg = mock_download.call_args[0][0]
+            # Verify the binary path and version
+            self.assertEqual(provider._BINARY_PATH, "/mock/path/speedtest")
+            self.assertEqual(provider.version, Version("1.0.0"))
 
-            # Check if the URL contains "armhf" (our expected machine mapping)
-            self.assertIn(
-                "armhf",
-                url_arg,
-                f"Machine type 'armv7l' not correctly mapped to 'armhf' in URL: {url_arg}",
-            )
+            # After creation, call the original method to get the URL that would be used
+            # This avoids the recursion issue
+            with mock.patch.object(
+                OoklaProvider, "_download_url", side_effect=original_download_url
+            ):
+                url = OoklaProvider._download_url()
+
+                # Check if the URL contains "armhf" (our expected machine mapping)
+                self.assertIn("armhf", url)
 
     @mock.patch("platform.system", return_value="UnsupportedOS")
     @mock.patch("platform.machine", return_value="UnsupportedCPU")
@@ -660,8 +593,8 @@ class TestOoklaRealBinaries(unittest.TestCase):
     @pytest.mark.expensive
     def test_real_binary_download_all_platforms(self):
         """Test real non-simulated download and extraction of Ookla test binary for all supported platforms."""
-        # Mock _get_version to avoid executing binaries
-        with mock.patch.object(OoklaProvider, "_get_version", return_value=Version("1.0.0")):
+        # Mock _parse_version to avoid executing binaries
+        with mock.patch.object(OoklaProvider, "_parse_version", return_value=Version("1.0.0")):
             # Test results tracking
             results = []
 
@@ -776,11 +709,11 @@ class TestNetworkHandling(unittest.TestCase):
     @mock.patch("netvelocimeter.utils.binary_manager.urllib.request.urlopen")
     def test_network_errors(self, mock_urlopen):
         """Test handling of network errors."""
-        mock_urlopen.side_effect = urllib.error.URLError("Network unreachable")
+        mock_urlopen.side_effect = URLError("Network unreachable")
 
         with (
-            self.assertRaises(urllib.error.URLError),
-            mock.patch.object(OoklaProvider, "_get_version", return_value=Version("1.0.0")),
+            self.assertRaises(URLError),
+            mock.patch.object(OoklaProvider, "_parse_version", return_value=Version("1.0.0")),
         ):
             _ = OoklaProvider(self.temp_dir)
 
@@ -802,11 +735,6 @@ class TestOoklaRealMeasurement(unittest.TestCase):
         """Test real Ookla measurement."""
         # Create a provider which will download the real binary for the current platform
         provider = OoklaProvider(self.temp_dir)
-
-        # Set up acceptance flags
-        provider._accepted_eula = True
-        provider._accepted_terms = True
-        provider._accepted_privacy = True
 
         # Run a real speed test
         result = provider.measure()

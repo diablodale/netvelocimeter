@@ -2,7 +2,6 @@
 
 from datetime import timedelta
 import json
-import os
 import platform
 import re
 import subprocess
@@ -11,108 +10,150 @@ from typing import Any
 from packaging.version import InvalidVersion, Version
 
 from ..core import register_provider
-from ..exceptions import LegalAcceptanceError, PlatformNotSupported
+from ..exceptions import PlatformNotSupported
 from ..terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
-from ..utils.binary_manager import download_file, ensure_executable, extract_file
+from ..utils.binary_manager import BinaryManager
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
 
 class OoklaProvider(BaseProvider):
     """Provider for Ookla Speedtest.net."""
 
-    _BINARY_NAME = "speedtest"
+    # Class variables shared by all instances
     _DOWNLOAD_VERSION = "1.2.0"
     _DOWNLOAD_URLS = {
         (
-            "Windows",
-            "AMD64",
+            "windows",
+            "amd64",
         ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-win64.zip",
         (
-            "Linux",
+            "linux",
             "x86_64",
         ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-x86_64.tgz",
         (
-            "Linux",
+            "linux",
             "i386",
         ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-i386.tgz",
         (
-            "Linux",
+            "linux",
             "aarch64",
         ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-aarch64.tgz",
         (
-            "Linux",
+            "linux",
             "armel",
         ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-armel.tgz",
         (
-            "Linux",
+            "linux",
             "armhf",
         ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-armhf.tgz",
-        (
-            "Darwin",
-            "x86_64",
-        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-macosx-universal.tgz",
-        (
-            "Darwin",
-            "arm64",
-        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-macosx-universal.tgz",
-        # https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd12-x86_64.pkg
-        # https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd13-x86_64.pkg
+        # (
+        #    "darwin",
+        #    "x86_64",
+        # ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-macosx-universal.tgz",
+        # (
+        #    "darwin",
+        #    "arm64",
+        # ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-macosx-universal.tgz",
+        # (
+        #    "freebsd12",
+        #    "x86_64",
+        # ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd12-x86_64.pkg",
+        # (
+        #    "freebsd13",
+        #    "x86_64",
+        # ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd13-x86_64.pkg",
     }
     _TERMS_COLLECTION = [
         LegalTerms(
-            text="By using this application, you agree to be bound by the Ookla End User License Agreement...",
+            text="You may only use this Speedtest software and information generated "
+            "from it for personal, non-commercial use, through a command line "
+            "interface on a personal computer. Your use of this software is subject "
+            "to the End User License Agreement, Terms of Use and Privacy Policy.",
             url="https://www.speedtest.net/about/eula",
             category=LegalTermsCategory.EULA,
         ),
         LegalTerms(
-            text="By using this application, you agree to the Ookla Terms of Use...",
+            text="By using this Speedtest software, you agree to be bound by Ookla's Terms of Use.",
             url="https://www.speedtest.net/about/terms",
             category=LegalTermsCategory.SERVICE,
         ),
         LegalTerms(
-            text="By using this application, you acknowledge the Privacy Policy...",
+            text="Ookla collects certain data through Speedtest that may be considered "
+            "personally identifiable, such as your IP address, unique device "
+            "identifiers or location. Ookla believes it has a legitimate interest "
+            "to share this data with internet providers, hardware manufacturers and "
+            "industry regulators to help them understand and create a better and "
+            "faster internet. For further information including how the data may be "
+            "shared, where the data may be transferred and Ookla's contact details, "
+            "please see our Privacy Policy.",
             url="https://www.speedtest.net/about/privacy",
             category=LegalTermsCategory.PRIVACY,
         ),
     ]
 
-    def __init__(self, binary_dir: str):
-        """Initialize the Ookla provider.
+    def __init__(
+        self,
+        cache_root: str | None = None,
+    ):
+        r"""Initialize the Ookla provider.
 
         Args:
-            binary_dir: Directory to store the Ookla speedtest binary.
+            cache_root: Binary cache root directory for provider binaries
+              - None (default) = platform-specific directory of
+                posix `~/.local/bin/netvelocimeter`,
+                windows `%%LOCALAPPDATA%%\netvelocimeter`
+              - str = directory path for binary cache
         """
-        super().__init__(binary_dir)
-        self.binary_path = self._ensure_binary()
-        self.version = self._get_version()
-        self._accepted_eula = False
-        self._accepted_terms = False
-        self._accepted_privacy = False
+        # Call the base provider constructor
+        super().__init__()
 
+        # first create binary manager
+        self._BINARY_MANAGER = BinaryManager(OoklaProvider, cache_root=cache_root)
+
+        # then get binary path
+        binary_filename = "speedtest.exe" if platform.system().lower() == "windows" else "speedtest"
+        self._BINARY_PATH = self._BINARY_MANAGER.download_extract(
+            url=OoklaProvider._download_url(), internal_filepath=binary_filename
+        )
+
+        # then set version derived from the binary
+        self._VERSION = self._parse_version()
+
+    @property
+    def version(self) -> Version:
+        """Get the provider version.
+
+        Returns:
+            Version for this provider
+        """
+        return self._VERSION
+
+    @classmethod
     def legal_terms(
-        self, category: LegalTermsCategory = LegalTermsCategory.ALL
+        cls, category: LegalTermsCategory = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
         """Get legal terms for Ookla Speedtest."""
         # Return the terms collection filtered by the requested category
         if category == LegalTermsCategory.ALL:
-            return self._TERMS_COLLECTION
-        return [term for term in self._TERMS_COLLECTION if term.category == category]
+            return cls._TERMS_COLLECTION
+        return [term for term in cls._TERMS_COLLECTION if term.category == category]
 
-    def _ensure_binary(self) -> str:
-        """Ensure the Ookla speedtest binary is available.
+    @classmethod
+    def _download_url(cls) -> str:
+        """Get download URL for the compatible speedtest binary.
 
         Returns:
-            Path to the binary.
+            Download URL for the compatible speedtest binary.
         """
         # e.g., Windows, Linux, Darwin;
         # on iOS and Android returns the user-facing OS name (i.e, 'iOS, 'iPadOS' or 'Android')
-        system = platform.system()
+        system = platform.system().lower()
 
         # e.g., x86_64, i686, arm64
-        machine = platform.machine()
+        machine = platform.machine().lower()
 
         # Map machine types to what Ookla expects
-        if system == "Linux":
+        if system == "linux":
             # Map x86 architectures
             if machine in ("x86_64", "amd64"):
                 machine = "x86_64"
@@ -126,94 +167,69 @@ class OoklaProvider(BaseProvider):
             elif machine.startswith("armv6") or machine.startswith("armel"):
                 machine = "armel"  # 32-bit ARM with software floating point
 
-        key = (system, machine)
-        if key not in self._DOWNLOAD_URLS:
-            raise PlatformNotSupported(
-                f"No Ookla speedtest binary available for {system} {machine}"
-            )
-
-        # Check if binary already exists
-        binary_filename = "speedtest.exe" if system == "Windows" else "speedtest"
-        binary_path = os.path.join(self.binary_dir, binary_filename)
-        if os.path.exists(binary_path):
-            return binary_path
-
-        # Download and extract
-        download_url = self._DOWNLOAD_URLS[key]
-        temp_file = os.path.join(self.binary_dir, os.path.basename(download_url))
-
+        # return the download URL based on the system and machine
         try:
-            # Download the file
-            download_file(download_url, temp_file)
+            # Check if the key exists in the dictionary
+            return cls._DOWNLOAD_URLS[(system, machine)]
+        except KeyError:
+            raise PlatformNotSupported(
+                f"{cls.__name__} does not support {system} {machine}"
+            ) from None
 
-            # Extract the binary
-            binary_path = extract_file(temp_file, binary_filename, self.binary_dir)
-
-            # Make binary executable
-            ensure_executable(binary_path)
-
-            return binary_path
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_file):
-                os.unlink(temp_file)
-
-    def _get_version(self) -> Version:
+    def _parse_version(self) -> Version:
         """Get the version of the speedtest CLI as a Version object."""
-        result = subprocess.run([self.binary_path, "--version"], capture_output=True, text=True)
-
-        if result.returncode != 0:
-            # Return a zero version or None when we can't determine the version
-            return Version("0")
+        try:
+            result = self._run_speedtest(["--version"], parse_json=False).get("stdout", "")
+        except RuntimeError as e:
+            # If the command fails, we can't determine the version
+            raise InvalidVersion(f"Unable to determine Ookla version. {e}") from e
 
         # Parse version from output, e.g.
         # Speedtest by Ookla 1.2.0.84 (ea6b6773cf) Linux/x86_64-linux-musl 5.15.167.4-microsoft-standard-WSL2 x86_64    # noqa: E501
-        match = re.match(r"^\s*[^0-9]+ ([0-9.]+)[^\da-fA-F]+([\da-fA-F]+)", result.stdout)
+        match = re.match(r"^\s*[^0-9]+ ([0-9.]+)[^\da-fA-F]+([\da-fA-F]+)", result)
         if match:
-            try:
-                return Version(f"{match.group(1)}+{match.group(2)}")
-            except InvalidVersion:
-                # If we can't parse the version, return a zero version
-                pass
-        return Version("0")
+            return Version(f"{match.group(1)}+{match.group(2)}")
+        raise InvalidVersion(f"Unrecognized speedtest cli output: {result}")
 
-    def _run_speedtest(self, args: list[str] | None = None) -> dict[str, Any]:
+    def _run_speedtest(
+        self, args: list[str] | None = None, parse_json: bool = True
+    ) -> dict[str, Any]:
         """Run the speedtest binary with the given arguments.
 
         Args:
             args: Additional arguments for the speedtest binary.
+            parse_json: If True, parse the output as JSON.
 
         Returns:
-            Parsed JSON output from speedtest.
+            Parsed JSON output as a dictionary or raw stdout/stderr within a dictionary.
 
         Raises:
             RuntimeError: If the speedtest fails
         """
         cmd = [
-            self.binary_path,
-            "--format=json",
+            self._BINARY_PATH,
             "--progress=no",
             "--accept-license",
             "--accept-gdpr",
         ]
+        if parse_json:
+            cmd.append("--format=json")
         if args:
             cmd.extend(args)
 
         result = subprocess.run(cmd, capture_output=True, text=True)
 
-        # Special handling for acceptance errors
+        # Check for errors
         if result.returncode != 0:
-            stderr = result.stderr.lower()
-            if "license" in stderr or "gdpr" in stderr or "accept" in stderr or "terms" in stderr:
-                raise LegalAcceptanceError(
-                    "You must accept the Ookla EULA, Terms of Service, and Privacy Policy before running tests."
-                )
             raise RuntimeError(f"Speedtest failed: {result.stderr}")
 
         # Use explicit type cast, as JSON requires string keys, and json.loads checks for this
-        return dict[str, Any](json.loads(result.stdout))
+        if parse_json:
+            return dict[str, Any](json.loads(result.stdout))
+        return {"stdout": result.stdout, "stderr": result.stderr}
 
-    def get_servers(self) -> list[ServerInfo]:
+    @property
+    def servers(self) -> list[ServerInfo]:
         """Get a list of available servers.
 
         Returns:
@@ -225,7 +241,7 @@ class OoklaProvider(BaseProvider):
         for server in result.get("servers", []):
             servers.append(
                 ServerInfo(
-                    name=server.get("name"),  # BUGBUG do not allow unknown names
+                    name=server.get("name"),
                     id=server.get("id"),
                     location=server.get("location"),
                     country=server.get("country"),
@@ -261,7 +277,7 @@ class OoklaProvider(BaseProvider):
         if not server_data:
             raise ValueError("No server information found in speedtest results")
         server_info = ServerInfo(
-            name=server_data.get("name"),  # BUGBUG do not allow unknown names
+            name=server_data.get("name"),
             id=server_data.get("id"),
             location=server_data.get("location"),
             country=server_data.get("country"),

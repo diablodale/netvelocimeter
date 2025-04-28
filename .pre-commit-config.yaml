@@ -13,7 +13,10 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
+        additional_dependencies: ["packaging>=21.0", "pytest>=7.0.0"]
         #exclude: '^tests/'
+        args: [--disallow-untyped-defs]
+        # `--follow-imports=silent` stop complaints about problems within followed imports
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

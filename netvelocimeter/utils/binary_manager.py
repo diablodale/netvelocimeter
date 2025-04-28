@@ -75,6 +75,7 @@ def ensure_executable(filepath: str) -> None:
         os.chmod(filepath, current_permissions | stat.S_IXUSR)
 
 
+# TODO add support for MacOS universals, bsd pkg
 def extract_file(archive_filepath: str, internal_filepath: str, dest_dir: str) -> str:
     """Extract a specific file from an archive to a destination directory.
 
