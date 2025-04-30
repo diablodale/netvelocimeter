@@ -26,5 +26,6 @@ def hash_b64encode(data: str | bytes) -> str:
     # This creates shorter directory names that are still filesystem-safe
     data_hash_base64 = urlsafe_b64encode(data_hash).decode("ascii").rstrip("=")
 
-    # truncate to a 22 chars gives ~128 bits of the hash -- good enough for this use case
+    # truncate to a 22 chars gives ~128 bits of the hash
+    # probability of a collision with 128 bits among even millions of terms is astronomically small
     return data_hash_base64[:22]
