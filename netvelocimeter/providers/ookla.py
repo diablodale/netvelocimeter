@@ -93,12 +93,12 @@ class OoklaProvider(BaseProvider):
 
     def __init__(
         self,
-        cache_root: str | None = None,
+        custom_root: str | None = None,
     ):
         r"""Initialize the Ookla provider.
 
         Args:
-            cache_root: Binary cache root directory for provider binaries
+            custom_root: Custom binary cache root directory for provider binaries
               - None (default) = platform-specific directory of
                 posix `~/.local/bin/netvelocimeter`,
                 windows `%%LOCALAPPDATA%%\netvelocimeter`
@@ -108,7 +108,7 @@ class OoklaProvider(BaseProvider):
         super().__init__()
 
         # first create binary manager
-        self._BINARY_MANAGER = BinaryManager(OoklaProvider, cache_root=cache_root)
+        self._BINARY_MANAGER = BinaryManager(OoklaProvider, custom_root=custom_root)
 
         # then get binary path
         binary_filename = "speedtest.exe" if platform.system().lower() == "windows" else "speedtest"

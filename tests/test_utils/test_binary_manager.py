@@ -84,7 +84,10 @@ class TestBinaryManagerFunctions(unittest.TestCase):
         os.chmod(test_file, 0o644)  # rw-r--r--
 
         # Ensure file is executable
-        ensure_executable(test_file)
+        result = ensure_executable(test_file)
+
+        # Check return value is the executable path
+        self.assertEqual(result, test_file)
 
         # Check if executable bit is set
         mode = os.stat(test_file).st_mode
@@ -92,14 +95,17 @@ class TestBinaryManagerFunctions(unittest.TestCase):
 
     @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
     def test_ensure_executable_windows(self):
-        """Test that ensure_executable is a no-op on Windows."""
+        """Test ensure_executable on Windows."""
         # Create a test file
         test_file = os.path.join(self.temp_dir, "testfile.bat")
         with open(test_file, "w") as f:
             f.write("magicexe")
 
-        # Ensure no-op
-        ensure_executable(test_file)
+        # Ensure function works as expected
+        result = ensure_executable(test_file)
+
+        # Check return value is the executable path
+        self.assertEqual(result, test_file)
 
         # File should still exist
         self.assertTrue(os.path.exists(test_file))
@@ -689,18 +695,20 @@ class TestBinaryManagerWindowsSpecific(unittest.TestCase):
     def test_windows_default_cache_location(self):
         """Test Windows-specific default cache location."""
         # Mock os.getenv to return a known value for LOCALAPPDATA
-        with mock.patch("os.getenv") as mock_getenv:
-            mock_getenv.return_value = os.path.join(self.temp_dir, "localappdata")
-
+        with (
+            mock.patch.dict(
+                os.environ, {"LOCALAPPDATA": os.path.join(self.temp_dir, "localappdata")}
+            ),
+            mock.patch("os.makedirs"),
+        ):
             # Mock os.makedirs to avoid creating directories
-            with mock.patch("os.makedirs"):
-                manager = BinaryManager(MockProvider)
+            manager = BinaryManager(MockProvider)
 
-                # Verify Windows path is used
-                self.assertEqual(
-                    os.path.normpath(os.path.join(self.temp_dir, "localappdata", "netvelocimeter")),
-                    os.path.normpath(os.path.join(manager._cache_root, "..", "..", "..")),
-                )
+            # Verify Windows path is used
+            self.assertEqual(
+                os.path.normpath(os.path.join(self.temp_dir, "localappdata", "netvelocimeter")),
+                os.path.normpath(os.path.join(manager._cache_root, "..", "..", "..")),
+            )
 
 
 class TestBinaryManagerPosixSpecific(unittest.TestCase):

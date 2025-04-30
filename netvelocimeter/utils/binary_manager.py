@@ -13,6 +13,7 @@ import zipfile
 
 from ..providers.base import BaseProvider
 from .hash import hash_b64encode
+from .xdg import XDGCategory
 
 
 def verified_basename(filepath: str) -> str:
@@ -63,16 +64,22 @@ def download_file(url: str, dest_filepath: str) -> str:
     return absolute_filepath
 
 
-def ensure_executable(filepath: str) -> None:
+def ensure_executable(filepath: str) -> str:
     """Ensure a file is executable by the current user.
+
+    This is a no-op on Windows. On Linux/MacOS it sets the executable bit.
 
     Args:
         filepath: Path to the file to make executable.
+
+    Returns:
+        Same value as filepath argument.
     """
     if platform.system() != "Windows":
         # Add executable permissions for user
         current_permissions = os.stat(filepath).st_mode
         os.chmod(filepath, current_permissions | stat.S_IXUSR)
+    return filepath
 
 
 # TODO add support for MacOS universals, bsd pkg
@@ -154,17 +161,17 @@ B = TypeVar("B", bound=BaseProvider)
 class BinaryManager:
     """Class for managing binary downloads and caching them."""
 
-    def __init__(self, provider_class: type[B], cache_root: str | None = None) -> None:
+    def __init__(self, provider_class: type[B], custom_root: str | None = None) -> None:
         r"""Initialize the BinaryManager.
 
         Args:
             provider_class: Provider class (not instance), used to partition the cache.
                 Must be a class that inherits from BaseProvider.
-            cache_root: Binary cache root directory for provider binaries
-              - None (default) = platform-specific directory of
-                posix `~/.local/bin/netvelocimeter`,
-                windows `%%LOCALAPPDATA%%\netvelocimeter`
-              - str = directory path for binary cache
+            custom_root: Custom binary cache root directory for provider binaries
+              - None (default) = automatic platform-specific directory where
+                posix follows XDG rules,
+                windows is within `LOCALAPPDATA`
+              - str = custom directory path for binary cache
         """
         # validate provider_class
         if not issubclass(provider_class, BaseProvider) or inspect.isabstract(provider_class):
@@ -172,32 +179,21 @@ class BinaryManager:
                 f"Invalid provider class: {provider_class}. Must be a concrete subclass of BaseProvider."
             )
 
-        # Get the class name for partitioning
-        provider_name = provider_class.__name__
-        provider_name = provider_name.lower()
+        # resolve cache_root
+        if custom_root:
+            # expand environment variables and user directory
+            cache_root = os.path.expandvars(custom_root)
+            cache_root = os.path.expanduser(cache_root)
 
-        # validate cache_root
-        if cache_root:
-            # use absolute path unchanged when provided, else check for user relative path
+            # check if the path is absolute
             if not os.path.isabs(cache_root):
-                # if a user relative path, expand it
-                candidate = os.path.expanduser(cache_root)
-                if os.path.isabs(candidate):
-                    cache_root = candidate
-                else:
-                    raise ValueError(f"Invalid binary cache directory: {cache_root}")
+                raise ValueError(f"Invalid custom root {custom_root}")
         else:
-            # Use platform-specific directory
-            lad = os.getenv("LOCALAPPDATA")
-            local_bin = (
-                os.path.normpath(lad if lad else ".")
-                if platform.system() == "Windows"
-                else os.path.expanduser("~/.local/bin")
-            )
-            if local_bin is None or not os.path.isabs(local_bin):
-                raise RuntimeError("Unable to determine user-specific local bin directory.")
-            # Append the netvelocimeter directory
-            cache_root = os.path.join(local_bin, "netvelocimeter")
+            # Use platform-specific XDG directory
+            cache_root = XDGCategory.BIN.resolve_app_path("netvelocimeter")
+
+        # Get the class name for partitioning
+        provider_name = provider_class.__name__.lower()
 
         # create the provider-specific cache directory
         cache_root = os.path.join(cache_root, platform.system(), platform.machine(), provider_name)
@@ -281,9 +277,11 @@ class BinaryManager:
                 url=url, dest_filepath=os.path.join(temp_dir, archive_filename)
             )
 
-            # extract the specific file and return its path
-            return extract_file(
-                archive_filepath=archive_filepath,
-                internal_filepath=internal_filepath,
-                dest_dir=dest_dir,
+            # extract the specific file, ensure executable, and return its path
+            return ensure_executable(
+                extract_file(
+                    archive_filepath=archive_filepath,
+                    internal_filepath=internal_filepath,
+                    dest_dir=dest_dir,
+                )
             )
