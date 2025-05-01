@@ -132,27 +132,31 @@ class XDGCategory(Enum):
         """The value of the Enum member."""
         return cast(XDGSystemPaths, self._value_)
 
-    def resolve_path(self) -> str:
-        """Get the resolved absolute path for this XDG category on the current platform.
+    def resolve_path(self, *path_postfixes: str) -> str:
+        """Get the resolved absolute path for this XDG category on the current os with optional path postfixes.
+
+        Will expand environment variables and user directory.
+
+        Args:
+            *path_postfixes: Optional path postfixes to append to the base path
 
         Returns:
-            Expanded path appropriate for the current platform
+            Resolved absolute XDG path for the current os with optional path postfixes
+
+        Raises:
+            ValueError: If the path couldn't be resolved
+
+        Examples:
+            >>> XDGCategory.DATA.resolve_path()
+            '/home/user/.local/share'
+            >>> XDGCategory.CONFIG.resolve_path("my_app")
+            '/home/user/.config/my_app'
+            >>> XDGCategory.CACHE.resolve_path("my_app", "images")
+            '/home/user/.cache/my_app/images'
         """
         base_path = self.value.resolve_path()
         if base_path is None or not os.path.isabs(base_path):
             raise ValueError(f"Could not resolve base path for {self.name}")
+        if path_postfixes:
+            base_path = os.path.join(base_path, *path_postfixes)
         return base_path
-
-    def resolve_app_path(self, app_name: str) -> str:
-        """Get the resolved absolute path for an application in this XDG category.
-
-        Args:
-            app_name: Name of the application or subdirectory
-
-        Returns:
-            Full expanded path including application name
-
-        Raises:
-            ValueError: If the path couldn't be resolved
-        """
-        return os.path.join(self.resolve_path(), app_name)

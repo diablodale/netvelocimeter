@@ -230,16 +230,17 @@ class TestXDGCategory(unittest.TestCase):
         self.assertIn("Could not resolve base path", str(context.exception))
         mock_resolve.assert_called_once()
 
-    @mock.patch.object(XDGCategory, "resolve_path")
-    def test_resolve_app_path(self, mock_resolve_path):
-        """Test resolving application path."""
-        # Set up the mock to return a valid absolute path
-        mock_resolve_path.return_value = "/absolute/path"
+    @mock.patch.object(XDGSystemPaths, "resolve_path")
+    def test_resolve_app_path(self, mock_system_paths):
+        """Test resolving path with postfixes."""
+        # Set up the mock to return a valid path
+        mock_system_paths.return_value = os.path.normpath("/base/path")
 
-        result = XDGCategory.DATA.resolve_app_path("myapp")
+        result = XDGCategory.DATA.resolve_path("app", "data")
 
-        self.assertEqual(result, os.path.join("/absolute/path", "myapp"))
-        mock_resolve_path.assert_called_once()
+        # Check that the path is resolved correctly
+        expected = os.path.normpath("/base/path/app/data")
+        self.assertEqual(result, expected)
 
 
 class TestXDGIntegration(unittest.TestCase):
@@ -302,8 +303,8 @@ class TestXDGIntegration(unittest.TestCase):
         self.assertEqual(result, "C:\\Users\\Test\\AppData\\Local\\Temp")
 
     def test_app_path_usage(self):
-        """Test typical usage of resolve_app_path."""
+        """Test typical app usage of resolve_path."""
         # This test may need adjustments based on the running environment
-        path = XDGCategory.CONFIG.resolve_app_path("netvelocimeter")
+        path = XDGCategory.CONFIG.resolve_path("netvelocimeter")
         self.assertTrue(os.path.isabs(path))
         self.assertTrue(path.endswith("netvelocimeter"))
