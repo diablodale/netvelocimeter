@@ -1,6 +1,8 @@
 """Tests for the base provider."""
 
 from datetime import timedelta
+import shutil
+import tempfile
 from unittest import TestCase
 
 from packaging.version import Version
@@ -36,6 +38,14 @@ class MockProvider(BaseProvider):
 class TestBaseProviderImplementation(TestCase):
     """Test the BaseProvider implementation."""
 
+    def setUp(self):
+        """Set up a clean test directory."""
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Clean up test directory."""
+        shutil.rmtree(self.temp_dir)
+
     def test_base_provider_get_servers(self):
         """Test default get_servers implementation raises NotImplementedError."""
         provider = MockProvider()
@@ -51,7 +61,7 @@ class TestBaseProviderImplementation(TestCase):
     def test_base_provider_legal_terms(self):
         """Test the legal_terms method."""
         # Create a provider with terms
-        provider = StaticProvider()
+        provider = StaticProvider(config_root=self.temp_dir)
         terms = provider._legal_terms()
 
         # Verify it's a collection
@@ -75,6 +85,7 @@ class TestBaseProviderImplementation(TestCase):
             terms_url=None,
             privacy_text=None,
             privacy_url=None,
+            config_root=self.temp_dir,
         )
 
         no_terms = provider_no_terms._legal_terms()
@@ -82,7 +93,7 @@ class TestBaseProviderImplementation(TestCase):
 
     def test_base_provider_acceptance(self):
         """Test terms acceptance tracking."""
-        provider = StaticProvider()
+        provider = StaticProvider(config_root=self.temp_dir)
 
         # Initially no terms are accepted
         self.assertFalse(provider._has_accepted_terms())
@@ -94,16 +105,55 @@ class TestBaseProviderImplementation(TestCase):
         # Now all terms should be accepted
         self.assertTrue(provider._has_accepted_terms())
 
-        # Test accepting a specific category
-        provider2 = StaticProvider()
+    def test_base_provider_acceptance_twins(self):
+        """Test terms acceptance tracking."""
+        provider = StaticProvider(config_root=self.temp_dir)
+
+        # Initially no terms are accepted
+        self.assertFalse(provider._has_accepted_terms())
+
+        # Accept all terms
+        terms = provider._legal_terms()
+        provider._accept_terms(terms)
+
+        # Now all terms should be accepted
+        self.assertTrue(provider._has_accepted_terms())
+
+        # Create a second provider with the same config root
+        provider2 = StaticProvider(config_root=self.temp_dir)
+
+        # Should also have accepted terms
+        self.assertTrue(provider2._has_accepted_terms())
+
+    def test_base_provider_acceptance_all_then_single(self):
+        """Test terms acceptance tracking."""
+        provider = StaticProvider(config_root=self.temp_dir)
+
+        # Initially no terms are accepted
+        self.assertFalse(provider._has_accepted_terms())
+
+        # Accept all terms
+        terms = provider._legal_terms()
+        provider._accept_terms(terms)
+
+        # Now all terms should be accepted
+        self.assertTrue(provider._has_accepted_terms())
+
+        # Create a second provider with the same config root
+        provider2 = StaticProvider(config_root=self.temp_dir)
+
+        # Accepting a specific category (which is already accepted above)
         eula_terms = provider2._legal_terms(category=LegalTermsCategory.EULA)
         provider2._accept_terms(eula_terms)
 
-        # Should have accepted EULA but not all terms
-        self.assertTrue(provider2._has_accepted_terms(eula_terms))
-        self.assertFalse(provider2._has_accepted_terms())
+        # Should have accepted all terms
+        self.assertTrue(provider2._has_accepted_terms())
 
-        # Provider with no terms
+        # Including acceptance of EULA
+        self.assertTrue(provider2._has_accepted_terms(eula_terms))
+
+    def test_base_provider_acceptance_no_terms(self):
+        """Test terms acceptance tracking with no terms."""
         provider_no_terms = StaticProvider(
             eula_text=None,
             eula_url=None,
@@ -111,6 +161,7 @@ class TestBaseProviderImplementation(TestCase):
             terms_url=None,
             privacy_text=None,
             privacy_url=None,
+            config_root=self.temp_dir,
         )
 
         # With no terms, should be considered accepted

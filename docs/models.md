@@ -39,7 +39,7 @@ classDiagram
         +str|None text
         +str|None url
         +LegalTermsCategory category
-        +compute_hash() str
+        +unique_id() str
     }
 
     class LegalTermsCategory {
@@ -108,7 +108,7 @@ sequenceDiagram
     Client->>NetVelocimeter: accept_terms(eula_terms)
     NetVelocimeter->>Provider: accept_terms(eula_terms)
     Provider->>Tracker: record(eula_terms)
-    Tracker->>LegalTerms: compute_hash()
+    Tracker->>LegalTerms: unique_id()
     LegalTerms-->>Tracker: terms_hash
     Tracker->>Tracker: store hash and timestamp in _acceptances
 
@@ -116,7 +116,7 @@ sequenceDiagram
     NetVelocimeter->>Provider: has_accepted_terms()
     Provider->>Provider: legal_terms()
     Provider->>Tracker: is_recorded(legal_terms)
-    Tracker->>LegalTerms: compute_hash()
+    Tracker->>LegalTerms: unique_id()
     LegalTerms-->>Tracker: terms_hash
     Tracker->>Tracker: check if hash exists in _acceptances
     Tracker-->>Provider: true (all required terms accepted)

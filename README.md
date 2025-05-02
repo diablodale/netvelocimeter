@@ -79,6 +79,17 @@ if nv.has_accepted_terms():
     print("All terms accepted!")
 ```
 
+### Persistance of Legal Terms
+
+NetVelocimeter persists the acceptance of legal terms across sessions.
+This is useful for providers that require users to accept terms before running tests.
+
+- Posix systems follow the "configuration files" rules from the
+  [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec).
+- Windows systems use the `%APPDATA%` directory. Some Python installations, e.g. from
+  the Microsoft Store, may [transparently redirect](https://github.com/python/cpython/issues/84557)
+  this to a [private per-user per-python-version location](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes#file-system).
+
 ## Server Selection
 
 List and select specific test servers:

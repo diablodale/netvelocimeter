@@ -20,6 +20,7 @@ class StaticProvider(BaseProvider):
 
     def __init__(
         self,
+        *,
         eula_text: str | None = "Test EULA",
         eula_url: str | None = "https://example.com/eula",
         terms_text: str | None = "Test Terms",
@@ -34,8 +35,9 @@ class StaticProvider(BaseProvider):
         ping_jitter: timedelta = timedelta(milliseconds=20.0),
         packet_loss: float = 1.3,
         version: str = "1.2.3+c0ffee",
+        config_root: str | None = None,
     ):
-        """Initialize a configurable test provider.
+        r"""Initialize a configurable test provider.
 
         Args:
             eula_text: EULA text (None to omit)
@@ -52,9 +54,12 @@ class StaticProvider(BaseProvider):
             ping_jitter: Ping jitter to return in test results (ms)
             packet_loss: Packet loss percentage to return in test results
             version: Provider version string
+            config_root: Directory to store configuration, e.g. legal acceptance
+                - None: Use default location (%%APPDATA%%\netvelocimeter or ~/.config/netvelocimeter)
+                - str: Custom directory path
         """
         # Call the base provider constructor
-        super().__init__()
+        super().__init__(config_root=config_root)
 
         #  persist params
         self._download_speed = download_speed

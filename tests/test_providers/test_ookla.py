@@ -57,7 +57,7 @@ class TestOoklaProvider(unittest.TestCase):
         self.patchers.append(patcher)
 
         # With these patches in place, now create the provider
-        self.provider = OoklaProvider(self.temp_dir)
+        self.provider = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
     def tearDown(self):
         """Clean up test environment."""
@@ -474,7 +474,7 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
                 # Create a new provider instance
                 # This should call _parse_version with our mocked subprocess.run and raise an error
                 with self.assertRaises(InvalidVersion):
-                    _ = OoklaProvider(self.temp_dir)
+                    _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
                 # Verify subprocess was called
                 mock_run.assert_called_once()
@@ -498,7 +498,7 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
             mock_run.return_value = mock_process
 
             # Create a clean provider instance
-            provider = OoklaProvider(self.temp_dir)
+            provider = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
             # Version should be parsed correctly
             self.assertEqual(provider._version, Version("1.2.0.84+ea6b6773cf"))
@@ -529,7 +529,7 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
                 mock.patch.object(BinaryManager, "download_extract", return_value="speedtest_path"),
                 self.assertRaises(InvalidVersion),
             ):
-                _ = OoklaProvider(self.temp_dir)
+                _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
 
 class TestOoklaProviderPlatformDetection(unittest.TestCase):
@@ -562,7 +562,7 @@ class TestOoklaProviderPlatformDetection(unittest.TestCase):
             mock.patch.object(OoklaProvider, "_parse_version", return_value=Version("1.0.0")),
         ):
             # Create the provider
-            provider = OoklaProvider(self.temp_dir)
+            provider = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
             # Verify the binary path and version
             self.assertEqual(provider._BINARY_PATH, "/mock/path/speedtest")
@@ -583,7 +583,7 @@ class TestOoklaProviderPlatformDetection(unittest.TestCase):
     def test_unsupported_architecture(self, mock_machine, mock_system):
         """Test handling of unsupported OS/CPU combinations."""
         with self.assertRaises(PlatformNotSupported):
-            _ = OoklaProvider(self.temp_dir)
+            _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
 
 class TestOoklaRealBinaries(unittest.TestCase):
@@ -620,7 +620,7 @@ class TestOoklaRealBinaries(unittest.TestCase):
                     print(f"Testing: {sys_name} {machine}")
 
                     # Create a provider which will download the binary
-                    provider = OoklaProvider(platform_dir)
+                    provider = OoklaProvider(config_root=self.temp_dir, bin_root=platform_dir)
 
                     # Check if binary exists
                     binary_exists = os.path.exists(provider._BINARY_PATH)
@@ -680,7 +680,7 @@ class TestOoklaRealBinaries(unittest.TestCase):
     def test_real_binary_download_and_version(self):
         """Test downloading the real binary for the current system and checking its version."""
         # Create a provider which will download the real binary for the current platform
-        provider = OoklaProvider(self.temp_dir)
+        provider = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
         # Verify binary was downloaded
         self.assertTrue(
@@ -724,7 +724,7 @@ class TestNetworkHandling(unittest.TestCase):
             self.assertRaises(URLError),
             mock.patch.object(OoklaProvider, "_parse_version", return_value=Version("1.0.0")),
         ):
-            _ = OoklaProvider(self.temp_dir)
+            _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
 
 class TestOoklaRealMeasurement(unittest.TestCase):
@@ -743,7 +743,7 @@ class TestOoklaRealMeasurement(unittest.TestCase):
     def test_real_measurement(self):
         """Test real Ookla measurement."""
         # Create a provider which will download the real binary for the current platform
-        provider = OoklaProvider(self.temp_dir)
+        provider = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
         # Run a real speed test
         result = provider._measure()

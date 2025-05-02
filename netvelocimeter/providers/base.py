@@ -123,9 +123,15 @@ class MeasurementResult:
 class BaseProvider(ABC):
     """Base class for network performance measurement providers."""
 
-    def __init__(self) -> None:
-        """Initialize the provider."""
-        self._acceptance = AcceptanceTracker()  # BUGBUG make attribute of derived class?
+    def __init__(self, *, config_root: str | None = None) -> None:
+        r"""Initialize the provider.
+
+        Args:
+            config_root: Directory to store configuration, e.g. legal acceptance
+                - None: Use default location (%%APPDATA%%\netvelocimeter or ~/.config/netvelocimeter)
+                - str: Custom directory path
+        """
+        self._acceptance = AcceptanceTracker(config_root=config_root)
 
     @property
     @abstractmethod

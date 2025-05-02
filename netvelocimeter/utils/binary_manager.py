@@ -52,7 +52,7 @@ def download_file(url: str, dest_filepath: str) -> str:
     absolute_filepath = os.path.abspath(os.path.expanduser(dest_filepath))
 
     # create hierarchy of directories
-    os.makedirs(os.path.dirname(absolute_filepath), exist_ok=True)
+    os.makedirs(os.path.dirname(absolute_filepath), mode=0o750, exist_ok=True)
 
     # open the URL and write the response to the file
     with urllib.request.urlopen(url) as response, open(absolute_filepath, "wb") as out_file:
@@ -161,13 +161,13 @@ B = TypeVar("B", bound=BaseProvider)
 class BinaryManager:
     """Class for managing binary downloads and caching them."""
 
-    def __init__(self, provider_class: type[B], custom_root: str | None = None) -> None:
+    def __init__(self, provider_class: type[B], bin_root: str | None = None) -> None:
         r"""Initialize the BinaryManager.
 
         Args:
             provider_class: Provider class (not instance), used to partition the cache.
                 Must be a class that inherits from BaseProvider.
-            custom_root: Custom binary cache root directory for provider binaries
+            bin_root: Custom binary cache root directory for provider binaries
               - None (default) = automatic platform-specific directory where
                 posix follows XDG rules,
                 windows is within `LOCALAPPDATA`
@@ -180,14 +180,14 @@ class BinaryManager:
             )
 
         # resolve cache_root
-        if custom_root:
+        if bin_root:
             # expand environment variables and user directory
-            cache_root = os.path.expandvars(custom_root)
+            cache_root = os.path.expandvars(bin_root)
             cache_root = os.path.expanduser(cache_root)
 
             # check if the path is absolute
             if not os.path.isabs(cache_root):
-                raise ValueError(f"Invalid custom root {custom_root}")
+                raise ValueError(f"Invalid custom root {bin_root}")
         else:
             # Use platform-specific XDG directory
             cache_root = XDGCategory.BIN.resolve_path("netvelocimeter")
@@ -198,11 +198,11 @@ class BinaryManager:
         # create the provider-specific cache directory
         cache_root = os.path.join(cache_root, platform.system(), platform.machine(), provider_name)
 
-        # make canonical
+        # make canonical (absolute and normalized) path
         cache_root = os.path.abspath(cache_root)
 
         # create the directory if it doesn't exist
-        os.makedirs(cache_root, exist_ok=True)
+        os.makedirs(cache_root, mode=0o750, exist_ok=True)
         self._cache_root = cache_root
 
     def _cache_dir_for_url(self, url: str) -> str:
@@ -218,7 +218,7 @@ class BinaryManager:
         cache_dir = os.path.join(self._cache_root, hash_b64encode(data=url))
 
         # create the directory if it doesn't exist
-        os.makedirs(cache_dir, exist_ok=True)
+        os.makedirs(cache_dir, mode=0o750, exist_ok=True)
         return cache_dir
 
     def _retrieve_from_cache(self, url: str, filename: str) -> str | None:

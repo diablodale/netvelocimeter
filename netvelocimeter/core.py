@@ -134,6 +134,7 @@ class NetVelocimeter:
             kwargs: Additional arguments to pass to the provider.
 
         """
+        # TODO move acceptance tracking to this nv class and add param for its location
         # Check if the provider is registered
         provider_class = get_provider(provider)
         self.provider = provider_class(**kwargs)

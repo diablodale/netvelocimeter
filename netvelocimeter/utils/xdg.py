@@ -1,4 +1,9 @@
-"""XDG Base Directory Specification."""
+"""XDG Base Directory Specification support.
+
+This module provides a way to resolve XDG paths for different platforms
+based on a subset of the XDG Base Directory Specification v0.8
+https://specifications.freedesktop.org/basedir-spec
+"""
 
 from dataclasses import dataclass
 from enum import Enum
@@ -141,7 +146,8 @@ class XDGCategory(Enum):
             *path_postfixes: Optional path postfixes to append to the base path
 
         Returns:
-            Resolved absolute XDG path for the current os with optional path postfixes
+            Resolved absolute XDG path for the current os with optional path postfixes.
+            The path is not guaranteed to exist or be normalized.
 
         Raises:
             ValueError: If the path couldn't be resolved

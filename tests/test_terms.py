@@ -1,5 +1,7 @@
 """Tests for terms module."""
 
+import shutil
+import tempfile
 import unittest
 
 from netvelocimeter.terms import AcceptanceTracker, LegalTerms, LegalTermsCategory
@@ -9,16 +11,16 @@ class TestLegalTerms(unittest.TestCase):
     """Tests for the LegalTerms class."""
 
     def test_compute_hash(self):
-        """Test the compute_hash method."""
+        """Test the unique_id method."""
         term1 = LegalTerms(text="Test", url="http://example.com", category=LegalTermsCategory.EULA)
         term2 = LegalTerms(text="Test", url="http://example.com", category=LegalTermsCategory.EULA)
         term3 = LegalTerms(text="Diff", url="http://example.com", category=LegalTermsCategory.EULA)
 
         # Same content should have same hash
-        self.assertEqual(term1.compute_hash(), term2.compute_hash())
+        self.assertEqual(term1.unique_id(), term2.unique_id())
 
         # Different content should have different hash
-        self.assertNotEqual(term1.compute_hash(), term3.compute_hash())
+        self.assertNotEqual(term1.unique_id(), term3.unique_id())
 
 
 class TestAcceptanceTracker(unittest.TestCase):
@@ -26,7 +28,8 @@ class TestAcceptanceTracker(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.tracker = AcceptanceTracker()
+        self.temp_dir = tempfile.mkdtemp()
+        self.tracker = AcceptanceTracker(config_root=self.temp_dir)
         self.eula_term = LegalTerms(text="EULA", category=LegalTermsCategory.EULA)
         self.privacy_term = LegalTerms(text="Privacy", category=LegalTermsCategory.PRIVACY)
         self.terms_term = LegalTerms(text="Service", category=LegalTermsCategory.SERVICE)
@@ -35,6 +38,7 @@ class TestAcceptanceTracker(unittest.TestCase):
         """Clean up after each test."""
         # Reset the tracker
         self.tracker = None
+        shutil.rmtree(self.temp_dir)
 
     def test_is_recorded_single_term(self):
         """Test checking if a single term is recorded."""
