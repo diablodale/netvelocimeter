@@ -201,11 +201,22 @@ class TestStaticProvider(unittest.TestCase):
         # Check provider
         self.assertIsInstance(nv.provider, StaticProvider)
 
+        # Check provider name
+        self.assertEqual(nv.name, "static")
+
+        # Check provider description
+        self.assertIsInstance(nv.description, list)
+        self.assertGreater(len(nv.description), 0)
+        self.assertEqual(
+            nv.description[0],
+            "Configurable provider usually for testing, does not require external dependencies or network.",
+        )
+
         # Check version
-        self.assertEqual(str(nv.provider_version), "1.2.3+c0ffee")
+        self.assertEqual(str(nv.version), "1.2.3+c0ffee")
 
         # Check legal terms
-        terms = nv.provider._legal_terms()
+        terms = nv.legal_terms()
         self.assertEqual(len(terms), 3)  # EULA, Service, Privacy
         self.assertEqual(terms[0].text, "Test EULA")
         self.assertEqual(terms[1].text, "Test Terms")

@@ -1,5 +1,6 @@
 """Core functionality for the NetVelocimeter library."""
 
+from dataclasses import dataclass
 import inspect
 from typing import Any, TypeVar, final
 
@@ -13,6 +14,34 @@ from .terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
 _PROVIDERS: dict[str, type[BaseProvider]] = {}
 
 B = TypeVar("B", bound=BaseProvider)
+
+
+@dataclass
+class ProviderInfo:
+    """Information about a provider."""
+
+    name: str
+    description: list[str]
+
+
+def _normalize_provider_name(name: str) -> str:
+    """Normalize a provider name.
+
+    This function is primarily for internal use and provider developers.
+
+    Args:
+        name: Name of the provider to normalize
+
+    Returns:
+        Normalized provider name
+
+    Raises:
+        ValueError: If the name is not a valid identifier
+    """
+    name = name.lower()
+    if not name.isidentifier():
+        raise ValueError(f"Invalid provider name '{name}'. Must be a valid Python identifier.")
+    return name
 
 
 def register_provider(name: str, provider_class: type[B]) -> None:
@@ -34,12 +63,10 @@ def register_provider(name: str, provider_class: type[B]) -> None:
             f"Invalid provider class: {provider_class}. Must be a concrete subclass of BaseProvider."
         )
 
-    # validate name
-    name = name.lower()
+    # normalize name, check for duplicates, check for docstring
+    name = _normalize_provider_name(name)
     if name in _PROVIDERS:
         raise ValueError(f"Provider '{name}' is already registered.")
-    if not name.isidentifier():
-        raise ValueError(f"Invalid provider name '{name}'. Must be a valid Python identifier.")
     if not provider_class.__doc__:
         raise ValueError(f"Provider class '{provider_class.__name__}' must have a docstring.")
     _PROVIDERS[name] = provider_class
@@ -69,48 +96,42 @@ def get_provider(name: str) -> type[BaseProvider]:
         # Auto-import providers when first needed
         _discover_providers()
 
-    name = name.lower()
-    if name not in _PROVIDERS:
+    # Normalize name and retrieve provider class
+    name = _normalize_provider_name(name)
+    try:
+        return _PROVIDERS[name]
+    except KeyError as e:
         raise ValueError(
             f"Provider '{name}' not found. Available providers: {', '.join(_PROVIDERS.keys())}"
-        )
-
-    return _PROVIDERS[name]
+        ) from e
 
 
-def list_providers(include_info: bool = False) -> list[str] | list[tuple[str, str]]:
+def list_providers() -> list[ProviderInfo]:
     """Get a list of all available providers.
 
-    Args:
-        include_info: If True, returns provider names with their descriptions.
-                     If False, returns just the provider names.
-
     Returns:
-        Either a list of provider names, or a list of (name, description) tuples
+        A list of provider info objects having name and description
 
     Examples:
-        # Get just the names
-        providers = list_providers()
-        print(f"Available providers: {', '.join(providers)}")
-
-        # Get names with descriptions
-        for name, description in list_providers(include_info=True):
-            print(f"{name}: {description}")
+        >>> list_providers()
+        [ProviderInfo(name='ookla', description='Ookla Speedtest provider'),
+        ProviderInfo(name='static', description='Static provider for testing')]
     """
     if not _PROVIDERS:
         # Auto-import providers when first needed
         _discover_providers()
 
-    if include_info:
-        return [
-            (
-                name,
-                provider.__doc__.strip().split("\n")[0] if provider.__doc__ else "No description",
-            )
-            for name, provider in _PROVIDERS.items()
-        ]
-    else:
-        return list(_PROVIDERS.keys())
+    return [
+        ProviderInfo(
+            name=name,
+            description=[
+                stripped_line
+                for line in provider.__doc__.splitlines()  # type: ignore[union-attr]
+                if (stripped_line := line.strip())
+            ],
+        )
+        for name, provider in _PROVIDERS.items()
+    ]
 
 
 def _discover_providers() -> None:
@@ -138,12 +159,13 @@ class NetVelocimeter:
         # Check if the provider is registered
         provider_class = get_provider(provider)
         self.provider = provider_class(**kwargs)
+        self.provider_name = _normalize_provider_name(provider)
 
     @final
     def legal_terms(
         self, category: LegalTermsCategory = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
-        """Get legal terms for the current provider.
+        """Get legal terms of the provider.
 
         Args:
             category: Category of terms to retrieve. Defaults to ALL.
@@ -157,7 +179,7 @@ class NetVelocimeter:
     def has_accepted_terms(
         self, terms_or_collection: LegalTerms | LegalTermsCollection | None = None
     ) -> bool:
-        """Check if the user has accepted the specified terms.
+        """Check if the user has accepted the specified terms of the provider.
 
         Args:
             terms_or_collection: Terms to check. If None, checks all legal terms for the current provider.
@@ -169,7 +191,7 @@ class NetVelocimeter:
 
     @final
     def accept_terms(self, terms_or_collection: LegalTerms | LegalTermsCollection) -> None:
-        """Record acceptance of terms.
+        """Record acceptance of terms of the provider.
 
         Args:
             terms_or_collection: Terms to accept
@@ -179,7 +201,7 @@ class NetVelocimeter:
     @final
     @property
     def servers(self) -> list[ServerInfo]:
-        """Get list of available servers.
+        """Get list of available servers using the provider.
 
         Returns:
             List of server information objects.
@@ -190,7 +212,17 @@ class NetVelocimeter:
 
     @final
     @property
-    def provider_version(self) -> Version:
+    def name(self) -> str:
+        """Get the name of the provider.
+
+        Returns:
+            Provider name as a string.
+        """
+        return self.provider_name
+
+    @final
+    @property
+    def version(self) -> Version:
         """Get the version of the provider.
 
         Returns:
@@ -199,10 +231,24 @@ class NetVelocimeter:
         return self.provider._version
 
     @final
+    @property
+    def description(self) -> list[str]:
+        """Get the description of the provider.
+
+        Returns:
+            Provider description as a list of strings.
+        """
+        return [
+            stripped_line
+            for line in self.provider.__doc__.splitlines()  # type: ignore[union-attr]
+            if (stripped_line := line.strip())
+        ]
+
+    @final
     def measure(
         self, server_id: ServerIDType | None = None, server_host: str | None = None
     ) -> MeasurementResult:
-        """Measure network performance using the configured provider.
+        """Measure network performance using the provider.
 
         Args:
             server_id: Server ID (integer or string) for test

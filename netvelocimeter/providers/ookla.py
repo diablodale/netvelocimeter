@@ -17,7 +17,7 @@ from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
 
 class OoklaProvider(BaseProvider):
-    """Provider for Ookla Speedtest.net."""
+    """Provider for Ookla Speedtest.net, uses the official Ookla Speedtest CLI tool."""
 
     # Class variables shared by all instances
     _DOWNLOAD_VERSION = "1.2.0"

@@ -22,7 +22,7 @@ class TestVersionFeatures(unittest.TestCase):
         mock_get_provider.return_value = mock_provider_class
 
         nv = NetVelocimeter()
-        version = nv.provider_version
+        version = nv.version
 
         # Compare with Version object, not string
         self.assertEqual(version, Version("1.2.3.dev0"))

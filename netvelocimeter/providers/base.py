@@ -72,17 +72,38 @@ class MeasurementResult:
         raw_result: Raw provider result data.
     """
 
-    download_speed: float  # in Mbps
-    upload_speed: float  # in Mbps
+    download_speed: float
+    """Download speed in Mbps (megabits per second)."""
+
+    upload_speed: float
+    """Upload speed in Mbps (megabits per second)."""
+
     download_latency: timedelta | None = None
+    """Download latency as timedelta."""
+
     upload_latency: timedelta | None = None
+    """Upload latency as timedelta."""
+
     ping_latency: timedelta | None = None
+    """Ping latency as timedelta."""
+
     ping_jitter: timedelta | None = None
+    """Ping jitter as timedelta."""
+
     packet_loss: float | None = None
+    """Packet loss percentage as float from 0.0 to 100.0."""
+
     server_info: ServerInfo | None = None
+    """Information about the server used for testing."""
+
     persist_url: str | None = None
+    """Provider-assigned URL to view test results."""
+
     id: str | None = None
+    """Provider-assigned measurement ID."""
+
     raw_result: dict[str, Any] | None = None
+    """Raw provider result data."""
 
     def __post_init__(self) -> None:
         """Ensure download and upload speeds are set."""

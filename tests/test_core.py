@@ -59,22 +59,48 @@ class TestNetVelocimeter(TestCase):
 
     def test_list_providers(self):
         """Test listing available providers."""
-        # Should return at least the default provider
+        # Get the list of providers
         providers = list_providers()
+
+        # Check it's a list of provider info objects
         self.assertIsInstance(providers, list)
-        self.assertIn("ookla", providers)
-        self.assertIn("static", providers)
+        self.assertTrue(
+            all(
+                hasattr(provider, "name") and hasattr(provider, "description")
+                for provider in providers
+            )
+        )
 
-        # Test with include_info=True
-        providers_with_info = list_providers(include_info=True)
-        self.assertIsInstance(providers_with_info, list)
-        self.assertIsInstance(providers_with_info[0], tuple)
-        self.assertEqual(len(providers_with_info[0]), 2)
+        # Check expected providers exist
+        provider_names = [provider.name for provider in providers]
+        self.assertIn("ookla", provider_names)
+        self.assertIn("static", provider_names)
 
-        # Ensure at least one provider name matches between the two calls
-        plain_names = set(providers)
-        info_names = {name for name, _ in providers_with_info}
-        self.assertTrue(plain_names.intersection(info_names))
+        # Check descriptions are lists of non-empty strings
+        for provider in providers:
+            self.assertIsInstance(provider.description, list)
+
+            # Each line should be a non-empty string
+            self.assertTrue(
+                all(
+                    isinstance(line, str) and line.strip() == line and line
+                    for line in provider.description
+                )
+            )
+
+        # Test each provider's docstring is properly processed
+        # Get the raw providers
+        provider_classes = {name: get_provider(name) for name in provider_names}
+
+        # Check each provider's description matches its processed docstring
+        for provider in providers:
+            provider_class = provider_classes[provider.name]
+            expected_description = [
+                stripped_line
+                for line in provider_class.__doc__.splitlines()
+                if (stripped_line := line.strip())
+            ]
+            self.assertEqual(provider.description, expected_description)
 
     def test_initialize_with_unknown_parameter(self):
         """Test initializing with an unknown parameter."""
@@ -94,7 +120,7 @@ class TestNetVelocimeter(TestCase):
             mock_get_provider.return_value = mock_provider_class
 
             nv = NetVelocimeter()
-            self.assertEqual(nv.provider_version, Version("1.2.3"))
+            self.assertEqual(nv.version, Version("1.2.3"))
 
     def test_netvelocimeter_legal_terms(self):
         """Test NetVelocimeter legal_terms method."""
@@ -146,15 +172,21 @@ class TestProviderRegistration(TestCase):
 
         # Should appear in list_providers
         providers = list_providers()
-        self.assertIn("test_register_custom_provider", providers)
+        provider_names = [provider.name for provider in providers]
+        self.assertIn("test_register_custom_provider", provider_names)
 
-        # Should have description in info listing
-        providers_with_info = list_providers(include_info=True)
-        provider_info = {name: desc for name, desc in providers_with_info}
-        self.assertIn("test_register_custom_provider", provider_info)
-        self.assertEqual(
-            provider_info["test_register_custom_provider"], "Test provider for unit tests."
+        # Find this provider's info
+        provider_info = next(p for p in providers if p.name == "test_register_custom_provider")
+
+        # Check description is a list of non-empty strings
+        self.assertIsInstance(provider_info.description, list)
+        self.assertTrue(
+            all(isinstance(line, str) and line.strip() for line in provider_info.description)
         )
+
+        # Check first line matches first non-empty line of docstring
+        self.assertEqual(len(provider_info.description), 1)
+        self.assertEqual(provider_info.description[0], "Test provider for unit tests.")
 
     def test_register_custom_provider_multiline_doc(self):
         """Test registering a custom provider."""
@@ -188,16 +220,30 @@ class TestProviderRegistration(TestCase):
 
         # Should appear in list_providers
         providers = list_providers()
-        self.assertIn("test_register_custom_provider_multiline_doc", providers)
+        provider_names = [provider.name for provider in providers]
+        self.assertIn("test_register_custom_provider_multiline_doc", provider_names)
 
-        # Should have description in info listing
-        providers_with_info = list_providers(include_info=True)
-        provider_info = {name: desc for name, desc in providers_with_info}
-        self.assertIn("test_register_custom_provider_multiline_doc", provider_info)
-        self.assertEqual(
-            provider_info["test_register_custom_provider_multiline_doc"],
-            "Test provider for unit tests.",
+        # Find this provider's info
+        provider_info = next(
+            p for p in providers if p.name == "test_register_custom_provider_multiline_doc"
         )
+
+        # Check description is a list of non-empty strings
+        self.assertIsInstance(provider_info.description, list)
+        self.assertTrue(
+            all(isinstance(line, str) and line.strip() for line in provider_info.description)
+        )
+
+        # Check first line matches first non-empty line of docstring
+        self.assertEqual(provider_info.description[0], "Test provider for unit tests.")
+
+        # Check that all expected lines are included
+        expected_lines = [
+            "Test provider for unit tests.",
+            "The first line of this __doc__ is an empty line.",
+            "This test ensures registration works with multiline docstrings.",
+        ]
+        self.assertEqual(provider_info.description, expected_lines)
 
 
 class TestProviderRegistrationErrors(TestCase):

@@ -17,11 +17,14 @@ Eventually, I will publish to [PyPI](https://pypi.org/) and you will `pip instal
 <img align="right" src="netvelocimeter/assets/icons/netvelocimeter-128.png" alt="NetVelocimeter" width="128" height="128"/>
 
 - Measure download speed, upload speed, latency, and jitter
-- Support for multiple network speed test providers
+- Support multiple network speed test providers with extensible architecture
 - Server selection capabilities (auto or manual)
-- Proper handling of legal requirements (EULA, terms, privacy policy)
-- Type-safe time duration handling with `timedelta`
-- Extensible architecture for adding new providers
+- Manage legal requirements (EULA, service terms, privacy policy, etc.)
+
+## Supported Providers
+
+- **Ookla Speedtest.net**: uses the official Ookla Speedtest CLI tool
+- **Static**: usually for testing, does not require external dependencies or network
 
 ## Basic Usage
 
@@ -47,9 +50,54 @@ if result.persist_url:
     print(f"View results online: {result.persist_url}")
 ```
 
+## Server Selection
+
+List and select specific test servers:
+
+```python
+# Create NetVelocimeter instance, default is Ookla or specify a provider
+nv = NetVelocimeter(provider="ookla")
+
+# Accept terms before using
+nv.accept_terms(nv.legal_terms())
+
+# List available servers
+servers = nv.servers
+for server in servers:
+    print(f"Server {server.name} in {server.location or 'unknown location'}")
+
+# Run test with a specific server
+result = nv.measure(server_id=12345)  # By server ID
+# OR
+result = nv.measure(server_host="speedtest.example.com")  # By hostname
+```
+
+## Provider Information
+
+List information about providers:
+
+```python
+from netvelocimeter import list_providers, NetVelocimeter
+
+# Get available provider information
+providers = list_providers()
+for provider in providers:
+    print(f"{provider.name}:")
+    for line in provider.description:
+        print(f"  {line}")
+
+# Get active provider name and version
+nv = NetVelocimeter()
+name = nv.name
+version = nv.version
+print(f"Provider: {name}, version: {version}")
+```
+
 ## Legal Terms
 
-NetVelocimeter provides a flexible system for handling legal terms from different providers:
+NetVelocimeter provides a flexible system for handling legal terms from different providers.
+Acceptance is persisted across sessions and invalidated if the terms change.
+This is useful for providers that require users to accept terms before running tests.
 
 ```python
 from netvelocimeter.terms import LegalTermsCategory
@@ -81,59 +129,14 @@ if nv.has_accepted_terms():
 
 ### Persistance of Legal Terms
 
-NetVelocimeter persists the acceptance of legal terms across sessions.
-This is useful for providers that require users to accept terms before running tests.
+Acceptance is stored as tiny JSON files uniquely named for each legal term by using
+a cryptographic hash of the terms. Files are stored in default locations based on the operating system:
 
 - Posix systems follow the "configuration files" rules from the
   [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec).
 - Windows systems use the `%APPDATA%` directory. Some Python installations, e.g. from
   the Microsoft Store, may [transparently redirect](https://github.com/python/cpython/issues/84557)
   this to a [private per-user per-python-version location](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes#file-system).
-
-## Server Selection
-
-List and select specific test servers:
-
-```python
-# Create NetVelocimeter instance
-nv = NetVelocimeter(provider="ookla")
-
-# Accept terms before using
-nv.accept_terms(nv.legal_terms())
-
-# List available servers
-servers = nv.servers
-for server in servers:
-    print(f"Server {server.name} in {server.location or 'unknown location'}")
-
-# Run test with a specific server
-result = nv.measure(server_id=12345)  # By server ID
-# OR
-result = nv.measure(server_host="speedtest.example.com")  # By hostname
-```
-
-## Provider Information
-
-Get information about the provider:
-
-```python
-# Get provider version
-nv = NetVelocimeter()
-version = nv.provider_version
-print(f"Provider version: {version}")
-```
-
-## Custom Binary Directory
-
-By default, NetVelocimeter stores provider binaries in `~/.netvelocimeter/bin/`. You can specify a custom directory:
-
-```python
-nv = NetVelocimeter(binary_dir="/path/to/custom/directory")
-```
-
-## Supported Providers
-
-- **Ookla Speedtest.net**: uses the official Ookla Speedtest CLI tool
 
 ## Example with Error Handling
 
@@ -243,7 +246,7 @@ To run specific test files:
 pytest tests/test_legal_requirements.py
 ```
 
-For tests that download binaries or make network requests:
+For expensive tests, i.e. download binaries or make network requests:
 
 ```bash
 # Run all tests including expensive ones

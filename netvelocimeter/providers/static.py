@@ -11,7 +11,7 @@ from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
 
 class StaticProvider(BaseProvider):
-    """Configurable test provider that can be used across test cases.
+    """Configurable provider usually for testing, does not require external dependencies or network.
 
     All fields default to test values, set any to None to omit them.
     Five test servers with ids 1 -> 5 are available.
