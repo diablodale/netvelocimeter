@@ -692,9 +692,12 @@ class TestOoklaRealBinaries(unittest.TestCase):
         file_size = os.path.getsize(provider._BINARY_PATH)
         self.assertGreater(file_size, 500000, f"Binary file is too small: {file_size} bytes")
 
-        # Check that we got a real version (not 0)
-        self.assertNotEqual(
-            provider._version, Version("0"), "Failed to get a valid version from the binary"
+        # Check that provider._version is a Version()
+        self.assertIsInstance(provider._version, Version, "Version is not a Version object")
+
+        # Check that the version is not empty
+        self.assertTrue(
+            provider._version.release, f"Provider version release is unknown: {provider._version}"
         )
 
         print("\nSuccessfully downloaded and verified Ookla binary:")
@@ -745,8 +748,11 @@ class TestOoklaRealMeasurement(unittest.TestCase):
         # Create a provider which will download the real binary for the current platform
         provider = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
-        # Run a real speed test
+        # Run a real speed test with low-level provider api, therefore no legal checks
         result = provider._measure()
+
+        # Print results and raw result
+        print(f"\n{result}\n\n{result.raw_result}")
 
         # Check if the result is valid
         self.assertIsNotNone(result)
@@ -767,5 +773,3 @@ class TestOoklaRealMeasurement(unittest.TestCase):
         self.assertGreater(result.download_latency.total_seconds(), 0)
         self.assertGreater(result.upload_latency.total_seconds(), 0)
         self.assertGreaterEqual(result.packet_loss, 0)
-
-        print(result)

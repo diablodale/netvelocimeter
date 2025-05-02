@@ -530,13 +530,15 @@ class TestBinaryManagerCaching(unittest.TestCase):
         result = self.manager._retrieve_from_cache(self.test_url, "cached.txt")
         self.assertEqual(result, cached_file)
 
+    @mock.patch("netvelocimeter.utils.binary_manager.ensure_executable")
     @mock.patch("netvelocimeter.utils.binary_manager.download_file")
     @mock.patch("netvelocimeter.utils.binary_manager.extract_file")
-    def test_download_extract_with_caching(self, mock_extract, mock_download):
+    def test_download_extract_with_caching(self, mock_extract, mock_download, mock_ensure):
         """Test download_extract with caching."""
         # Set up mocks
         mock_download.return_value = "/path/to/downloaded.zip"
         mock_extract.return_value = "/path/to/extracted.txt"
+        mock_ensure.return_value = "/path/to/extracted.txt"
 
         # Mock _retrieve_from_cache to initially return None (not cached)
         with mock.patch.object(self.manager, "_retrieve_from_cache", return_value=None):
@@ -560,13 +562,15 @@ class TestBinaryManagerCaching(unittest.TestCase):
             self.assertEqual(mock_extract.call_count, 1)  # Still only one call
             self.assertEqual(result2, "/path/to/cached.txt")
 
+    @mock.patch("netvelocimeter.utils.binary_manager.ensure_executable")
     @mock.patch("netvelocimeter.utils.binary_manager.download_file")
     @mock.patch("netvelocimeter.utils.binary_manager.extract_file")
-    def test_download_extract_force_download(self, mock_extract, mock_download):
+    def test_download_extract_force_download(self, mock_extract, mock_download, mock_ensure):
         """Test download_extract with forced download (dest_dir provided)."""
         # Set up mocks
         mock_download.return_value = "/path/to/downloaded.zip"
         mock_extract.return_value = "/path/to/extracted.txt"
+        mock_ensure.return_value = "/path/to/extracted.txt"
 
         # Call with dest_dir to force download
         result = self.manager.download_extract(
@@ -630,9 +634,11 @@ class TestBinaryManagerCaching(unittest.TestCase):
             mock.patch("urllib.request.urlopen"),
             mock.patch("netvelocimeter.utils.binary_manager.download_file") as mock_download,
             mock.patch("netvelocimeter.utils.binary_manager.extract_file") as mock_extract,
+            mock.patch("netvelocimeter.utils.binary_manager.ensure_executable") as mock_ensure,
         ):
             mock_download.return_value = "/path/to/downloaded.zip"
             mock_extract.return_value = "/path/to/extracted.txt"
+            mock_ensure.return_value = "/path/to/extracted.txt"
             self.manager.download_extract(self.test_url, self.internal_file)
 
         # Verify the cache structure

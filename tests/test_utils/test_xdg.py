@@ -57,6 +57,20 @@ class TestExpandPath(unittest.TestCase):
         self.assertEqual(result, expected)
         mock_expanduser.assert_called_once_with(path)
 
+    @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
+    @mock.patch.dict(os.environ, {"USERPROFILE": "C:\\home\\testuser"}, clear=True)
+    def test_home_expansion_windows(self):
+        """Test expansion of ~ for home directory."""
+        result = XDGCategory.CONFIG.resolve_path()
+        self.assertEqual(result, "C:\\home\\testuser\\AppData\\Roaming")
+
+    @pytest.mark.skipif(platform.system() == "Windows", reason="POSIX-specific test")
+    @mock.patch.dict(os.environ, {"HOME": "/home/testuser"}, clear=True)
+    def test_home_expansion_posix(self):
+        """Test expansion of ~ for home directory."""
+        result = XDGCategory.CONFIG.resolve_path()
+        self.assertEqual(result, "/home/testuser/.config")
+
     @mock.patch.dict(os.environ, {"TEST_VAR": "test/value"})
     @mock.patch("os.path.expanduser")
     def test_combined_expansion(self, mock_expanduser):
@@ -246,65 +260,63 @@ class TestXDGCategory(unittest.TestCase):
 class TestXDGIntegration(unittest.TestCase):
     """Integration tests for the XDG module."""
 
-    @mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": "/custom/config"})
-    @mock.patch("platform.system", return_value="Linux")
-    def test_posix_env_var(self, mock_system):
-        """Test resolving POSIX path from environment variable."""
-        result = XDGCategory.CONFIG.resolve_path()
-        self.assertEqual(result, "/custom/config")
-
-    @mock.patch.dict(os.environ, {"HOME": "/home/testuser"})
-    @mock.patch("platform.system", return_value="Linux")
-    def test_posix_env_var_default(self, mock_system):
-        """Test resolving POSIX path from default."""
-        result = XDGCategory.CONFIG.resolve_path()
-        self.assertEqual(result, "/home/testuser/.config")
-
-    @mock.patch.dict(os.environ, {}, clear=True)
-    @mock.patch("platform.system", return_value="Linux")
-    @mock.patch("os.path.expandvars")
-    def test_posix_default(self, mock_expandvars, mock_system):
-        """Test resolving POSIX path from default."""
-        # Set up the mocks for path expansion
-        mock_expandvars.side_effect = lambda p: p.replace("${HOME}", "/home/testuser")
-        result = XDGCategory.CONFIG.resolve_path()
-        self.assertEqual(result, "/home/testuser/.config")
-
-    @mock.patch.dict(os.environ, {"APPDATA": "C:\\Users\\Test\\AppData\\Roaming"})
-    @mock.patch("platform.system", return_value="Windows")
-    def test_windows_env_var(self, mock_system):
-        """Test resolving Windows path from environment variable."""
-        result = XDGCategory.CONFIG.resolve_path()
-        self.assertEqual(result, "C:\\Users\\Test\\AppData\\Roaming")
-
-    @mock.patch.dict(os.environ, {"USERPROFILE": "C:\\Users\\Test"}, clear=True)
-    @mock.patch("platform.system", return_value="Windows")
-    def test_windows_env_var_default(self, mock_system):
-        """Test resolving Windows path from default."""
-        result = XDGCategory.CONFIG.resolve_path()
-        self.assertEqual(result, "C:\\Users\\Test\\AppData\\Roaming")
-
-    @mock.patch.dict(os.environ, {}, clear=True)
-    @mock.patch("platform.system", return_value="Windows")
-    @mock.patch("os.path.expanduser")
-    def test_windows_default(self, mock_expanduser, mock_system):
-        """Test resolving Windows path from default."""
-        # Set up the mocks for path expansion
-        mock_expanduser.side_effect = lambda p: p.replace("~", "\\home\\testuser")
-        result = XDGCategory.CONFIG.resolve_path()
-        self.assertEqual(result, "\\home\\testuser\\AppData\\Roaming")
-
-    @mock.patch.dict(os.environ, {"LOCALAPPDATA": "C:\\Users\\Test\\AppData\\Local"}, clear=True)
-    @mock.patch("platform.system", return_value="Windows")
-    def test_windows_nested_vars(self, mock_system):
-        """Test resolving Windows path with nested environment variables."""
-        # The CACHE category uses ${LOCALAPPDATA}\Temp as default
-        result = XDGCategory.CACHE.resolve_path()
-        self.assertEqual(result, "C:\\Users\\Test\\AppData\\Local\\Temp")
-
     def test_app_path_usage(self):
         """Test typical app usage of resolve_path."""
         # This test may need adjustments based on the running environment
         path = XDGCategory.CONFIG.resolve_path("netvelocimeter")
         self.assertTrue(os.path.isabs(path))
         self.assertTrue(path.endswith("netvelocimeter"))
+
+    @pytest.mark.skipif(platform.system() == "Windows", reason="POSIX-specific test")
+    @mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": "/custom/config"})
+    def test_posix_env_var(self):
+        """Test resolving POSIX path from custom XDG environment variable."""
+        result = XDGCategory.CONFIG.resolve_path()
+        self.assertEqual(result, "/custom/config")
+
+    @pytest.mark.skipif(platform.system() == "Windows", reason="POSIX-specific test")
+    @mock.patch.dict(os.environ, {"HOME": "/home/testuser"})
+    def test_posix_env_var_default(self):
+        """Test resolving POSIX path from XDG default."""
+        result = XDGCategory.CONFIG.resolve_path()
+        self.assertEqual(result, "/home/testuser/.config")
+
+    @pytest.mark.skipif(platform.system() == "Windows", reason="POSIX-specific test")
+    @mock.patch.dict(os.environ, {}, clear=True)
+    @mock.patch("os.path.expandvars")
+    def test_posix_env_var_default2(self, mock_expandvars):
+        """Test resolving POSIX path from default."""
+        mock_expandvars.side_effect = lambda p: p.replace("${HOME}", "/home/testuser")
+        result = XDGCategory.CONFIG.resolve_path()
+        self.assertEqual(result, "/home/testuser/.config")
+
+    @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
+    @mock.patch.dict(os.environ, {"APPDATA": "C:\\Users\\Test\\AppData\\Roaming"})
+    def test_windows_env_var(self):
+        """Test resolving Windows path from environment variable."""
+        result = XDGCategory.CONFIG.resolve_path()
+        self.assertEqual(result, "C:\\Users\\Test\\AppData\\Roaming")
+
+    @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
+    @mock.patch.dict(os.environ, {"USERPROFILE": "C:\\Users\\Test"}, clear=True)
+    def test_windows_env_var_default(self):
+        """Test resolving Windows path from default."""
+        result = XDGCategory.CONFIG.resolve_path()
+        self.assertEqual(result, "C:\\Users\\Test\\AppData\\Roaming")
+
+    @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
+    @mock.patch.dict(os.environ, {}, clear=True)
+    @mock.patch("os.path.expanduser")
+    def test_windows_env_var_default2(self, mock_expanduser):
+        """Test resolving Windows path from default."""
+        mock_expanduser.side_effect = lambda p: p.replace("~", "\\home\\testuser")
+        result = XDGCategory.CONFIG.resolve_path()
+        self.assertEqual(result, "\\home\\testuser\\AppData\\Roaming")
+
+    @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
+    @mock.patch.dict(os.environ, {"LOCALAPPDATA": "C:\\Users\\Test\\AppData\\Local"}, clear=True)
+    def test_windows_nested_vars(self):
+        """Test resolving Windows path with nested environment variables."""
+        # The CACHE category uses ${LOCALAPPDATA}\Temp as default
+        result = XDGCategory.CACHE.resolve_path()
+        self.assertEqual(result, "C:\\Users\\Test\\AppData\\Local\\Temp")
