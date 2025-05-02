@@ -7,7 +7,7 @@ import unittest
 
 from packaging.version import Version
 
-from netvelocimeter import get_provider
+from netvelocimeter import NetVelocimeter, get_provider
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.static import StaticProvider
 from netvelocimeter.terms import LegalTermsCategory
@@ -193,6 +193,42 @@ class TestStaticProvider(unittest.TestCase):
         # Test with invalid server host (should raise ValueError)
         with self.assertRaises(ValueError):
             provider._measure(server_host="invalid.example.com")
+
+    def test_nv_static_provider(self):
+        """Test the NetVelocimeter class with StaticProvider."""
+        nv = NetVelocimeter(provider="static", config_root=self.temp_dir)
+
+        # Check provider
+        self.assertIsInstance(nv.provider, StaticProvider)
+
+        # Check version
+        self.assertEqual(str(nv.provider_version), "1.2.3+c0ffee")
+
+        # Check legal terms
+        terms = nv.provider._legal_terms()
+        self.assertEqual(len(terms), 3)  # EULA, Service, Privacy
+        self.assertEqual(terms[0].text, "Test EULA")
+        self.assertEqual(terms[1].text, "Test Terms")
+        self.assertEqual(terms[2].text, "Test Privacy")
+
+        # Accept legal terms
+        nv.accept_terms(terms)
+
+        # Check servers
+        servers = nv.servers
+        self.assertEqual(len(servers), 5)
+        for server in servers:
+            self.assertIsInstance(server, ServerInfo)
+            self.assertIsInstance(server.name, str)
+            self.assertIsInstance(server.id, int)
+
+        # Measure without server
+        result = nv.measure()
+        self.assertAlmostEqual(result.download_speed, 100.0, places=3)
+        self.assertAlmostEqual(result.upload_speed, 50.0, places=3)
+        self.assertAlmostEqual(result.ping_latency.total_seconds() * 1000, 25.0, places=3)
+        self.assertAlmostEqual(result.ping_jitter.total_seconds() * 1000, 20.0, places=3)
+        self.assertAlmostEqual(result.packet_loss, 1.3, places=3)
 
 
 class TestStaticProviderLegalTerms(unittest.TestCase):
