@@ -1,6 +1,6 @@
 # NetVelocimeter
 
-A Python library for measuring network performance metrics like bandwidth, latency, and jitter across multiple service providers.
+Python library for measuring network performance metrics like bandwidth, latency, and jitter across multiple service providers.
 
 ## Installation
 
@@ -288,7 +288,7 @@ pre-commit run --all-files
 
 ### Documentation
 
-~~Documentation is built with Sphinx. To build the docs:~~~~
+~~Documentation is built with Sphinx. To build the docs:~~
 
 ```bash
 # cd docs
