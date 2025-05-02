@@ -26,3 +26,15 @@ class TestVersionFeatures(unittest.TestCase):
 
         # Compare with Version object, not string
         self.assertEqual(version, Version("1.2.3.dev0"))
+
+    def test_library_version(self):
+        """Test getting library version."""
+        # Create with a static provider
+        nv = NetVelocimeter("static")
+        nv_lib_version = nv.library_version
+
+        # Import the __version__ variable from the module
+        from netvelocimeter import __version__ as raw_version
+
+        # Compare with Version object, not string
+        self.assertEqual(nv_lib_version, Version(raw_version))

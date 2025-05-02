@@ -155,7 +155,6 @@ class NetVelocimeter:
             kwargs: Additional arguments to pass to the provider.
 
         """
-        # TODO move acceptance tracking to this nv class and add param for its location
         # Check if the provider is registered
         provider_class = get_provider(provider)
         self.provider = provider_class(**kwargs)
@@ -229,6 +228,19 @@ class NetVelocimeter:
             Provider version as a Version object.
         """
         return self.provider._version
+
+    @final
+    @property
+    def library_version(self) -> Version:
+        """Get the version of the NetVelocimeter library.
+
+        Returns:
+            NetVelocimeter library version as a Version object.
+        """
+        # Dynamic version import
+        from . import __version__
+
+        return Version(__version__)
 
     @final
     @property
