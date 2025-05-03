@@ -1,11 +1,14 @@
 """Tests for the core functionality."""
 
+import shutil
+import tempfile
 from unittest import TestCase, mock
 
 from packaging.version import Version
 
 from netvelocimeter import NetVelocimeter, get_provider, list_providers, register_provider
 from netvelocimeter.core import _PROVIDERS
+from netvelocimeter.exceptions import LegalAcceptanceError
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerIDType
 from netvelocimeter.terms import LegalTerms, LegalTermsCategory
 
@@ -38,6 +41,14 @@ class MockProviderWithTerms(BaseProvider):
 
 class TestNetVelocimeter(TestCase):
     """Tests for NetVelocimeter class."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Clean up after each test."""
+        shutil.rmtree(self.temp_dir)
 
     def test_get_provider(self):
         """Test getting a provider."""
@@ -139,6 +150,99 @@ class TestNetVelocimeter(TestCase):
             eula_terms = nv.legal_terms(category=LegalTermsCategory.EULA)
             self.assertEqual(len(eula_terms), 1)
             self.assertEqual(eula_terms[0].text, "EULA")
+
+    def test_netvelocimeter_name(self):
+        """Test NetVelocimeter name property."""
+        # register a mock provider
+        register_provider("test_netvelocimeter_name", MockProviderWithTerms)
+
+        # Create NetVelocimeter instance
+        nv = NetVelocimeter(provider="test_netvelocimeter_name")
+
+        # Test name property
+        self.assertEqual(nv.name, "test_netvelocimeter_name")
+
+    def test_netvelocimeter_description(self):
+        """Test NetVelocimeter description property."""
+        # register a mock provider
+        register_provider("test_netvelocimeter_description", MockProviderWithTerms)
+
+        # Create NetVelocimeter instance
+        nv = NetVelocimeter(provider="test_netvelocimeter_description")
+
+        # Test description property
+        self.assertIsInstance(nv.description, list)
+        self.assertTrue(all(isinstance(line, str) and line.strip() for line in nv.description))
+        self.assertEqual(nv.description[0], "Mock provider with legal terms.")
+
+    def test_netvelocimeter_library_version(self):
+        """Test NetVelocimeter library_version property."""
+        # register a mock provider
+        register_provider("test_netvelocimeter_library_version", MockProviderWithTerms)
+
+        # Create NetVelocimeter instance
+        nv = NetVelocimeter(provider="test_netvelocimeter_library_version")
+
+        # Test library version property
+        from netvelocimeter import __version__
+
+        self.assertEqual(nv.library_version, Version(__version__))
+
+    def test_netvelocimeter_servers(self):
+        """Test NetVelocimeter servers property."""
+        # register a mock provider
+        register_provider("test_netvelocimeter_servers", MockProviderWithTerms)
+
+        # Create NetVelocimeter instance
+        nv = NetVelocimeter(provider="test_netvelocimeter_servers", config_root=self.temp_dir)
+
+        # Test servers property
+        with self.assertRaises(LegalAcceptanceError):
+            _ = nv.servers
+
+        # Accept legal terms
+        nv.accept_terms(nv.legal_terms())
+
+        # Test servers property again
+        with self.assertRaises(NotImplementedError):
+            _ = nv.servers
+
+    def test_netvelocimeter_measure(self):
+        """Test NetVelocimeter measure method."""
+        # register a mock provider
+        register_provider("test_netvelocimeter_measure", MockProviderWithTerms)
+
+        # Create NetVelocimeter instance
+        nv = NetVelocimeter(provider="test_netvelocimeter_measure", config_root=self.temp_dir)
+
+        # Test measure method without accepting terms
+        with self.assertRaises(LegalAcceptanceError):
+            nv.measure()
+
+        # Accept legal terms
+        nv.accept_terms(nv.legal_terms())
+
+        # Test measure method with invalid parameters
+        with self.assertRaises(ValueError):
+            _ = nv.measure(server_id="12345", server_host="test.server.com")
+
+        # Test measure method with no parameters
+        result = nv.measure()
+        self.assertIsInstance(result, MeasurementResult)
+        self.assertEqual(result.download_speed, 1.0)
+        self.assertEqual(result.upload_speed, 1.0)
+
+        # Test measure method with specific server
+        result = nv.measure(server_id=1)
+        self.assertIsInstance(result, MeasurementResult)
+        self.assertEqual(result.download_speed, 1.0)
+        self.assertEqual(result.upload_speed, 1.0)
+
+        # Test measure method with specific server host
+        result = nv.measure(server_host="test.server.com")
+        self.assertIsInstance(result, MeasurementResult)
+        self.assertEqual(result.download_speed, 1.0)
+        self.assertEqual(result.upload_speed, 1.0)
 
 
 class TestProviderRegistration(TestCase):

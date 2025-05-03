@@ -165,7 +165,7 @@ class BaseProvider(ABC):
         Returns:
             The version of the provider implementation
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def _legal_terms(
@@ -179,7 +179,7 @@ class BaseProvider(ABC):
         Returns:
             Collection of legal terms that match the requested category
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def _measure(
@@ -194,7 +194,7 @@ class BaseProvider(ABC):
         Returns:
             Measurement results
         """
-        pass
+        pass  # pragma: no cover
 
     @property
     def _servers(self) -> list[ServerInfo]:

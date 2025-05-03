@@ -69,6 +69,14 @@ class TestOoklaProvider(unittest.TestCase):
 
     def test_legal_requirements(self):
         """Test Ookla legal terms."""
+        # Get single legal term using the API
+        term = self.provider._legal_terms(LegalTermsCategory.EULA)
+        self.assertIsInstance(term, list)
+        self.assertEqual(len(term), 1)
+        self.assertEqual(term[0].category, LegalTermsCategory.EULA)
+        self.assertIsNotNone(term[0].text)
+        self.assertEqual(term[0].url, "https://www.speedtest.net/about/eula")
+
         # Get legal terms using the API
         terms = self.provider._legal_terms()
 

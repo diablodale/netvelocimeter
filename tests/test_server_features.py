@@ -108,3 +108,16 @@ class TestServerFeatures(unittest.TestCase):
         self.assertTrue(result.server_info.name)
         self.assertEqual(result.server_info.host, "myisphost.example.com")
         self.assertEqual(result.server_info.id, 832476)
+
+    @mock.patch("netvelocimeter.core.get_provider")
+    def test_string_representation(self, mock_get_provider):
+        """Test string representation of server info."""
+        mock_get_provider.return_value = ServerFeaturesMockProvider
+        nv = NetVelocimeter()
+
+        # Get the first server
+        server = nv.servers[0]
+
+        # Check string representation
+        expected_str = "Server: Server 1 (1), Location: Location 1, Country: Country 1, Host: host1.example.com"
+        self.assertEqual(str(server), expected_str)

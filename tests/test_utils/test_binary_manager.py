@@ -21,6 +21,7 @@ from netvelocimeter.utils.binary_manager import (
     download_file,
     ensure_executable,
     extract_file,
+    verified_basename,
 )
 from netvelocimeter.utils.hash import hash_b64encode
 
@@ -71,6 +72,45 @@ class TestBinaryManagerFunctions(unittest.TestCase):
 
         # Ensure destination file was not created
         self.assertFalse(os.path.exists(destination))
+
+    @mock.patch("urllib.request.urlopen")
+    @mock.patch("builtins.open")
+    def test_download_file_no_saved_file(self, mock_open, mock_urlopen):
+        """Test that RuntimeError is raised when file doesn't exist after download."""
+        # Setup mock response
+        mock_response = mock.MagicMock()
+        mock_response.read.return_value = b"test data"
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        # Setup mock file object that doesn't actually write anything
+        mock_file = mock.MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        # Test URL and destination path
+        url = "https://example.com/test.zip"
+        dest_filepath = "/tmp/test.zip"
+
+        # We don't need to mock os.path.exists because the file won't actually
+        # be created since we're mocking the open function
+
+        # Assert that RuntimeError is raised with the expected message
+        with self.assertRaises(RuntimeError) as cm:
+            download_file(url, dest_filepath)
+
+        # Verify the error message
+        self.assertIn(f"Failed to download {url}", str(cm.exception))
+
+        # Verify that urlopen was called with the correct URL
+        mock_urlopen.assert_called_once_with(url)
+
+        # Verify that open was called with the correct filepath and mode
+        mock_open.assert_called_once()
+        args, kwargs = mock_open.call_args
+        self.assertEqual(args[0], os.path.abspath(dest_filepath))
+        self.assertEqual(kwargs.get("mode", args[1] if len(args) > 1 else None), "wb")
+
+        # Verify that write was called with the correct data
+        mock_file.write.assert_called_once_with(b"test data")
 
     @pytest.mark.skipif(platform.system() == "Windows", reason="Not applicable on Windows")
     def test_ensure_executable_posix(self):
@@ -153,6 +193,57 @@ class TestBinaryManagerFunctions(unittest.TestCase):
         self.assertTrue(os.path.exists(extracted_path))
         with open(extracted_path) as f:
             self.assertEqual(f.read(), content)
+
+    def test_empty_file_in_zip_raises_error(self):
+        """Test that extracting an empty file from a ZIP raises RuntimeError."""
+        # Create a ZIP file with an empty file
+        zip_path = os.path.join(self.temp_dir, "test_empty.zip")
+        with zipfile.ZipFile(zip_path, "w") as zip_file:
+            # Add an empty file to the zip
+            empty_file_path = "empty_file.txt"
+            zip_file.writestr(empty_file_path, "")  # Empty content
+
+        # Try to extract the empty file
+        with self.assertRaises(RuntimeError) as context:
+            extract_file(zip_path, empty_file_path, self.temp_dir)
+
+        # Verify the error message
+        self.assertEqual(str(context.exception), f"File {empty_file_path} is empty or not a file.")
+
+    @mock.patch("builtins.open")
+    def test_zip_extraction_failure_file_not_created(self, mock_open):
+        """Test that RuntimeError is raised when the extracted file doesn't exist.
+
+        This test patches the 'open' function used during extraction to cause
+        the file to not be created, but does NOT mock os.path.exists.
+        """
+        # Create a test zip file with a valid file
+        archive_filepath = os.path.join(self.temp_dir, "test.zip")
+        with zipfile.ZipFile(archive_filepath, "w") as zipf:
+            zipf.writestr("testfile.txt", "Test content")
+
+        # Make open() appear to work but not actually create a file
+        # This simulates a file system error or permission issue
+        mock_file = mock.MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        # Attempt to extract - should raise RuntimeError
+        with self.assertRaises(RuntimeError) as context:
+            extract_file(
+                archive_filepath=archive_filepath,
+                internal_filepath="testfile.txt",
+                dest_dir=self.temp_dir,
+            )
+
+        # Verify the error message
+        expected_error = "Failed to extract testfile.txt from"
+        self.assertIn(expected_error, str(context.exception))
+
+        # Verify that open was called
+        mock_open.assert_called_once()
+
+        # Verify that the file doesn't actually exist (using the real os.path.exists)
+        self.assertFalse(os.path.exists(os.path.join(self.temp_dir, "testfile.txt")))
 
     def test_extract_file_unsupported_format(self):
         """Test extracting from an unsupported archive format."""
@@ -352,6 +443,39 @@ class TestBinaryManagerFunctions(unittest.TestCase):
         # Verify the device file wasn't created
         device_path = os.path.join(self.temp_dir, device_name)
         self.assertFalse(os.path.exists(device_path))
+
+    def test_verified_basename(self):
+        """Test verified_basename function."""
+        # Create a test file path
+        test_file = os.path.join(self.temp_dir, "testfile.txt")
+
+        # Verify the basename
+        verified_name = verified_basename(test_file)
+        self.assertEqual(verified_name, "testfile.txt")
+
+        # Test with a path that includes ".."
+        goingup_path = os.path.join(self.temp_dir, "..", "goingup.txt")
+        verified_name = verified_basename(goingup_path)
+        self.assertEqual(verified_name, "goingup.txt")
+
+    def test_verified_basename_invalid(self):
+        """Test verified_basename with invalid paths."""
+        # Test with an empty string
+        with self.assertRaises(ValueError):
+            verified_basename("")
+
+        # Test with None
+        with self.assertRaises(ValueError):
+            verified_basename(None)
+
+        # Test with a number
+        with self.assertRaises(ValueError):
+            verified_basename(123)
+
+        # Test with a path having no basename
+        no_basename_path = os.path.join(self.temp_dir, "")
+        with self.assertRaises(ValueError):
+            verified_basename(no_basename_path)
 
 
 # Create a concrete implementation of BaseProvider for testing

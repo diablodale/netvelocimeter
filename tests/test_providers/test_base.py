@@ -176,6 +176,8 @@ class TestMeasurementResult(TestCase):
         result = MeasurementResult(
             download_speed=100.5,
             upload_speed=20.25,
+            download_latency=timedelta(milliseconds=10.5),
+            upload_latency=timedelta(milliseconds=5.25),
             ping_latency=timedelta(milliseconds=15.75),
             ping_jitter=timedelta(milliseconds=3.5),
             packet_loss=0.1,
@@ -187,6 +189,8 @@ class TestMeasurementResult(TestCase):
         # Check that output contains expected values
         self.assertIn("Download: 100.50 Mbps", str_result)
         self.assertIn("Upload: 20.25 Mbps", str_result)
+        self.assertIn("Download Latency: 10.50 ms", str_result)
+        self.assertIn("Upload Latency: 5.25 ms", str_result)
         self.assertIn("Ping Latency: 15.75 ms", str_result)
         self.assertIn("Ping Jitter: 3.50 ms", str_result)
         self.assertIn("Packet Loss: 0.10%", str_result)

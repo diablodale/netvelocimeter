@@ -1,7 +1,12 @@
 """Tests for terms module."""
 
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait as futures_wait
+import json
+import os
 import shutil
 import tempfile
+import threading
+from time import sleep
 import unittest
 
 from netvelocimeter.terms import AcceptanceTracker, LegalTerms, LegalTermsCategory
@@ -21,6 +26,18 @@ class TestLegalTerms(unittest.TestCase):
 
         # Different content should have different hash
         self.assertNotEqual(term1.unique_id(), term3.unique_id())
+
+    def test_invalid_methodology_version(self):
+        """Test invalid methodology version raises ValueError."""
+        term = LegalTerms(text="Test", category=LegalTermsCategory.EULA)
+        with self.assertRaises(ValueError):
+            term.unique_id(methodology_version=2)
+
+    def test_invalid_content(self):
+        """Test invalid content raises ValueError."""
+        term = LegalTerms(category=LegalTermsCategory.EULA)
+        with self.assertRaises(ValueError):
+            term.unique_id()
 
 
 class TestAcceptanceTracker(unittest.TestCase):
@@ -75,3 +92,243 @@ class TestAcceptanceTracker(unittest.TestCase):
         self.assertTrue(self.tracker.is_recorded(self.eula_term))
         self.assertTrue(self.tracker.is_recorded(self.privacy_term))
         self.assertTrue(self.tracker.is_recorded(collection))
+
+    def test_invalid_acceptance_config_root(self):
+        """Test invalid acceptance config root raises ValueError."""
+        with self.assertRaises(ValueError):
+            AcceptanceTracker(config_root="invalid_path")
+
+    def test_invalid_terms_or_collection(self):
+        """Test invalid terms or collection raises TypeError."""
+        with self.assertRaises(TypeError):
+            self.tracker.is_recorded("invalid_type")
+        with self.assertRaises(TypeError):
+            self.tracker.is_recorded([1, 2, 3])
+        with self.assertRaises(TypeError):
+            self.tracker.record("invalid_type")
+        with self.assertRaises(TypeError):
+            self.tracker.record([1, 2, 3])
+
+    def test_two_recordings_by_two_accept_trackers(self):
+        """Test if two trackers can record terms independently."""
+        # Create a new tracker instance
+        new_tracker = AcceptanceTracker(config_root=self.temp_dir)
+
+        # Record terms in both trackers
+        self.tracker.record(self.eula_term)
+        new_tracker.record(self.privacy_term)
+
+        # Check if both trackers have recorded the terms
+        self.assertTrue(self.tracker.is_recorded(self.eula_term))
+        self.assertTrue(new_tracker.is_recorded(self.privacy_term))
+
+
+class TestAcceptanceTrackerThreading(unittest.TestCase):
+    """Test the AcceptanceTracker class with concurrent threads."""
+
+    def setUp(self):
+        """Set up test environment."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.tracker = AcceptanceTracker(config_root=self.temp_dir)
+
+        # Create test terms
+        self.eula_terms = LegalTerms(
+            text="Test EULA for threading",
+            url="https://example.com/eula",
+            category=LegalTermsCategory.EULA,
+        )
+
+        self.terms_of_service = LegalTerms(
+            text="Test Terms of Service for threading",
+            url="https://example.com/terms",
+            category=LegalTermsCategory.SERVICE,
+        )
+
+        self.privacy_terms = LegalTerms(
+            text="Test Privacy Policy for threading",
+            url="https://example.com/privacy",
+            category=LegalTermsCategory.PRIVACY,
+        )
+
+        # Collection of all terms
+        self.all_terms = [self.eula_terms, self.terms_of_service, self.privacy_terms]
+
+    def tearDown(self):
+        """Clean up test environment."""
+        shutil.rmtree(self.temp_dir)
+
+    def test_concurrent_is_recorded(self):
+        """Test that is_recorded works correctly with multiple threads."""
+        # Record one term first
+        self.tracker.record(self.eula_terms)
+
+        # Number of threads to use
+        thread_count = 10
+
+        # Results container
+        results = []
+
+        def check_recorded():
+            # Check if terms are recorded
+            results.append(self.tracker.is_recorded(self.eula_terms))
+            results.append(not self.tracker.is_recorded(self.terms_of_service))
+
+        # Launch multiple threads to check terms concurrently
+        threads = []
+        for _ in range(thread_count):
+            t = threading.Thread(target=check_recorded)
+            threads.append(t)
+            t.start()
+
+        # Wait for all threads to complete
+        for t in threads:
+            t.join()
+
+        # Verify results
+        self.assertEqual(len(results), thread_count * 2)
+        self.assertTrue(all(r is True for r in results[::2]))  # EULA terms should be recorded
+        self.assertTrue(
+            all(r is True for r in results[1::2])
+        )  # Terms of service should not be recorded
+
+    def test_concurrent_record(self):
+        """Test that record works correctly with multiple threads recording the same term."""
+        # Number of threads to use
+        thread_count = 20
+
+        # Using ThreadPoolExecutor for easier management
+        with ThreadPoolExecutor(max_workers=thread_count) as executor:
+            # Submit the same recording task multiple times
+            futures = [
+                executor.submit(self.tracker.record, self.eula_terms) for _ in range(thread_count)
+            ]
+
+            # Wait for all tasks to complete
+            futures_wait(futures)
+
+        # Verify the term was recorded
+        self.assertTrue(self.tracker.is_recorded(self.eula_terms))
+
+        # Check that the file exists and is valid
+        file_path = os.path.join(self.temp_dir, *self.eula_terms.unique_id().split("/")) + ".json"
+        self.assertTrue(os.path.exists(file_path))
+
+    def test_concurrent_record_different_terms(self):
+        """Test multiple threads recording different terms concurrently."""
+        results = []
+
+        def record_and_check(terms):
+            # Record the terms
+            self.tracker.record(terms)
+            # Verify it was recorded
+            recorded = self.tracker.is_recorded(terms)
+            results.append(recorded)
+            return recorded
+
+        # Using ThreadPoolExecutor for easier management
+        with ThreadPoolExecutor(max_workers=len(self.all_terms)) as executor:
+            # Submit different recording tasks
+            futures = [executor.submit(record_and_check, term) for term in self.all_terms]
+
+            # Get results
+            for future in as_completed(futures):
+                self.assertTrue(future.result())
+
+        # All terms should be recorded
+        self.assertEqual(len(results), len(self.all_terms))
+        self.assertTrue(all(results))
+        self.assertTrue(self.tracker.is_recorded(self.all_terms))
+
+    def test_race_condition_handling(self):
+        """Test handling of race conditions when recording terms."""
+        # Number of threads to use - higher number increases chance of race conditions
+        thread_count = 30
+
+        # Track the actual file path that will be used
+        terms_id = self.eula_terms.unique_id()
+        file_path = self.tracker._acceptance_file_path(terms_id)
+
+        # Create counters to track operations with thread-safe access
+        file_stats = {"open_attempts": 0, "exists_checks": 0, "fileexists_exceptions": 0}
+        lock = threading.Lock()
+
+        # Original functions to patch
+        original_open = open
+        original_exists = os.path.exists
+        original_json_dump = json.dump
+
+        # Create patched versions to count operations
+        def counting_open(*args, **kwargs):
+            nonlocal file_stats
+            if (
+                args
+                and args[0] == file_path
+                and "x" in (args[1] if len(args) > 1 else kwargs.get("mode", ""))
+            ):
+                with lock:
+                    file_stats["open_attempts"] += 1
+
+                # Allow normal open to proceed, potentially causing FileExistsError
+                try:
+                    # Call the original open function
+                    return original_open(*args, **kwargs)
+                except FileExistsError:
+                    with lock:
+                        file_stats["fileexists_exceptions"] += 1
+                    raise
+            return original_open(*args, **kwargs)
+
+        def counting_exists(path):
+            nonlocal file_stats
+            if path == file_path:
+                with lock:
+                    file_stats["exists_checks"] += 1
+            return original_exists(path)
+
+        # Create patched versions of json.dump to delay
+        def slow_json_dump(*args, **kwargs):
+            # Call the original json.dump function
+            original_json_dump(*args, **kwargs)
+
+            # Simulate a delay to increase the chance of race conditions
+            sleep(0.1)
+
+        # Apply the patches
+        with (
+            unittest.mock.patch("builtins.open", counting_open),
+            unittest.mock.patch("os.path.exists", counting_exists),
+            unittest.mock.patch("json.dump", slow_json_dump),
+        ):
+            # Run multiple threads to create race conditions
+            threads = []
+            for _ in range(thread_count):
+                t = threading.Thread(target=lambda: self.tracker.record(self.eula_terms))
+                threads.append(t)
+                t.start()
+
+            # Wait for all threads to complete
+            for t in threads:
+                t.join()
+
+        # Verify results
+        self.assertTrue(self.tracker.is_recorded(self.eula_terms))
+
+        # With race conditions, we expect:
+
+        # 1. Multiple existence checks - one per thread
+        self.assertEqual(file_stats["exists_checks"], thread_count)
+
+        # 2. Multiple open attempts but not all threads should get that far
+        # (some will exit early due to is_recorded() check once file exists)
+        self.assertGreaterEqual(file_stats["open_attempts"], 1)
+        self.assertLessEqual(file_stats["open_attempts"], thread_count)
+
+        # 3. Some FileExistsError exceptions should be caught if race conditions occurred
+        # (This is crucial - we want to verify the exception handling works)
+        self.assertGreaterEqual(file_stats["fileexists_exceptions"], 1)
+
+        # 4. The file should exist and contain valid JSON
+        self.assertTrue(os.path.exists(file_path))
+        with original_open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            self.assertIn("ts", data)  # Timestamp should be present
