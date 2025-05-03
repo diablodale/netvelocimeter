@@ -53,10 +53,6 @@ def register_provider(name: str, provider_class: type[B]) -> None:
         name: Name to register the provider under
         provider_class: Provider class to register
     """
-    if not _PROVIDERS:
-        # Auto-import providers when first needed
-        _discover_providers()
-
     # validate provider_class
     if not issubclass(provider_class, BaseProvider) or inspect.isabstract(provider_class):
         raise ValueError(
@@ -92,10 +88,6 @@ def get_provider(name: str) -> type[BaseProvider]:
         ProviderClass = get_provider("ookla")
         custom_provider = ProviderClass(custom_option=True)
     """
-    if not _PROVIDERS:
-        # Auto-import providers when first needed
-        _discover_providers()
-
     # Normalize name and retrieve provider class
     name = _normalize_provider_name(name)
     try:
@@ -117,10 +109,6 @@ def list_providers() -> list[ProviderInfo]:
         [ProviderInfo(name='ookla', description='Ookla Speedtest provider'),
         ProviderInfo(name='static', description='Static provider for testing')]
     """
-    if not _PROVIDERS:
-        # Auto-import providers when first needed
-        _discover_providers()
-
     return [
         ProviderInfo(
             name=name,
@@ -132,12 +120,6 @@ def list_providers() -> list[ProviderInfo]:
         )
         for name, provider in _PROVIDERS.items()
     ]
-
-
-def _discover_providers() -> None:
-    """Automatically discover and register providers."""
-    import netvelocimeter.providers.ookla  # noqa: F401
-    import netvelocimeter.providers.static  # noqa: F401
 
 
 class NetVelocimeter:

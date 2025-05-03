@@ -15,5 +15,31 @@ except (ImportError, ModuleNotFoundError):
     # Fallback for development environments where the library package itself is not installed
     __version__ = "0.9.8.dev7+654321abcdef"
 
+
+# Dynamically import all provider modules which leads to them being registered
+def _import_providers() -> None:
+    """Import all provider modules from the providers directory."""
+    import importlib
+    import pathlib
+    import pkgutil
+
+    # Get the path to the current directory
+    providers_dir = pathlib.Path(__file__).parent / "providers"
+
+    # Import all Python files in this directory
+    for module_info in pkgutil.iter_modules([str(providers_dir)]):
+        # Skip __init__ and base modules
+        if module_info.name not in ["__init__", "base"]:
+            # Import the provider module
+            print(f"Importing provider module: {module_info.name}")
+            importlib.import_module(f".{module_info.name}", package="netvelocimeter.providers")
+
+
+# Run dynamic imports
+_import_providers()
+
+# Clean namespace
+del _import_providers
+
 # module names that are exposed to wildcard imports `from netvelocimeter import *`
 __all__ = ["NetVelocimeter", "get_provider", "list_providers", "register_provider"]

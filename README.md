@@ -299,12 +299,18 @@ pre-commit run --all-files
 
 ### Creating a New Provider
 
-To add support for a new speed test provider:
+#### Add To Netvelocimeter
 
-1. Create a new file in providers for your provider
+1. Create a new py file in the `providers` directory for the provider
 2. Implement a class that extends `BaseProvider` from base.py
-3. Register your provider in __init__.py
-4. Add tests for your provider in tests
+3. Add tests for your provider in `tests` directory
+
+#### Add To Your Own Project
+
+1. Create a new py file in your project for the provider
+2. Implement a class that extends `BaseProvider` from base.py
+3. Register the provider in your project with `netvelocimeter.register_provider()`
+4. Add tests for your provider in your project's test directory
 
 ### Building and Publishing
 
