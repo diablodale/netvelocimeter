@@ -187,7 +187,7 @@ class OoklaProvider(BaseProvider):
             result = self._run_speedtest(["--version"], parse_json=False).get("stdout", "")
         except RuntimeError as e:
             # If the command fails, we can't determine the version
-            raise InvalidVersion(f"Unable to determine Ookla version. {e}") from e
+            raise InvalidVersion(f"Speedtest cli failure: {e}") from e
 
         # Parse version from output, e.g.
         # Speedtest by Ookla 1.2.0.84 (ea6b6773cf) Linux/x86_64-linux-musl 5.15.167.4-microsoft-standard-WSL2 x86_64    # noqa: E501
@@ -277,24 +277,27 @@ class OoklaProvider(BaseProvider):
 
         result = self._run_speedtest(run_args)
 
-        # Extract server information - ensure it exists
-        server_data = result.get("server", {})
-        if not server_data:
-            raise ValueError("No server information found in speedtest results")
-        server_info = ServerInfo(
-            name=server_data.get("name"),
-            id=server_data.get("id"),
-            location=server_data.get("location"),
-            country=server_data.get("country"),
-            host=server_data.get("host"),
-            raw_server=server_data,
+        # Extract server information
+        server_data = result.get("server")
+        server_info = (
+            None
+            if not server_data
+            else ServerInfo(
+                name=server_data.get("name"),
+                id=server_data.get("id"),
+                location=server_data.get("location"),
+                country=server_data.get("country"),
+                host=server_data.get("host"),
+                raw_server=server_data,
+            )
         )
 
-        # Get download/upload data with null safety
+        # Get download/upload data
         download_data = result.get("download", {})
         upload_data = result.get("upload", {})
 
         # Convert bytes/s to Mbps (megabits per second)
+        # cause exception if missing
         download_mbps = download_data.get("bandwidth") * 8 / 1_000_000
         upload_mbps = upload_data.get("bandwidth") * 8 / 1_000_000
 

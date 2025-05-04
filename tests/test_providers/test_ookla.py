@@ -267,6 +267,26 @@ class TestOoklaProvider(unittest.TestCase):
         self.assertIn("--host", cmd_line)
         self.assertIn("example.com", cmd_line)
 
+    def test_measure_with_results_missing_server(self):
+        """Test measurement with missing server info."""
+        # Mock successful measurement
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = json.dumps(
+            {
+                "download": {"bandwidth": 12500000, "latency": {"iqm": 42.985}},
+                "upload": {"bandwidth": 2500000, "latency": {"iqm": 178.546}},
+                "ping": {"latency": 15.5, "jitter": 3.2},
+                # No server info provided
+            }
+        )
+        with mock.patch("subprocess.run", return_value=mock_process):
+            # Run measurement
+            result = self.provider._measure()
+
+        # Verify server info is None
+        self.assertIsNone(result.server_info)
+
     def test_parse_version(self):
         """Test getting provider version."""
         # Version is already mocked in setUp
@@ -466,13 +486,13 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
         """Clean up test directory."""
         shutil.rmtree(self.temp_dir)
 
-    def test_invalid_version_format(self):
-        """Test handling of invalid version format."""
+    def test_failed_version_sourcing(self):
+        """Test handling of failed version sourcing."""
         with mock.patch("subprocess.run") as mock_run:
-            # Set up mock for invalid version output
+            # Set up mock for failed version sourcing
             mock_process = mock.Mock()
-            mock_process.returncode = 0
-            mock_process.stdout = "Something invalid"
+            mock_process.returncode = 1
+            mock_process.stderr = "Simulate bad executable"
             mock_run.return_value = mock_process
 
             # Need to patch the download_extract method to avoid actual downloads
@@ -481,8 +501,31 @@ class TestOoklaProviderVersionParsing(unittest.TestCase):
             ):
                 # Create a new provider instance
                 # This should call _parse_version with our mocked subprocess.run and raise an error
-                with self.assertRaises(InvalidVersion):
+                with self.assertRaises(InvalidVersion) as cm:
                     _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
+                self.assertIn("Simulate bad executable", str(cm.exception))
+
+                # Verify subprocess was called
+                mock_run.assert_called_once()
+
+    def test_invalid_version_format(self):
+        """Test handling of invalid version format."""
+        with mock.patch("subprocess.run") as mock_run:
+            # Set up mock for invalid version output
+            mock_process = mock.Mock()
+            mock_process.returncode = 0
+            mock_process.stdout = "Something invalid version"
+            mock_run.return_value = mock_process
+
+            # Need to patch the download_extract method to avoid actual downloads
+            with mock.patch.object(
+                BinaryManager, "download_extract", return_value="/path/to/speedtest"
+            ):
+                # Create a new provider instance
+                # This should call _parse_version with our mocked subprocess.run and raise an error
+                with self.assertRaises(InvalidVersion) as cm:
+                    _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
+                self.assertIn("Something invalid version", str(cm.exception))
 
                 # Verify subprocess was called
                 mock_run.assert_called_once()
