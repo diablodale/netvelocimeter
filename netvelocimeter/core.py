@@ -212,8 +212,8 @@ class NetVelocimeter:
         return self.provider._version
 
     @final
-    @property
-    def library_version(self) -> Version:
+    @classmethod
+    def library_version(cls) -> Version:
         """Get the version of the NetVelocimeter library.
 
         Returns:

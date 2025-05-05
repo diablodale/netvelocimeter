@@ -31,7 +31,6 @@ def _import_providers() -> None:
         # Skip __init__ and base modules
         if module_info.name not in ["__init__", "base"]:
             # Import the provider module
-            print(f"Importing provider module: {module_info.name}")
             importlib.import_module(f".{module_info.name}", package="netvelocimeter.providers")
 
 

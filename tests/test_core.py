@@ -186,7 +186,7 @@ class TestNetVelocimeter(TestCase):
         # Test library version property
         from netvelocimeter import __version__
 
-        self.assertEqual(nv.library_version, Version(__version__))
+        self.assertEqual(nv.library_version(), Version(__version__))
 
     def test_netvelocimeter_servers(self):
         """Test NetVelocimeter servers property."""
