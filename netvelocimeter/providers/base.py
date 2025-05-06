@@ -20,18 +20,18 @@ class ServerInfo:
     Attributes:
         name: Descriptive name of the server.
         id: Server ID (can be int or str).
+        host: Hostname or IP address of the server.
         location: Location name of the server.
         country: Country name of the server.
-        host: Hostname or IP address of the server.
-        raw_server: Raw provider-specific server data.
+        raw: Raw provider-specific server data.
     """
 
     name: str
     id: ServerIDType | None = None
+    host: str | None = None
     location: str | None = None
     country: str | None = None
-    host: str | None = None
-    raw_server: dict[str, Any] | None = None
+    raw: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         """Require name to be set."""
@@ -45,13 +45,26 @@ class ServerInfo:
             parts.append(f"Server: {self.name}")
         else:
             parts.append(f"Server: {self.name} ({self.id})")
+        if self.host:
+            parts.append(f"Host: {self.host}")
         if self.location:
             parts.append(f"Location: {self.location}")
         if self.country:
             parts.append(f"Country: {self.country}")
-        if self.host:
-            parts.append(f"Host: {self.host}")
         return ", ".join(parts)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert the server info to a dictionary."""
+        # do not change key names as they are used in the CSV, TSV, and JSON output
+        # "name" must be first
+        return {
+            "name": self.name,
+            "id": self.id,
+            "host": self.host,
+            "location": self.location,
+            "country": self.country,
+            "raw": self.raw,
+        }
 
 
 @dataclass
@@ -69,7 +82,7 @@ class MeasurementResult:
         server_info: Information about the server used for testing.
         persist_url: URL to view test results.
         id: Provider-assigned measurement ID.
-        raw_result: Raw provider result data.
+        raw: Raw provider result data.
     """
 
     download_speed: float
@@ -102,7 +115,7 @@ class MeasurementResult:
     id: str | None = None
     """Provider-assigned measurement ID."""
 
-    raw_result: dict[str, Any] | None = None
+    raw: dict[str, Any] | None = None
     """Raw provider result data."""
 
     def __post_init__(self) -> None:

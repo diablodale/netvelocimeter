@@ -13,7 +13,7 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
-        additional_dependencies: ["packaging>=21.0", "pytest>=7.0.0"]
+        additional_dependencies: ["packaging>=21.0", "pytest>=7.0.0", "typer>=0.15.3"]
         #exclude: '^tests/'
         args: [--disallow-untyped-defs]
         # `--follow-imports=silent` stop complaints about problems within followed imports

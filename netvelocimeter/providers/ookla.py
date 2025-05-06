@@ -251,7 +251,7 @@ class OoklaProvider(BaseProvider):
                     location=server.get("location"),
                     country=server.get("country"),
                     host=server.get("host"),
-                    raw_server=server,
+                    raw=server,
                 )
             )
 
@@ -288,7 +288,7 @@ class OoklaProvider(BaseProvider):
                 location=server_data.get("location"),
                 country=server_data.get("country"),
                 host=server_data.get("host"),
-                raw_server=server_data,
+                raw=server_data,
             )
         )
 
@@ -326,7 +326,7 @@ class OoklaProvider(BaseProvider):
             server_info=server_info,
             persist_url=persist_url,
             id=result_id,
-            raw_result=result,
+            raw=result,
         )
 
 

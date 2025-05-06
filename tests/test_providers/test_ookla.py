@@ -351,7 +351,7 @@ class TestOoklaProvider(unittest.TestCase):
             self.assertEqual(result.server_info.host, "speedtest01.dns-net.de")
 
             # Verify raw result was stored
-            self.assertEqual(result.raw_result, sample_data)
+            self.assertEqual(result.raw, sample_data)
 
             # Update verification for the persist URL
             self.assertEqual(
@@ -803,7 +803,7 @@ class TestOoklaRealMeasurement(unittest.TestCase):
         result = provider._measure()
 
         # Print results and raw result
-        print(f"\n{result}\n\n{result.raw_result}")
+        print(f"\n{result}\n\n{result.raw}")
 
         # Check if the result is valid
         self.assertIsNotNone(result)
@@ -816,7 +816,7 @@ class TestOoklaRealMeasurement(unittest.TestCase):
         self.assertIsInstance(result.packet_loss, (int, float))
         self.assertIsInstance(result.id, str)
         self.assertIsNotNone(result.server_info)
-        self.assertIsNotNone(result.raw_result)
+        self.assertIsNotNone(result.raw)
         self.assertGreater(result.download_speed, 0)
         self.assertGreater(result.upload_speed, 0)
         self.assertGreater(result.ping_latency.total_seconds(), 0)
