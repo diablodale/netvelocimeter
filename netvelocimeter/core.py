@@ -139,7 +139,16 @@ class NetVelocimeter:
         """
         # Check if the provider is registered
         provider_class = get_provider(provider)
-        self.provider = provider_class(**kwargs)
+
+        # Inspect the provider class for supported parameters
+        provider_params = inspect.signature(provider_class.__init__).parameters
+
+        # Filter kwargs to only include parameters in the provider's signature
+        # Skip 'self' which will be in the signature but not a valid kwarg
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k in provider_params and k != "self"}
+
+        # create the provider instance
+        self.provider = provider_class(**filtered_kwargs)
         self.provider_name = _normalize_provider_name(provider)
 
     @final
@@ -212,8 +221,8 @@ class NetVelocimeter:
         return self.provider._version
 
     @final
-    @classmethod
-    def library_version(cls) -> Version:
+    @staticmethod
+    def library_version() -> Version:
         """Get the version of the NetVelocimeter library.
 
         Returns:
