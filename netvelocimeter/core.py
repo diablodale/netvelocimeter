@@ -9,9 +9,13 @@ from packaging.version import Version
 from .exceptions import LegalAcceptanceError
 from .providers.base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 from .terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
+from .utils.logger import get_logger
 
 # Map of provider names to provider classes
 _PROVIDERS: dict[str, type[BaseProvider]] = {}
+
+# Get logger for the core component
+logger = get_logger("core")
 
 B = TypeVar("B", bound=BaseProvider)
 
@@ -160,9 +164,22 @@ class NetVelocimeter:
         # Inspect the provider class for supported parameters
         provider_params = inspect.signature(provider_class.__init__).parameters
 
+        # Partition kwargs into supported and unsupported
         # Filter kwargs to only include parameters in the provider's signature
         # Skip 'self' which will be in the signature but not a valid kwarg
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k in provider_params and k != "self"}
+        filtered_kwargs = {}
+        unsupported = []
+        for k, v in kwargs.items():
+            if k in provider_params and k != "self":
+                filtered_kwargs[k] = v
+            else:
+                unsupported.append(k)
+
+        # log unsupported parameters
+        if unsupported:
+            logger.warning(
+                f"Provider '{provider}' does not support parameters: {', '.join(unsupported)}"
+            )
 
         # create the provider instance
         self.provider = provider_class(**filtered_kwargs)

@@ -120,9 +120,15 @@ class TestNetVelocimeter(TestCase):
             self.assertEqual(provider.description, expected_description)
 
     def test_initialize_with_unknown_parameter(self):
-        """Test initializing with an unknown parameter."""
-        with self.assertRaises(TypeError):
-            NetVelocimeter(unknown_param="test")
+        """Test initializing with an unknown parameter logs a debug message."""
+        with self.assertLogs(logger="netvelocimeter.core", level="DEBUG") as log:
+            _ = NetVelocimeter(unknown_param="test")
+
+            # Verify log content
+            self.assertEqual(len(log.records), 1)
+            self.assertEqual(log.records[0].levelname, "WARNING")
+            self.assertIn("does not support parameters", log.output[0])
+            self.assertIn("unknown_param", log.output[0])
 
     def test_provider_version_access(self):
         """Test accessing provider version."""
