@@ -6,7 +6,13 @@ from unittest import TestCase, mock
 
 from packaging.version import Version
 
-from netvelocimeter import NetVelocimeter, get_provider, list_providers, register_provider
+from netvelocimeter import (
+    NetVelocimeter,
+    get_provider,
+    library_version,
+    list_providers,
+    register_provider,
+)
 from netvelocimeter.core import _PROVIDERS
 from netvelocimeter.exceptions import LegalAcceptanceError
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerIDType
@@ -175,18 +181,12 @@ class TestNetVelocimeter(TestCase):
         self.assertTrue(all(isinstance(line, str) and line.strip() for line in nv.description))
         self.assertEqual(nv.description[0], "Mock provider with legal terms.")
 
-    def test_netvelocimeter_library_version(self):
-        """Test NetVelocimeter library_version property."""
-        # register a mock provider
-        register_provider("test_netvelocimeter_library_version", MockProviderWithTerms)
-
-        # Create NetVelocimeter instance
-        nv = NetVelocimeter(provider="test_netvelocimeter_library_version")
-
+    def test_netvelocimeter_library_version_as_version_object(self):
+        """Test NetVelocimeter library version as Version object."""
         # Test library version property
         from netvelocimeter import __version__
 
-        self.assertEqual(nv.library_version(), Version(__version__))
+        self.assertEqual(library_version(), Version(__version__))
 
     def test_netvelocimeter_servers(self):
         """Test NetVelocimeter servers property."""

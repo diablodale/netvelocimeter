@@ -4,9 +4,10 @@ This library provides a unified interface for measuring network performance metr
 such as bandwidth, latency, and ping times using various service providers.
 """
 
-from .core import NetVelocimeter, get_provider, list_providers, register_provider
+from .core import NetVelocimeter, get_provider, library_version, list_providers, register_provider
 
 # Dynamic version import
+__version__: str
 try:
     from importlib.metadata import version as _version
 
@@ -41,4 +42,10 @@ _import_providers()
 del _import_providers
 
 # module names that are exposed to wildcard imports `from netvelocimeter import *`
-__all__ = ["NetVelocimeter", "get_provider", "list_providers", "register_provider"]
+__all__ = [
+    "NetVelocimeter",
+    "get_provider",
+    "library_version",
+    "list_providers",
+    "register_provider",
+]

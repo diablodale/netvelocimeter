@@ -45,9 +45,10 @@ def _normalize_provider_name(name: str) -> str:
 
 
 def register_provider(name: str, provider_class: type[B]) -> None:
-    """Register a provider with the library.
+    """Register a provider class with the library.
 
     This function is primarily for internal use and provider developers.
+    It allows them to register their custom provider classes with the library.
 
     Args:
         name: Name to register the provider under
@@ -71,7 +72,8 @@ def register_provider(name: str, provider_class: type[B]) -> None:
 def get_provider(name: str) -> type[BaseProvider]:
     """Get a provider class by name.
 
-    This function allows advanced users to directly access provider classes
+    This function is primarily for internal use and provider developers.
+    It allows them to directly access provider classes
     for customization, extension, or testing purposes.
 
     Args:
@@ -120,6 +122,21 @@ def list_providers() -> list[ProviderInfo]:
         )
         for name, provider in _PROVIDERS.items()
     ]
+
+
+def library_version() -> Version:
+    """Get the version of the NetVelocimeter library as a Version object.
+
+    This method returns a Version object which provides version comparison capabilities.
+    For just the version string, use netvelocimeter.__version__ directly.
+
+    Returns:
+        NetVelocimeter library version as a Version object.
+    """
+    # Dynamic version import
+    from . import __version__
+
+    return Version(__version__)
 
 
 class NetVelocimeter:
@@ -219,19 +236,6 @@ class NetVelocimeter:
             Provider version as a Version object.
         """
         return self.provider._version
-
-    @final
-    @staticmethod
-    def library_version() -> Version:
-        """Get the version of the NetVelocimeter library.
-
-        Returns:
-            NetVelocimeter library version as a Version object.
-        """
-        # Dynamic version import
-        from . import __version__
-
-        return Version(__version__)
 
     @final
     @property
