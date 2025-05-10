@@ -1,6 +1,7 @@
 """Command line interface for NetVelocimeter."""
 
 from enum import Enum
+import logging
 import os
 from pathlib import Path
 import sys
@@ -9,7 +10,8 @@ from typing import Annotated, TypedDict
 from click import Choice
 import typer
 
-from . import NetVelocimeter, list_providers
+from . import NetVelocimeter, __version__ as version_string, list_providers
+from .utils.logger import setup_logging
 from .utils.xdg import XDGCategory
 
 
@@ -79,6 +81,7 @@ def main(
         OutputFormat,
         typer.Option(
             "--format",
+            "-f",
             help="Output format",
             show_default=True,
             case_sensitive=False,
@@ -88,6 +91,7 @@ def main(
         str,
         typer.Option(
             "--provider",
+            "-p",
             help="Service provider to use",
             show_default=True,
             case_sensitive=False,
@@ -95,14 +99,25 @@ def main(
             # TODO: add a list of available providers and their description to a help panel
         ),
     ] = state["provider"],
-    verbose: Annotated[
+    quiet: Annotated[
         bool,
         typer.Option(
-            "--verbose",
-            help="Make the output more verbose",
-            is_eager=True,
+            "--quiet",
+            "-q",
+            help="Suppress all stderr output except errors",
         ),
     ] = False,
+    verbose: Annotated[
+        int,
+        typer.Option(
+            "--verbose",
+            "-v",
+            count=True,
+            show_default=False,
+            metavar="",
+            help="Increase stderr output verbosity (can be repeated for higher levels)",
+        ),
+    ] = 0,
     version: Annotated[bool, typer.Option("--version", help="Show version and exit")] = False,
 ) -> None:
     """NetVelocimeter - Measuring network performance metrics across multiple service providers."""
@@ -111,12 +126,31 @@ def main(
     state["config_root"] = config_root
     state["format"] = format
     state["provider"] = provider
-    if not verbose:
+
+    # Determine log level with precedence:
+    # 1. quiet flag
+    # 2. verbose count
+    # 3. default (WARNING)
+    if quiet:
+        log_level = logging.ERROR
+    else:
+        # Map verbosity to log levels
+        log_level = {
+            0: logging.WARNING,  # Default
+            1: logging.INFO,  # -v
+            2: logging.DEBUG,  # -vv
+        }.get(min(verbose, 2), logging.WARNING)
+
+    # Configure logger
+    setup_logging(level=log_level, force=True)
+
+    # Limit traceback display to show only on debug
+    if log_level > logging.DEBUG:
         os.environ["_TYPER_STANDARD_TRACEBACK"] = "1"
         sys.tracebacklimit = 0
+
     if version:
-        version_str = NetVelocimeter.library_version()
-        typer.echo(f"NetVelocimeter {version_str}")
+        typer.echo(f"NetVelocimeter {version_string}")
         raise typer.Exit()
 
 
