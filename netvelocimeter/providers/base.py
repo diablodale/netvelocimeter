@@ -39,19 +39,22 @@ class ServerInfo:
             raise ValueError("Name cannot be empty")
 
     def __str__(self) -> str:
-        """Return a string representation of the server info."""
-        parts = []
-        if self.id is None:
-            parts.append(f"Server: {self.name}")
-        else:
-            parts.append(f"Server: {self.name} ({self.id})")
+        """Return a string representation of the server info.
+
+        Returns:
+            A string with server details, one field per line, except for the raw data.
+            Raw data can be retrieved using the `raw` attribute or `to_dict()` method.
+        """
+        parts = [f"name: {self.name}"]
+        if self.id:
+            parts.append(f"id: {self.id}")
         if self.host:
-            parts.append(f"Host: {self.host}")
+            parts.append(f"host: {self.host}")
         if self.location:
-            parts.append(f"Location: {self.location}")
+            parts.append(f"location: {self.location}")
         if self.country:
-            parts.append(f"Country: {self.country}")
-        return ", ".join(parts)
+            parts.append(f"country: {self.country}")
+        return "\n".join(parts)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert the server info to a dictionary."""

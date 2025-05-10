@@ -207,7 +207,7 @@ class TestMeasurementResult(TestCase):
         )
         str_result = str(result)
         # Check that output contains expected values
-        self.assertIn("Server: Test Server (1234)", str_result)
+        self.assertIn("name: Test Server\nid: 1234", str_result)
         self.assertIn("Download: 100.50 Mbps", str_result)
         self.assertIn("Upload: 20.25 Mbps", str_result)
 
@@ -241,8 +241,8 @@ class TestMeasurementResult(TestCase):
         )
 
         str_result = str(result)
-        self.assertIn("Server: Test Server No ID", str_result)
-        self.assertNotIn("(", str_result)  # Should not contain parentheses for ID
+        self.assertIn("name: Test Server No ID", str_result)
+        self.assertNotIn("id:", str_result)
 
     def test_measurement_result_with_no_speeds(self):
         """Test MeasurementResult with no speeds."""

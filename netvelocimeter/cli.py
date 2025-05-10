@@ -187,18 +187,7 @@ def server_list() -> None:
 
     # print the list of servers
     if state["format"] == OutputFormat.TEXT:
-        for server in servers:
-            # BUGBUG remove extra newlines and dyamically output fields
-            typer.echo(f"Name: {server.name}")
-            if server.id:
-                typer.echo(f"Id: {server.id}")
-            if server.host:
-                typer.echo(f"Host: {server.host}")
-            if server.location:
-                typer.echo(f"Location: {server.location}")
-            if server.country:
-                typer.echo(f"Country: {server.country}")
-            typer.echo()
+        typer.echo("\n\n".join(str(server) for server in servers))
 
     elif state["format"] == OutputFormat.CSV or state["format"] == OutputFormat.TSV:
         import csv

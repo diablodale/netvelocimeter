@@ -119,5 +119,5 @@ class TestServerFeatures(unittest.TestCase):
         server = nv.servers[0]
 
         # Check string representation
-        expected_str = "Server: Server 1 (1), Host: host1.example.com, Location: Location 1, Country: Country 1"
+        expected_str = "name: Server 1\nid: 1\nhost: host1.example.com\nlocation: Location 1\ncountry: Country 1"
         self.assertEqual(str(server), expected_str)
