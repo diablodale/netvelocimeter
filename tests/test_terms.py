@@ -8,6 +8,7 @@ import tempfile
 import threading
 from time import sleep
 import unittest
+from unittest import mock
 
 from netvelocimeter.terms import AcceptanceTracker, LegalTerms, LegalTermsCategory
 
@@ -20,12 +21,16 @@ class TestLegalTerms(unittest.TestCase):
         term1 = LegalTerms(text="Test", url="http://example.com", category=LegalTermsCategory.EULA)
         term2 = LegalTerms(text="Test", url="http://example.com", category=LegalTermsCategory.EULA)
         term3 = LegalTerms(text="Diff", url="http://example.com", category=LegalTermsCategory.EULA)
+        term4 = LegalTerms(
+            text="Test", url="http://example.com", category=LegalTermsCategory.PRIVACY
+        )
 
         # Same content should have same hash
         self.assertEqual(term1.unique_id(), term2.unique_id())
 
         # Different content should have different hash
         self.assertNotEqual(term1.unique_id(), term3.unique_id())
+        self.assertNotEqual(term1.unique_id(), term4.unique_id())
 
     def test_invalid_methodology_version(self):
         """Test invalid methodology version raises ValueError."""
@@ -33,11 +38,17 @@ class TestLegalTerms(unittest.TestCase):
         with self.assertRaises(ValueError):
             term.unique_id(methodology_version=2)
 
-    def test_invalid_content(self):
+    def test_invalid_terms_content(self):
         """Test invalid content raises ValueError."""
-        term = LegalTerms(category=LegalTermsCategory.EULA)
         with self.assertRaises(ValueError):
-            term.unique_id()
+            _ = LegalTerms(category=LegalTermsCategory.EULA)
+
+    def test_invalid_terms_category(self):
+        """Test invalid content raises ValueError."""
+        with self.assertRaises(ValueError):
+            _ = LegalTerms(text="Test", category=None, url="")
+        with self.assertRaises(ValueError):
+            _ = LegalTerms(category=2, url="https://example.com")
 
 
 class TestAcceptanceTracker(unittest.TestCase):
@@ -295,9 +306,9 @@ class TestAcceptanceTrackerThreading(unittest.TestCase):
 
         # Apply the patches
         with (
-            unittest.mock.patch("builtins.open", counting_open),
-            unittest.mock.patch("os.path.exists", counting_exists),
-            unittest.mock.patch("json.dump", slow_json_dump),
+            mock.patch("builtins.open", counting_open),
+            mock.patch("os.path.exists", counting_exists),
+            mock.patch("json.dump", slow_json_dump),
         ):
             # Run multiple threads to create race conditions
             threads = []

@@ -36,9 +36,19 @@ class LegalTermsCategory(Enum):
 class LegalTerms:
     """Representation of a single legal terms document."""
 
+    category: LegalTermsCategory
     text: str | None = None
     url: str | None = None
-    category: LegalTermsCategory = LegalTermsCategory.OTHER
+
+    def __post_init__(self) -> None:
+        """Post-initialization checks for the LegalTerms class."""
+        # Ensure at least one of text or URL is provided
+        if not self.text and not self.url:
+            raise ValueError("Either LegalTerms text or URL must be provided")
+
+        # Ensure category is valid
+        if not isinstance(self.category, LegalTermsCategory):
+            raise ValueError(f"Invalid category: {self.category}")
 
     def unique_id(self, methodology_version: int = 1) -> str:
         """Compute a stable lookup id for legal terms content to use with cache and persistence.
@@ -61,10 +71,6 @@ class LegalTerms:
         # Validate methodology version
         if methodology_version != 1:
             raise ValueError(f"Unsupported methodology version: {methodology_version}")
-
-        # Ensure text or URL is provided
-        if not self.text and not self.url:
-            raise ValueError("Either LegalTerms text or URL must be provided")
 
         # Use a combination of text, URL, and category to create a unique hash
         content = f"{self.text or ''}|{self.url or ''}|{self.category.name}"
