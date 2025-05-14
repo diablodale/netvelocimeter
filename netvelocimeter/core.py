@@ -177,7 +177,7 @@ class NetVelocimeter:
 
         # log unsupported parameters
         if unsupported:
-            logger.warning(
+            logger.debug(
                 f"Provider '{provider}' does not support parameters: {', '.join(unsupported)}"
             )
 

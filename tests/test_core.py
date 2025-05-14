@@ -126,7 +126,7 @@ class TestNetVelocimeter(TestCase):
 
             # Verify log content
             self.assertEqual(len(log.records), 1)
-            self.assertEqual(log.records[0].levelname, "WARNING")
+            self.assertEqual(log.records[0].levelname, "DEBUG")
             self.assertIn("does not support parameters", log.output[0])
             self.assertIn("unknown_param", log.output[0])
 

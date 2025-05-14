@@ -183,7 +183,7 @@ class TestLogger(unittest.TestCase):
     def test_logging_integration(self):
         """Test integration with core module."""
         # Import logger from core
-        with mock.patch("netvelocimeter.core.logger.warning") as mock_warning:
+        with mock.patch("netvelocimeter.core.logger.debug") as mock_debug:
             # Trigger code that logs in core
             from netvelocimeter.core import NetVelocimeter
 
@@ -191,9 +191,9 @@ class TestLogger(unittest.TestCase):
             NetVelocimeter(unknown_param="test")
 
             # Verify core logging occurred with expected message
-            mock_warning.assert_called_once()
-            self.assertIn("does not support parameters", mock_warning.call_args[0][0])
-            self.assertIn("unknown_param", str(mock_warning.call_args))
+            mock_debug.assert_called_once()
+            self.assertIn("does not support parameters", mock_debug.call_args[0][0])
+            self.assertIn("unknown_param", str(mock_debug.call_args))
 
     def test_formatter_timezone_is_utc(self):
         """Test that timestamps are in UTC."""
