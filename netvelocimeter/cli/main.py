@@ -10,9 +10,9 @@ from typing import Annotated, TypedDict
 from click import Choice
 import typer
 
-from . import NetVelocimeter, __version__ as version_string, list_providers
-from .utils.logger import setup_logging
-from .utils.xdg import XDGCategory
+from .. import NetVelocimeter, __version__ as version_string, list_providers
+from ..utils.logger import setup_logging
+from ..utils.xdg import XDGCategory
 
 
 class OutputFormat(str, Enum):
