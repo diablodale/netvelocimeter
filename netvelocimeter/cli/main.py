@@ -10,7 +10,7 @@ from typing import Annotated, TypedDict
 from click import Choice
 import typer
 
-from .. import NetVelocimeter, __version__ as version_string, list_providers
+from .. import __version__ as version_string, list_providers
 from ..utils.logger import setup_logging
 from ..utils.xdg import XDGCategory
 
@@ -68,6 +68,7 @@ def main(
         typer.Option(
             "--bin-root",
             help="directory to cache binaries for some providers",
+            rich_help_panel="Global Options",
         ),
     ] = state["bin_root"],
     config_root: Annotated[
@@ -75,6 +76,7 @@ def main(
         typer.Option(
             "--config-root",
             help="directory to store configuration files, e.g. legal acceptance",
+            rich_help_panel="Global Options",
         ),
     ] = state["config_root"],
     format: Annotated[
@@ -83,6 +85,7 @@ def main(
             "--format",
             "-f",
             help="Output format",
+            rich_help_panel="Global Options",
             show_default=True,
             case_sensitive=False,
         ),
@@ -93,6 +96,7 @@ def main(
             "--provider",
             "-p",
             help="Service provider to use",
+            rich_help_panel="Global Options",
             show_default=True,
             case_sensitive=False,
             click_type=Choice(AVAILABLE_PROVIDERS),
@@ -105,6 +109,7 @@ def main(
             "--quiet",
             "-q",
             help="Suppress all stderr output except errors",
+            rich_help_panel="Global Options",
         ),
     ] = False,
     verbose: Annotated[
@@ -116,9 +121,17 @@ def main(
             show_default=False,
             metavar="",
             help="Increase stderr output verbosity (can be repeated for higher levels)",
+            rich_help_panel="Global Options",
         ),
     ] = 0,
-    version: Annotated[bool, typer.Option("--version", help="Show version and exit")] = False,
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            help="Show version and exit",
+            rich_help_panel="Global Options",
+        ),
+    ] = False,
 ) -> None:
     """NetVelocimeter - Measuring network performance metrics across multiple service providers."""
     global state
@@ -152,97 +165,3 @@ def main(
     if version:
         typer.echo(f"NetVelocimeter {version_string}")
         raise typer.Exit()
-
-
-#########################
-#### Server Commands ####
-#########################
-
-# Define the typer app for server commands
-server_app = typer.Typer(
-    no_args_is_help=True,
-    add_completion=False,
-    pretty_exceptions_show_locals=False,  # hinder disclosing secrets
-    help="Server commands",
-)
-app.add_typer(server_app, name="server")
-
-
-@server_app.command(name="list")
-def server_list() -> None:
-    """List servers for the selected provider."""
-    nv = NetVelocimeter(
-        provider=state["provider"],
-        bin_root=state["bin_root"],
-        config_root=state["config_root"],
-    )
-    # BUGBUG remove auto accept
-    nv.accept_terms(nv.legal_terms())
-
-    # get the list of servers
-    servers = nv.servers
-    if not servers:
-        typer.echo("No servers available for the selected provider.")
-        raise typer.Exit(code=1)
-
-    # print the list of servers
-    if state["format"] == OutputFormat.TEXT:
-        typer.echo("\n\n".join(str(server) for server in servers))
-
-    elif state["format"] == OutputFormat.CSV or state["format"] == OutputFormat.TSV:
-        import csv
-        from io import StringIO
-
-        # get all class dict keys from the first server class object, remove the "raw" field
-        field_names = [key for key in servers[0].to_dict() if key != "raw"]
-
-        # write the header
-        csv_output = StringIO()
-        writer = csv.DictWriter(
-            f=csv_output,
-            fieldnames=field_names,
-            extrasaction="ignore",
-            dialect="unix" if state["format"] == OutputFormat.CSV else "excel-tab",
-            lineterminator="\n",
-        )
-        writer.writeheader()
-
-        # write the server data
-        for server in servers:
-            # convert the server object to a dictionary
-            writer.writerow(server.to_dict())
-
-        # print the CSV output
-        typer.echo(csv_output.getvalue())
-
-    elif state["format"] == OutputFormat.JSON:
-        import json
-
-        json_data = [server.to_dict() for server in servers]
-        typer.echo(json.dumps(json_data, indent=2))
-
-    else:
-        # This indicates a programming error - all enum values should be handled
-        raise NotImplementedError(
-            f"DEVELOPER ERROR: Format {state['format']} is defined in OutputFormat enum "
-            "but no output handler is implemented!"
-        )
-
-
-if __name__ == "__main__":
-    app()
-
-
-# netvelocimeter --provider=ookla measure
-# netvelocimeter --provider=ookla server list
-# netvelocimeter --provider=ookla legal list
-
-# netvelocimeter measure
-# netvelocimeter server list
-# netvelocimeter legal list
-
-# netvelocimeter measure ookla
-# netvelocimeter server list ookla
-# netvelocimeter legal list ookla
-
-# https://typer.tiangolo.com/tutorial/arguments/default/
