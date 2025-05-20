@@ -6,7 +6,12 @@ import re
 from packaging.version import Version
 
 from ..core import register_provider
-from ..terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
+from ..terms import (
+    LegalTerms,
+    LegalTermsCategory,
+    LegalTermsCategoryCollection,
+    LegalTermsCollection,
+)
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
 
@@ -99,20 +104,22 @@ class StaticProvider(BaseProvider):
         return self.__version
 
     def _legal_terms(
-        self, category: LegalTermsCategory = LegalTermsCategory.ALL
+        self, categories: LegalTermsCategory | LegalTermsCategoryCollection = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
         """Get legal terms for this provider.
 
         Args:
-            category: Category of terms to retrieve. Defaults to ALL.
+            categories: Category(s) of terms to retrieve. Defaults to ALL.
 
         Returns:
             Collection of legal terms that match the requested category
         """
-        # Return the terms collection filtered by the requested category
-        if category == LegalTermsCategory.ALL:
+        # Check if a requested category is ALL
+        if categories == LegalTermsCategory.ALL or LegalTermsCategory.ALL in categories:
             return self._TERMS_COLLECTION
-        return [term for term in self._TERMS_COLLECTION if term.category == category]
+
+        # Return the terms collection filtered by the requested category
+        return [term for term in self._TERMS_COLLECTION if term.category in categories]
 
     def _generate_server_info(self, server_num: int) -> ServerInfo:
         """Generate a test server info object with the given server number."""

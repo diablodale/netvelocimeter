@@ -106,9 +106,9 @@ from netvelocimeter.terms import LegalTermsCategory
 terms = nv.legal_terms()
 
 # Get terms by category
-eula_terms = nv.legal_terms(category=LegalTermsCategory.EULA)
-service_terms = nv.legal_terms(category=LegalTermsCategory.SERVICE)
-privacy_terms = nv.legal_terms(category=LegalTermsCategory.PRIVACY)
+eula_terms = nv.legal_terms(categories=LegalTermsCategory.EULA)
+service_terms = nv.legal_terms(categories=LegalTermsCategory.SERVICE)
+privacy_terms = nv.legal_terms(categories=LegalTermsCategory.PRIVACY)
 
 # Accept specific terms
 nv.accept_terms(eula_terms)

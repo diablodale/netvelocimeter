@@ -19,7 +19,7 @@ class ServerFeaturesMockProvider(BaseProvider):
         """Return a mock version."""
         return Version("1.0.0")
 
-    def _legal_terms(self, category=LegalTermsCategory.ALL):
+    def _legal_terms(self, categories=LegalTermsCategory.ALL):
         """Return mock legal terms."""
         return []
 

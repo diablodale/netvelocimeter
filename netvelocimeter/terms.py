@@ -33,6 +33,9 @@ class LegalTermsCategory(str, Enum):
     """Special value to represent all categories"""
 
 
+LegalTermsCategoryCollection = list[LegalTermsCategory]
+
+
 @dataclass
 class LegalTerms:
     """Representation of a single legal terms document."""

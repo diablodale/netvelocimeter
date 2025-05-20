@@ -40,17 +40,17 @@ class TestStaticProvider(unittest.TestCase):
         all_terms = provider._legal_terms()
         self.assertEqual(len(all_terms), 3)  # EULA, Service, Privacy
 
-        eula_terms = provider._legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider._legal_terms(categories=LegalTermsCategory.EULA)
         self.assertEqual(len(eula_terms), 1)
         self.assertEqual(eula_terms[0].text, "Test EULA")
         self.assertEqual(eula_terms[0].url, "https://example.com/eula")
 
-        service_terms = provider._legal_terms(category=LegalTermsCategory.SERVICE)
+        service_terms = provider._legal_terms(categories=LegalTermsCategory.SERVICE)
         self.assertEqual(len(service_terms), 1)
         self.assertEqual(service_terms[0].text, "Test Terms")
         self.assertEqual(service_terms[0].url, "https://example.com/terms")
 
-        privacy_terms = provider._legal_terms(category=LegalTermsCategory.PRIVACY)
+        privacy_terms = provider._legal_terms(categories=LegalTermsCategory.PRIVACY)
         self.assertEqual(len(privacy_terms), 1)
         self.assertEqual(privacy_terms[0].text, "Test Privacy")
         self.assertEqual(privacy_terms[0].url, "https://example.com/privacy")
@@ -89,17 +89,17 @@ class TestStaticProvider(unittest.TestCase):
         self.assertEqual(len(all_terms), 2)  # EULA and Privacy, but no Service
 
         # Verify EULA terms
-        eula_terms = provider._legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider._legal_terms(categories=LegalTermsCategory.EULA)
         self.assertEqual(len(eula_terms), 1)
         self.assertEqual(eula_terms[0].text, "Custom EULA")
         self.assertEqual(eula_terms[0].url, "https://example.com/custom-eula")
 
         # Verify Service terms (should be empty)
-        service_terms = provider._legal_terms(category=LegalTermsCategory.SERVICE)
+        service_terms = provider._legal_terms(categories=LegalTermsCategory.SERVICE)
         self.assertEqual(len(service_terms), 0)
 
         # Verify Privacy terms
-        privacy_terms = provider._legal_terms(category=LegalTermsCategory.PRIVACY)
+        privacy_terms = provider._legal_terms(categories=LegalTermsCategory.PRIVACY)
         self.assertEqual(len(privacy_terms), 1)
         self.assertEqual(privacy_terms[0].text, "Custom Privacy")
         self.assertEqual(privacy_terms[0].url, "https://example.com/custom-privacy")
@@ -275,7 +275,7 @@ class TestStaticProviderLegalTerms(unittest.TestCase):
         self.assertEqual(eula_terms[0].url, "https://example.com/eula")
 
         # Test with category api
-        eula_terms = provider._legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider._legal_terms(categories=LegalTermsCategory.EULA)
         self.assertTrue(all(term.category == LegalTermsCategory.EULA for term in eula_terms))
         self.assertEqual(len(eula_terms), 1)
         self.assertEqual(eula_terms[0].text, "Test EULA")
@@ -348,7 +348,7 @@ class TestStaticProviderLegalTerms(unittest.TestCase):
         provider2 = StaticProvider(config_root=self.temp_dir)
 
         # Accepting a specific category (which is already accepted above)
-        eula_terms = provider2._legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider2._legal_terms(categories=LegalTermsCategory.EULA)
         provider2._accept_terms(eula_terms)
 
         # Should have accepted all terms
@@ -365,7 +365,7 @@ class TestStaticProviderLegalTerms(unittest.TestCase):
         self.assertFalse(provider._has_accepted_terms())
 
         # Accept EULA terms
-        eula_terms = provider._legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider._legal_terms(categories=LegalTermsCategory.EULA)
         provider._accept_terms(eula_terms)
 
         # Only EULA terms should be accepted
@@ -373,7 +373,7 @@ class TestStaticProviderLegalTerms(unittest.TestCase):
         self.assertFalse(provider._has_accepted_terms())
 
         # Accept Service terms
-        service_terms = provider._legal_terms(category=LegalTermsCategory.SERVICE)
+        service_terms = provider._legal_terms(categories=LegalTermsCategory.SERVICE)
         provider._accept_terms(service_terms)
 
         # Now EULA and Service terms should be accepted
@@ -382,7 +382,7 @@ class TestStaticProviderLegalTerms(unittest.TestCase):
         self.assertFalse(provider._has_accepted_terms())
 
         # Accept Privacy terms
-        privacy_terms = provider._legal_terms(category=LegalTermsCategory.PRIVACY)
+        privacy_terms = provider._legal_terms(categories=LegalTermsCategory.PRIVACY)
         provider._accept_terms(privacy_terms)
 
         # Now EULA, Service, and Privacy terms should be accepted

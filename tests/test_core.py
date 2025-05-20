@@ -33,16 +33,16 @@ class MockProviderWithTerms(BaseProvider):
         """Mock measurement method."""
         return MeasurementResult(download_speed=1.0, upload_speed=1.0)
 
-    def _legal_terms(self, category=LegalTermsCategory.ALL):
+    def _legal_terms(self, categories=LegalTermsCategory.ALL):
         """Return mock legal terms."""
         corpus = [
             LegalTerms(text="EULA", category=LegalTermsCategory.EULA),
             LegalTerms(text="TERMS", category=LegalTermsCategory.SERVICE),
             LegalTerms(text="PRIVACY", category=LegalTermsCategory.PRIVACY),
         ]
-        if category == LegalTermsCategory.ALL:
+        if categories == LegalTermsCategory.ALL or LegalTermsCategory.ALL in categories:
             return corpus
-        return [term for term in corpus if term.category == category]
+        return [term for term in corpus if term.category in categories]
 
 
 class TestNetVelocimeter(TestCase):
@@ -159,7 +159,7 @@ class TestNetVelocimeter(TestCase):
             self.assertEqual(len(terms), 3)
 
             # Test getting specific category
-            eula_terms = nv.legal_terms(category=LegalTermsCategory.EULA)
+            eula_terms = nv.legal_terms(categories=LegalTermsCategory.EULA)
             self.assertEqual(len(eula_terms), 1)
             self.assertEqual(eula_terms[0].text, "EULA")
 
@@ -266,7 +266,7 @@ class TestProviderRegistration(TestCase):
                 """Return a mock version."""
                 return Version("1.0.0")
 
-            def _legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, categories=LegalTermsCategory.ALL):
                 """Return mock legal terms."""
                 return []
 
@@ -314,7 +314,7 @@ class TestProviderRegistration(TestCase):
                 """Return a mock version."""
                 return Version("1.0.0")
 
-            def _legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, categories=LegalTermsCategory.ALL):
                 """Return mock legal terms."""
                 return []
 
@@ -406,7 +406,7 @@ class TestProviderRegistrationErrors(TestCase):
                 """Return a mock version."""
                 return Version("1.0.0")
 
-            def _legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, categories=LegalTermsCategory.ALL):
                 """Return mock legal terms."""
                 return []
 
@@ -440,7 +440,7 @@ class TestProviderRegistrationErrors(TestCase):
                 """Return a mock version."""
                 return Version("1.0.0")
 
-            def _legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, categories=LegalTermsCategory.ALL):
                 """Return mock legal terms."""
                 return []
 
@@ -475,7 +475,7 @@ class TestProviderRegistrationErrors(TestCase):
                 """Mock version."""
                 return Version("1.0.0")
 
-            def _legal_terms(self, category=LegalTermsCategory.ALL):
+            def _legal_terms(self, categories=LegalTermsCategory.ALL):
                 """Mock legal terms."""
                 return []
 

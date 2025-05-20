@@ -11,7 +11,12 @@ from packaging.version import InvalidVersion, Version
 
 from ..core import register_provider
 from ..exceptions import PlatformNotSupported
-from ..terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
+from ..terms import (
+    LegalTerms,
+    LegalTermsCategory,
+    LegalTermsCategoryCollection,
+    LegalTermsCollection,
+)
 from ..utils.binary_manager import BinaryManager
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
@@ -135,13 +140,20 @@ class OoklaProvider(BaseProvider):
 
     @classmethod
     def _legal_terms(
-        cls, category: LegalTermsCategory = LegalTermsCategory.ALL
+        cls, categories: LegalTermsCategory | LegalTermsCategoryCollection = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
-        """Get legal terms for Ookla Speedtest."""
+        """Get legal terms for Ookla Speedtest.
+
+        Args:
+            categories: Category(s) of terms to retrieve. Defaults to ALL.
+
+        Returns:
+            Collection of legal terms that match the requested category.
+        """
         # Return the terms collection filtered by the requested category
-        if category == LegalTermsCategory.ALL:
+        if categories == LegalTermsCategory.ALL or LegalTermsCategory.ALL in categories:
             return cls._TERMS_COLLECTION
-        return [term for term in cls._TERMS_COLLECTION if term.category == category]
+        return [term for term in cls._TERMS_COLLECTION if term.category in categories]
 
     @classmethod
     def _download_url(cls) -> str:

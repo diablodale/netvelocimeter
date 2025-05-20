@@ -44,7 +44,7 @@ class TestLegalRequirements(unittest.TestCase):
         nv = NetVelocimeter(config_root=self.temp_dir)
 
         # Only accept EULA terms
-        eula_terms = nv.legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = nv.legal_terms(categories=LegalTermsCategory.EULA)
         nv.accept_terms(eula_terms)
 
         # Should still fail because not all terms are accepted
@@ -53,8 +53,8 @@ class TestLegalRequirements(unittest.TestCase):
 
         # Create fresh instance and accept EULA and Service terms but not Privacy
         nv2 = NetVelocimeter(config_root=self.temp_dir)
-        nv2.accept_terms(nv2.legal_terms(category=LegalTermsCategory.EULA))
-        nv2.accept_terms(nv2.legal_terms(category=LegalTermsCategory.SERVICE))
+        nv2.accept_terms(nv2.legal_terms(categories=LegalTermsCategory.EULA))
+        nv2.accept_terms(nv2.legal_terms(categories=LegalTermsCategory.SERVICE))
 
         # Should still fail because privacy terms aren't accepted
         with self.assertRaises(LegalAcceptanceError):
@@ -87,6 +87,7 @@ class TestLegalRequirements(unittest.TestCase):
 
         # Check that we have terms
         self.assertTrue(terms)
+        self.assertTrue(len(terms) == 3)
 
         # Get categories
         categories = {term.category for term in terms}
@@ -95,8 +96,23 @@ class TestLegalRequirements(unittest.TestCase):
         self.assertIn(LegalTermsCategory.PRIVACY, categories)
 
         # Test filtering by category
-        eula_terms = nv.legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = nv.legal_terms(categories=LegalTermsCategory.EULA)
         self.assertTrue(all(term.category == LegalTermsCategory.EULA for term in eula_terms))
+
+        # Test filtering by ALL
+        all_terms = nv.legal_terms(categories=LegalTermsCategory.ALL)
+        self.assertTrue(len(all_terms) == 3)
+        self.assertTrue(all(term.category in categories for term in all_terms))
+
+        # Test filtering by ALL in a collection alone
+        all_terms = nv.legal_terms(categories=[LegalTermsCategory.ALL])
+        self.assertTrue(len(all_terms) == 3)
+        self.assertTrue(all(term.category in categories for term in all_terms))
+
+        # Test filtering by ALL in a collection
+        all_terms = nv.legal_terms(categories=[LegalTermsCategory.PRIVACY, LegalTermsCategory.ALL])
+        self.assertTrue(len(all_terms) == 3)
+        self.assertTrue(all(term.category in categories for term in all_terms))
 
         # Test term content
         for term in eula_terms:
@@ -115,10 +131,10 @@ class TestLegalRequirements(unittest.TestCase):
 
         # Partial acceptance
         nv = NetVelocimeter(config_root=self.temp_dir)
-        nv.accept_terms(nv.legal_terms(category=LegalTermsCategory.EULA))
+        nv.accept_terms(nv.legal_terms(categories=LegalTermsCategory.EULA))
         self.assertFalse(nv.has_accepted_terms())  # Should be false for all terms
         self.assertTrue(
-            nv.has_accepted_terms(nv.legal_terms(category=LegalTermsCategory.EULA))
+            nv.has_accepted_terms(nv.legal_terms(categories=LegalTermsCategory.EULA))
         )  # But true for just EULA
 
         # Full acceptance

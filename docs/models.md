@@ -67,7 +67,7 @@ classDiagram
         +str binary_dir
         +Version version
         -AcceptanceTracker _acceptance
-        +legal_terms(category=LegalTermsCategory.ALL) LegalTermsCollection
+        +legal_terms(categories=LegalTermsCategory.ALL) LegalTermsCollection
         +has_accepted_terms(terms_or_collection) bool
         +accept_terms(terms_or_collection) void
         +measure(server_id, server_host) MeasurementResult
@@ -100,8 +100,8 @@ sequenceDiagram
     Provider-->>NetVelocimeter: LegalTermsCollection
     NetVelocimeter-->>Client: LegalTermsCollection
 
-    Client->>NetVelocimeter: legal_terms(category=LegalTermsCategory.EULA)
-    NetVelocimeter->>Provider: legal_terms(category=LegalTermsCategory.EULA)
+    Client->>NetVelocimeter: legal_terms(categories=LegalTermsCategory.EULA)
+    NetVelocimeter->>Provider: legal_terms(categories=LegalTermsCategory.EULA)
     Provider-->>NetVelocimeter: LegalTermsCollection
     NetVelocimeter-->>Client: LegalTermsCollection
 

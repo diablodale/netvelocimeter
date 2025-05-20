@@ -8,7 +8,12 @@ from packaging.version import Version
 
 from .exceptions import LegalAcceptanceError
 from .providers.base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
-from .terms import LegalTerms, LegalTermsCategory, LegalTermsCollection
+from .terms import (
+    LegalTerms,
+    LegalTermsCategory,
+    LegalTermsCategoryCollection,
+    LegalTermsCollection,
+)
 from .utils.logger import get_logger
 
 # Map of provider names to provider classes
@@ -187,17 +192,17 @@ class NetVelocimeter:
 
     @final
     def legal_terms(
-        self, category: LegalTermsCategory = LegalTermsCategory.ALL
+        self, categories: LegalTermsCategory | LegalTermsCategoryCollection = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
         """Get legal terms of the provider.
 
         Args:
-            category: Category of terms to retrieve. Defaults to ALL.
+            categories: Category of terms to retrieve. Defaults to ALL.
 
         Returns:
             Collection of legal terms that match the requested category
         """
-        return self.provider._legal_terms(category)
+        return self.provider._legal_terms(categories)
 
     @final
     def has_accepted_terms(

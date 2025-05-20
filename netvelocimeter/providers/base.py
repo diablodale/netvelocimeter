@@ -7,7 +7,13 @@ from typing import Any, final
 
 from packaging.version import Version
 
-from ..terms import AcceptanceTracker, LegalTerms, LegalTermsCategory, LegalTermsCollection
+from ..terms import (
+    AcceptanceTracker,
+    LegalTerms,
+    LegalTermsCategory,
+    LegalTermsCategoryCollection,
+    LegalTermsCollection,
+)
 
 # type alias for server ID
 ServerIDType = int | str
@@ -185,12 +191,12 @@ class BaseProvider(ABC):
 
     @abstractmethod
     def _legal_terms(
-        self, category: LegalTermsCategory = LegalTermsCategory.ALL
+        self, categories: LegalTermsCategory | LegalTermsCategoryCollection = LegalTermsCategory.ALL
     ) -> LegalTermsCollection:
         """Get legal terms for this provider.
 
         Args:
-            category: Category of terms to retrieve. Defaults to ALL.
+            categories: Category(s) of terms to retrieve. Defaults to ALL.
 
         Returns:
             Collection of legal terms that match the requested category

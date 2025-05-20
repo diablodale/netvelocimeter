@@ -491,11 +491,11 @@ class MockProvider(BaseProvider):
         """
         return Version("1.0.0+test")
 
-    def _legal_terms(self, category=None):
+    def _legal_terms(self, categories=None):
         """Get legal terms for this provider.
 
         Args:
-            category: Category of terms to retrieve. Defaults to ALL.
+            categories: Category of terms to retrieve. Defaults to ALL.
 
         Returns:
             Collection of legal terms that match the requested category

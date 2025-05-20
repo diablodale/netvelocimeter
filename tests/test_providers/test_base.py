@@ -20,7 +20,7 @@ class MockProvider(BaseProvider):
         """Mock version."""
         return Version("2.1.3+g123456")
 
-    def _legal_terms(self, category=LegalTermsCategory.ALL):
+    def _legal_terms(self, categories=LegalTermsCategory.ALL):
         """Mock legal terms."""
         return []
 
@@ -74,7 +74,7 @@ class TestBaseProviderImplementation(TestCase):
         self.assertIn(LegalTermsCategory.PRIVACY, categories)
 
         # Test with specified category
-        eula_terms = provider._legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider._legal_terms(categories=LegalTermsCategory.EULA)
         self.assertTrue(all(term.category == LegalTermsCategory.EULA for term in eula_terms))
 
         # Provider with no terms
@@ -143,7 +143,7 @@ class TestBaseProviderImplementation(TestCase):
         provider2 = StaticProvider(config_root=self.temp_dir)
 
         # Accepting a specific category (which is already accepted above)
-        eula_terms = provider2._legal_terms(category=LegalTermsCategory.EULA)
+        eula_terms = provider2._legal_terms(categories=LegalTermsCategory.EULA)
         provider2._accept_terms(eula_terms)
 
         # Should have accepted all terms
