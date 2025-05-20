@@ -6,7 +6,7 @@ import typer
 from typer import Typer
 
 from ... import NetVelocimeter
-from ...terms import LegalTermsCategory
+from ...terms import LegalTermsCategory, LegalTermsCategoryCollection
 from ...utils.logger import get_logger
 from ..main import state
 from ..utils.formatters import format_records
@@ -31,7 +31,7 @@ def register_legal_commands(app: Typer) -> None:
 @legal_app.command(name="list")
 def legal_list(
     category: Annotated[
-        LegalTermsCategory,
+        LegalTermsCategoryCollection,
         typer.Option(
             "--category",
             "-c",
@@ -44,10 +44,12 @@ def legal_list(
         #    # workaround typer bug in usage and help panel for enum arguments
         #    metavar=f"[{'|'.join(LegalTermsCategory.__members__.values())}]",
         # ),
-    ] = LegalTermsCategory.ALL,
+    ] = [LegalTermsCategory.ALL],  # noqa: B006
 ) -> None:
     """Legal terms for the selected provider."""
-    logger.debug(f"Listing legal terms for provider: {state['provider']}")
+    logger.info(
+        f"Listing legal terms for provider '{state['provider']}' with category filter {category}"
+    )
 
     nv = NetVelocimeter(
         provider=state["provider"],
@@ -57,5 +59,7 @@ def legal_list(
 
     # Get the list of legal terms
     legal_terms = nv.legal_terms(category)
-    logger.info(f"Provider '{state['provider']}' has {len(legal_terms)} legal terms")
+    logger.debug(
+        f"Provider '{state['provider']}' has {len(legal_terms)} legal terms after filter '{category}'"
+    )
     typer.echo(format_records(legal_terms, state["format"]) if legal_terms else "No legal terms.")
