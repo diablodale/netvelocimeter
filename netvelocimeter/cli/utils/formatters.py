@@ -48,7 +48,7 @@ def format_records(records: Sequence[Any], fmt: OutputFormat) -> str:
 
     elif fmt == OutputFormat.JSON:
         json_data = [record.to_dict() for record in records]
-        return json.dumps(json_data, indent=2)
+        return json.dumps(json_data, indent=2, sort_keys=True)
 
     else:
         raise ValueError(f"Unsupported output format: {fmt}")

@@ -1,12 +1,13 @@
 """Legal commands for the NetVelocimeter CLI."""
 
+import sys
 from typing import Annotated
 
 import typer
 from typer import Typer
 
 from ... import NetVelocimeter
-from ...terms import LegalTermsCategory, LegalTermsCategoryCollection
+from ...terms import LegalTerms, LegalTermsCategory, LegalTermsCategoryCollection
 from ...utils.logger import get_logger
 from ..main import state
 from ..utils.formatters import format_records
@@ -63,3 +64,35 @@ def legal_list(
         f"Provider '{state['provider']}' has {len(legal_terms)} legal terms after filter '{category}'"
     )
     typer.echo(format_records(legal_terms, state["format"]) if legal_terms else "No legal terms.")
+
+
+@legal_app.command(name="accept")
+def legal_accept() -> None:
+    """Accept JSON legal terms from stdin for the selected provider."""
+    logger.info("Reading legal terms from stdin")
+    terms_json = sys.stdin.read().strip()
+
+    if not terms_json:
+        logger.error("No legal terms provided. Exiting.")
+        raise typer.Exit(code=1)
+
+    nv = NetVelocimeter(
+        provider=state["provider"],
+        bin_root=state["bin_root"],
+        config_root=state["config_root"],
+    )
+    try:
+        # Parse the JSON input
+        logger.debug(f"Parsing legal terms JSON: {terms_json}")
+        terms_to_accept = LegalTerms.from_json(terms_json)
+        if isinstance(terms_to_accept, LegalTerms):
+            terms_to_accept = [terms_to_accept]
+        logger.debug(f"Parsed {len(terms_to_accept)} legal terms")
+
+        # Accept the parsed terms
+        nv.accept_terms(terms_to_accept)
+        logger.info(f"Accepted {len(terms_to_accept)} legal terms")
+
+    except Exception as e:
+        logger.error(f"Error accepting legal terms: {e}")
+        raise typer.Exit(code=1) from e

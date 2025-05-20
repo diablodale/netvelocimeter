@@ -60,7 +60,7 @@ class LegalTerms:
         Returns:
             A string with the category and either text or URL.
         """
-        parts = [f"category: {self.category.name}"]
+        parts = [f"category: {self.category.value}"]
         if self.text:
             parts.append(f"text: {self.text}")
         if self.url:
@@ -74,7 +74,7 @@ class LegalTerms:
             A dictionary representation of the LegalTerms object.
         """
         return {
-            "category": self.category.name,
+            "category": self.category.value,
             "text": self.text,
             "url": self.url,
         }
@@ -116,7 +116,10 @@ class LegalTerms:
             json.JSONDecodeError: If the JSON string is malformed.
         """
         # Parse JSON
-        data = json.loads(json_str)
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON: {e}") from e
 
         # Handle both single object and array
         if isinstance(data, dict):
@@ -152,7 +155,7 @@ class LegalTerms:
             raise ValueError(f"Unsupported methodology version: {methodology_version}")
 
         # Use a combination of text, URL, and category to create a unique hash
-        content = f"{self.text or ''}|{self.url or ''}|{self.category.name}"
+        content = f"{self.text or ''}|{self.url or ''}|{self.category.value}"
 
         # construct a unique identifier
         return f"1/{hash_b64encode(content)}"
