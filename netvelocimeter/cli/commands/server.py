@@ -35,8 +35,6 @@ def server_list() -> None:
         bin_root=state["bin_root"],
         config_root=state["config_root"],
     )
-    # BUGBUG remove auto accept
-    nv.accept_terms(nv.legal_terms())
 
     # Get the list of servers
     servers = nv.servers

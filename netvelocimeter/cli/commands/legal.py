@@ -29,46 +29,9 @@ def register_legal_commands(app: Typer) -> None:
     app.add_typer(legal_app, name="legal")
 
 
-@legal_app.command(name="list")
-def legal_list(
-    category: Annotated[
-        LegalTermsCategoryCollection,
-        typer.Option(
-            "--category",
-            "-c",
-            help="Category filter",
-            case_sensitive=False,
-        ),
-        # typer.Argument(
-        #    help="Category filter",
-        #    case_sensitive=False,
-        #    # workaround typer bug in usage and help panel for enum arguments
-        #    metavar=f"[{'|'.join(LegalTermsCategory.__members__.values())}]",
-        # ),
-    ] = [LegalTermsCategory.ALL],  # noqa: B006
-) -> None:
-    """Legal terms for the selected provider."""
-    logger.info(
-        f"Listing legal terms for provider '{state['provider']}' with category filter {category}"
-    )
-
-    nv = NetVelocimeter(
-        provider=state["provider"],
-        bin_root=state["bin_root"],
-        config_root=state["config_root"],
-    )
-
-    # Get the list of legal terms
-    legal_terms = nv.legal_terms(category)
-    logger.debug(
-        f"Provider '{state['provider']}' has {len(legal_terms)} legal terms after filter '{category}'"
-    )
-    typer.echo(format_records(legal_terms, state["format"]) if legal_terms else "No legal terms.")
-
-
 @legal_app.command(name="accept")
 def legal_accept() -> None:
-    """Accept JSON legal terms from stdin for the selected provider."""
+    """Accept legal terms (JSON only) from stdin for the selected provider."""
     logger.info("Reading legal terms from stdin")
     terms_json = sys.stdin.read().strip()
 
@@ -96,3 +59,40 @@ def legal_accept() -> None:
     except Exception as e:
         logger.error(f"Error accepting legal terms: {e}")
         raise typer.Exit(code=1) from e
+
+
+@legal_app.command(name="list")
+def legal_list(
+    category: Annotated[
+        LegalTermsCategoryCollection,
+        typer.Option(
+            "--category",
+            "-c",
+            help="Category filter",
+            case_sensitive=False,
+        ),
+        # typer.Argument(
+        #    help="Category filter",
+        #    case_sensitive=False,
+        #    # workaround typer bug in usage and help panel for enum arguments
+        #    metavar=f"[{'|'.join(LegalTermsCategory.__members__.values())}]",
+        # ),
+    ] = [LegalTermsCategory.ALL],  # noqa: B006
+) -> None:
+    """List legal terms for the selected provider."""
+    logger.info(
+        f"Listing legal terms for provider '{state['provider']}' with category filter {category}"
+    )
+
+    nv = NetVelocimeter(
+        provider=state["provider"],
+        bin_root=state["bin_root"],
+        config_root=state["config_root"],
+    )
+
+    # Get the list of legal terms
+    legal_terms = nv.legal_terms(category)
+    logger.debug(
+        f"Provider '{state['provider']}' has {len(legal_terms)} legal terms after filter '{category}'"
+    )
+    typer.echo(format_records(legal_terms, state["format"]) if legal_terms else "No legal terms.")
