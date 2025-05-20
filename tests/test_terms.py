@@ -463,3 +463,79 @@ class TestLegalTermsRepresentation(unittest.TestCase):
 
         # But contain the same data
         self.assertEqual(dict1, dict2)
+
+
+class TestLegalTermsFromOther(unittest.TestCase):
+    """Tests for creating LegalTerms from other formats."""
+
+    def test_from_dict_with_text_only(self):
+        """Test from_dict with text only."""
+        data = {"category": "eula", "text": "Sample EULA text"}
+        terms = LegalTerms.from_dict(data)
+
+        self.assertIsInstance(terms, LegalTerms)
+        self.assertEqual(terms.category, LegalTermsCategory.EULA)
+        self.assertEqual(terms.text, "Sample EULA text")
+        self.assertIsNone(terms.url)
+
+    def test_from_dict_with_url_only(self):
+        """Test from_dict with URL only."""
+        data = {"category": "privacy", "url": "https://example.com/privacy"}
+        terms = LegalTerms.from_dict(data)
+
+        self.assertIsInstance(terms, LegalTerms)
+        self.assertEqual(terms.category, LegalTermsCategory.PRIVACY)
+        self.assertIsNone(terms.text)
+        self.assertEqual(terms.url, "https://example.com/privacy")
+
+    def test_from_dict_with_both_text_and_url(self):
+        """Test from_dict with both text and URL."""
+        data = {
+            "category": "service",
+            "text": "Service terms content",
+            "url": "https://example.com/terms",
+        }
+        terms = LegalTerms.from_dict(data)
+
+        self.assertIsInstance(terms, LegalTerms)
+        self.assertEqual(terms.category, LegalTermsCategory.SERVICE)
+        self.assertEqual(terms.text, "Service terms content")
+        self.assertEqual(terms.url, "https://example.com/terms")
+
+    def test_from_dict_missing_category(self):
+        """Test from_dict with missing category raises ValueError."""
+        data = {"text": "Missing category"}
+        with self.assertRaises(KeyError) as context:
+            LegalTerms.from_dict(data)
+
+        self.assertIn("category", str(context.exception))
+
+    def test_from_dict_missing_text_and_url(self):
+        """Test from_dict with missing text and URL raises ValueError."""
+        data = {"category": "other"}
+        with self.assertRaises(ValueError) as context:
+            LegalTerms.from_dict(data)
+
+        self.assertIn("'text' or 'url' value must be provided", str(context.exception))
+
+    def test_from_dict_invalid_category(self):
+        """Test from_dict with invalid category raises ValueError."""
+        data = {"category": "invalid_category", "text": "Some text"}
+        with self.assertRaises(ValueError) as context:
+            LegalTerms.from_dict(data)
+
+        self.assertIn("invalid_category", str(context.exception))
+
+    def test_from_dict_extra_fields(self):
+        """Test from_dict ignores extra fields."""
+        data = {
+            "category": "nda",
+            "text": "NDA content",
+            "extra_field": "Should be ignored",
+            "another_field": 123,
+        }
+        terms = LegalTerms.from_dict(data)
+
+        self.assertEqual(terms.category, LegalTermsCategory.NDA)
+        self.assertEqual(terms.text, "NDA content")
+        self.assertFalse(hasattr(terms, "extra_field"))

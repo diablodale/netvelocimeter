@@ -48,11 +48,11 @@ class LegalTerms:
         """Post-initialization checks for the LegalTerms class."""
         # Ensure at least one of text or URL is provided
         if not self.text and not self.url:
-            raise ValueError("Either LegalTerms text or URL must be provided")
+            raise ValueError("Legal terms 'text' or 'url' value must be provided")
 
         # Ensure category is valid
         if not isinstance(self.category, LegalTermsCategory):
-            raise ValueError(f"Invalid category: {self.category}")
+            raise ValueError(f"Invalid legal terms category: {self.category}")
 
     def __str__(self) -> str:
         """Return a string representation of the legal terms.
@@ -78,6 +78,27 @@ class LegalTerms:
             "text": self.text,
             "url": self.url,
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LegalTerms":
+        """Create a LegalTerms object from a dictionary.
+
+        Args:
+            data: Dictionary containing legal terms data.
+            Must have 'category' key and at least one of 'text' or 'url'.
+
+        Returns:
+            A new LegalTerms instance.
+
+        Raises:
+            KeyError: If 'category' key is missing in the input dictionary.
+            ValueError: If required fields are missing or invalid.
+        """
+        return cls(
+            category=LegalTermsCategory(data["category"]),
+            text=data.get("text"),
+            url=data.get("url"),
+        )
 
     def unique_id(self, methodology_version: int = 1) -> str:
         """Compute a stable lookup id for legal terms content to use with cache and persistence.
