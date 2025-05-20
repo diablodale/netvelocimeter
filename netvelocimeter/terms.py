@@ -100,6 +100,35 @@ class LegalTerms:
             url=data.get("url"),
         )
 
+    @classmethod
+    def from_json(cls, json_str: str) -> "LegalTerms | list[LegalTerms]":
+        """Create LegalTerms object(s) from a JSON string.
+
+        Args:
+            json_str: JSON string representing a single legal terms object or an array of them.
+
+        Returns:
+            Either a single LegalTerms instance or a list of LegalTerms instances.
+
+        Raises:
+            KeyError: If 'category' key is missing in the input dictionary.
+            ValueError: If the JSON is invalid or missing required fields.
+            json.JSONDecodeError: If the JSON string is malformed.
+        """
+        # Parse JSON
+        data = json.loads(json_str)
+
+        # Handle both single object and array
+        if isinstance(data, dict):
+            return cls.from_dict(data)
+        elif isinstance(data, list):
+            if not data:
+                raise ValueError("Empty JSON array")
+
+            return [cls.from_dict(item) for item in data]
+        else:
+            raise ValueError(f"Expected JSON object or array, got {type(data).__name__}")
+
     def unique_id(self, methodology_version: int = 1) -> str:
         """Compute a stable lookup id for legal terms content to use with cache and persistence.
 

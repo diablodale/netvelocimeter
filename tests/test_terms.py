@@ -539,3 +539,67 @@ class TestLegalTermsFromOther(unittest.TestCase):
         self.assertEqual(terms.category, LegalTermsCategory.NDA)
         self.assertEqual(terms.text, "NDA content")
         self.assertFalse(hasattr(terms, "extra_field"))
+
+    def test_from_json_with_single_object(self):
+        """Test from_json with a single JSON object."""
+        json_str = """{"category": "eula", "text": "Sample EULA text"}"""
+        terms = LegalTerms.from_json(json_str)
+
+        self.assertIsInstance(terms, LegalTerms)
+        self.assertEqual(terms.category, LegalTermsCategory.EULA)
+        self.assertEqual(terms.text, "Sample EULA text")
+        self.assertIsNone(terms.url)
+
+    def test_from_json_with_array(self):
+        """Test from_json with an array of objects."""
+        json_str = """[
+            {"category": "eula", "text": "Sample EULA text"},
+            {"category": "privacy", "url": "https://example.com/privacy"}
+        ]"""
+        terms_list = LegalTerms.from_json(json_str)
+
+        self.assertIsInstance(terms_list, list)
+        self.assertEqual(len(terms_list), 2)
+
+        self.assertEqual(terms_list[0].category, LegalTermsCategory.EULA)
+        self.assertEqual(terms_list[0].text, "Sample EULA text")
+
+        self.assertEqual(terms_list[1].category, LegalTermsCategory.PRIVACY)
+        self.assertEqual(terms_list[1].url, "https://example.com/privacy")
+
+    def test_from_json_with_empty_array(self):
+        """Test from_json with an empty array raises ValueError."""
+        json_str = "[]"
+        with self.assertRaises(ValueError) as context:
+            LegalTerms.from_json(json_str)
+
+        self.assertIn("Empty JSON array", str(context.exception))
+
+    def test_from_json_with_invalid_json(self):
+        """Test from_json with invalid JSON raises JSONDecodeError."""
+        json_str = "{invalid json"
+        with self.assertRaises(json.JSONDecodeError):
+            LegalTerms.from_json(json_str)
+
+    def test_from_json_with_invalid_type(self):
+        """Test from_json with invalid type (neither object nor array)."""
+        json_str = '"just a string"'
+        with self.assertRaises(ValueError) as context:
+            LegalTerms.from_json(json_str)
+
+        self.assertIn("Expected JSON object or array, got str", str(context.exception))
+
+    def test_from_json_with_invalid_object_in_array(self):
+        """Test from_json with an array containing an invalid object."""
+        json_str = """[
+            {"category": "eula", "text": "Valid"},
+            {"category": "invalid_category", "text": "Invalid"}
+        ]"""
+        with self.assertRaises(ValueError):
+            LegalTerms.from_json(json_str)
+
+    def test_from_json_missing_category(self):
+        """Test from_json with missing category raises KeyError."""
+        json_str = """{"text": "Missing category"}"""
+        with self.assertRaises(KeyError):
+            LegalTerms.from_json(json_str)
