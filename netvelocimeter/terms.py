@@ -2,33 +2,34 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from enum import Enum, auto
+from enum import Enum
 import json
 import os
+from typing import Any
 
 from .utils.hash import hash_b64encode
 from .utils.xdg import XDGCategory
 
 
-class LegalTermsCategory(Enum):
+class LegalTermsCategory(str, Enum):
     """Categories of legal terms."""
 
-    EULA = auto()
+    EULA = "eula"
     """End User License Agreement"""
 
-    SERVICE = auto()
+    SERVICE = "service"
     """Service Terms of Use"""
 
-    PRIVACY = auto()
+    PRIVACY = "privacy"
     """Privacy Policy"""
 
-    NDA = auto()
+    NDA = "nda"
     """Non-Disclosure Agreement"""
 
-    OTHER = auto()
+    OTHER = "other"
     """Other legal terms that do not fit into predefined categories"""
 
-    ALL = auto()
+    ALL = "all"
     """Special value to represent all categories"""
 
 
@@ -49,6 +50,31 @@ class LegalTerms:
         # Ensure category is valid
         if not isinstance(self.category, LegalTermsCategory):
             raise ValueError(f"Invalid category: {self.category}")
+
+    def __str__(self) -> str:
+        """Return a string representation of the legal terms.
+
+        Returns:
+            A string with the category and either text or URL.
+        """
+        parts = [f"category: {self.category.name}"]
+        if self.text:
+            parts.append(f"text: {self.text}")
+        if self.url:
+            parts.append(f"url: {self.url}")
+        return "\n".join(parts)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert the LegalTerms object to a dictionary.
+
+        Returns:
+            A dictionary representation of the LegalTerms object.
+        """
+        return {
+            "category": self.category.name,
+            "text": self.text,
+            "url": self.url,
+        }
 
     def unique_id(self, methodology_version: int = 1) -> str:
         """Compute a stable lookup id for legal terms content to use with cache and persistence.

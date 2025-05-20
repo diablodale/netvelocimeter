@@ -343,3 +343,123 @@ class TestAcceptanceTrackerThreading(unittest.TestCase):
         with original_open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             self.assertIn("ts", data)  # Timestamp should be present
+
+
+class TestLegalTermsRepresentation(unittest.TestCase):
+    """Tests for LegalTerms string representation and dictionary conversion."""
+
+    def test_str_with_text_only(self):
+        """Test string representation with text only."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.EULA,
+            text="Sample EULA text",
+        )
+        result = str(terms)
+
+        self.assertIn("category: EULA", result)
+        self.assertIn("text: Sample EULA text", result)
+        self.assertNotIn("url:", result)
+
+    def test_str_with_url_only(self):
+        """Test string representation with URL only."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.PRIVACY,
+            url="https://example.com/privacy",
+        )
+        result = str(terms)
+
+        self.assertIn("category: PRIVACY", result)
+        self.assertIn("url: https://example.com/privacy", result)
+        self.assertNotIn("text:", result)
+
+    def test_str_with_both_text_and_url(self):
+        """Test string representation with both text and URL."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.SERVICE,
+            text="Service terms content",
+            url="https://example.com/terms",
+        )
+        result = str(terms)
+
+        self.assertIn("category: SERVICE", result)
+        self.assertIn("text: Service terms content", result)
+        self.assertIn("url: https://example.com/terms", result)
+
+    def test_str_lines_order(self):
+        """Test that string representation maintains consistent line order."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.NDA,
+            text="NDA content",
+            url="https://example.com/nda",
+        )
+        result = str(terms).split("\n")
+
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[0].startswith("category:"))
+        self.assertTrue(result[1].startswith("text:"))
+        self.assertTrue(result[2].startswith("url:"))
+
+    def test_to_dict_with_text_only(self):
+        """Test dictionary conversion with text only."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.EULA,
+            text="Sample EULA text",
+        )
+        result = terms.to_dict()
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["category"], "EULA")
+        self.assertEqual(result["text"], "Sample EULA text")
+        self.assertIsNone(result["url"])
+
+    def test_to_dict_with_url_only(self):
+        """Test dictionary conversion with URL only."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.PRIVACY,
+            url="https://example.com/privacy",
+        )
+        result = terms.to_dict()
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["category"], "PRIVACY")
+        self.assertIsNone(result["text"])
+        self.assertEqual(result["url"], "https://example.com/privacy")
+
+    def test_to_dict_with_both_text_and_url(self):
+        """Test dictionary conversion with both text and URL."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.SERVICE,
+            text="Service terms content",
+            url="https://example.com/terms",
+        )
+        result = terms.to_dict()
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["category"], "SERVICE")
+        self.assertEqual(result["text"], "Service terms content")
+        self.assertEqual(result["url"], "https://example.com/terms")
+
+    def test_to_dict_contains_all_required_keys(self):
+        """Test that dictionary contains all required keys even when values are None."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.OTHER,
+            text="Other terms",
+        )
+        result = terms.to_dict()
+
+        self.assertEqual(set(result.keys()), {"category", "text", "url"})
+
+    def test_to_dict_returns_new_dict(self):
+        """Test that to_dict returns a new dict each time, not a reference."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.EULA,
+            text="Sample text",
+        )
+        dict1 = terms.to_dict()
+        dict2 = terms.to_dict()
+
+        # Verify they're not the same object
+        self.assertIsNot(dict1, dict2)
+
+        # But contain the same data
+        self.assertEqual(dict1, dict2)
