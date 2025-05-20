@@ -96,3 +96,39 @@ def legal_list(
         f"Provider '{state['provider']}' has {len(legal_terms)} legal terms after filter '{category}'"
     )
     typer.echo(format_records(legal_terms, state["format"]) if legal_terms else "No legal terms.")
+
+
+@legal_app.command(name="status")
+def legal_status(
+    categories: Annotated[
+        list[LegalTermsCategory],
+        typer.Option(
+            "--category",
+            "-c",
+            help="Category filter (defaults to all categories)",
+            case_sensitive=False,
+        ),
+    ] = [LegalTermsCategory.ALL],  # noqa: B006
+) -> None:
+    """Status for acceptance of legal terms for the selected provider."""
+    nv = NetVelocimeter(
+        provider=state["provider"],
+        bin_root=state["bin_root"],
+        config_root=state["config_root"],
+    )
+
+    # Check if terms are accepted
+    terms = nv.legal_terms(categories)
+    for term in terms:
+        term.accepted = nv.has_accepted_terms(term)
+
+    # Display the status of legal terms
+    typer.echo(format_records(terms, state["format"]) if terms else "No legal terms.")
+
+    # exit with success if all terms are accepted
+    if all(term.accepted for term in terms):
+        logger.info("All legal terms accepted.")
+        raise typer.Exit(code=0)
+    else:
+        logger.info("Not all legal terms accepted.")
+        raise typer.Exit(code=1)

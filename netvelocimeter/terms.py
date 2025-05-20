@@ -43,6 +43,7 @@ class LegalTerms:
     category: LegalTermsCategory
     text: str | None = None
     url: str | None = None
+    accepted: bool | None = None
 
     def __post_init__(self) -> None:
         """Post-initialization checks for the LegalTerms class."""
@@ -65,6 +66,8 @@ class LegalTerms:
             parts.append(f"text: {self.text}")
         if self.url:
             parts.append(f"url: {self.url}")
+        if self.accepted is not None:
+            parts.append(f"accepted: {'true ✅' if self.accepted else 'false ❌'}")
         return "\n".join(parts)
 
     def to_dict(self) -> dict[str, Any]:
@@ -73,11 +76,16 @@ class LegalTerms:
         Returns:
             A dictionary representation of the LegalTerms object.
         """
-        return {
+        result: dict[str, Any] = {
             "category": self.category.value,
-            "text": self.text,
-            "url": self.url,
         }
+        if self.text:
+            result["text"] = self.text
+        if self.url:
+            result["url"] = self.url
+        if self.accepted is not None:
+            result["accepted"] = self.accepted
+        return result
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "LegalTerms":
@@ -98,6 +106,7 @@ class LegalTerms:
             category=LegalTermsCategory(data["category"]),
             text=data.get("text"),
             url=data.get("url"),
+            accepted=data.get("accepted"),
         )
 
     @classmethod
