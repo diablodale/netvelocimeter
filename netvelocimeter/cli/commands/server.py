@@ -38,11 +38,11 @@ def server_list() -> None:
 
     # Get the list of servers
     servers = nv.servers
-    if not servers:
-        logger.warning("No servers found for provider: %s", state.provider)
-        typer.echo("No servers available for the selected provider.")
-        raise typer.Exit(code=1)
+    logger.debug(f"Found {len(servers)} servers")
 
-    # Print the list of servers
-    logger.info("Found %d servers", len(servers))
-    typer.echo(format_records(servers, state.format, state.escape_ws))
+    # Display the list of servers
+    if servers:
+        typer.echo(format_records(servers, state.format, state.escape_ws))
+    else:
+        logger.warning("No results.")
+        raise typer.Exit(code=1)

@@ -91,15 +91,16 @@ def legal_list(
     )
 
     # Get the list of legal terms
-    legal_terms = nv.legal_terms(category)
+    terms = nv.legal_terms(category)
     logger.debug(
-        f"Provider '{state.provider}' has {len(legal_terms)} legal terms after filter '{category}'"
+        f"Provider '{state.provider}' has {len(terms)} legal terms after filter '{category}'"
     )
-    typer.echo(
-        format_records(legal_terms, state.format, state.escape_ws)
-        if legal_terms
-        else "No legal terms."
-    )
+
+    # Display the legal terms
+    if terms:
+        typer.echo(format_records(terms, state.format, state.escape_ws))
+    else:
+        logger.warning("No results.")
 
 
 @legal_app.command(name="status")
@@ -123,16 +124,22 @@ def legal_status(
 
     # Check if terms are accepted
     terms = nv.legal_terms(categories)
+    logger.debug(
+        f"Provider '{state.provider}' has {len(terms)} legal terms after filter '{categories}'"
+    )
     for term in terms:
         term.accepted = nv.has_accepted_terms(term)
 
     # Display the status of legal terms
-    typer.echo(format_records(terms, state.format, state.escape_ws) if terms else "No legal terms.")
+    if terms:
+        typer.echo(format_records(terms, state.format, state.escape_ws))
+    else:
+        logger.warning("No results.")
 
     # exit with success if all terms are accepted
     if all(term.accepted for term in terms):
-        logger.info("All legal terms accepted.")
+        logger.info("All filtered legal terms accepted.")
         raise typer.Exit(code=0)
     else:
-        logger.info("Not all legal terms accepted.")
+        logger.info("Not all filtered legal terms accepted.")
         raise typer.Exit(code=1)

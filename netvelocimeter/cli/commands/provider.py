@@ -32,8 +32,10 @@ def provider_list() -> None:
 
     providers = list_providers()
     logger.debug(f"Found {len(providers)} providers")
-    typer.echo(
-        format_records(providers, state.format, state.escape_ws)
-        if providers
-        else "No providers found."
-    )
+
+    # Display the providers
+    if providers:
+        typer.echo(format_records(providers, state.format, state.escape_ws))
+    else:
+        logger.warning("No results.")
+        raise typer.Exit(code=1)
