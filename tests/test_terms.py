@@ -356,7 +356,7 @@ class TestLegalTermsRepresentation(unittest.TestCase):
         )
         result = str(terms)
 
-        self.assertIn("category: EULA", result)
+        self.assertIn("category: eula", result)
         self.assertIn("text: Sample EULA text", result)
         self.assertNotIn("url:", result)
 
@@ -368,7 +368,7 @@ class TestLegalTermsRepresentation(unittest.TestCase):
         )
         result = str(terms)
 
-        self.assertIn("category: PRIVACY", result)
+        self.assertIn("category: privacy", result)
         self.assertIn("url: https://example.com/privacy", result)
         self.assertNotIn("text:", result)
 
@@ -381,7 +381,7 @@ class TestLegalTermsRepresentation(unittest.TestCase):
         )
         result = str(terms)
 
-        self.assertIn("category: SERVICE", result)
+        self.assertIn("category: service", result)
         self.assertIn("text: Service terms content", result)
         self.assertIn("url: https://example.com/terms", result)
 
@@ -408,9 +408,9 @@ class TestLegalTermsRepresentation(unittest.TestCase):
         result = terms.to_dict()
 
         self.assertIsInstance(result, dict)
-        self.assertEqual(result["category"], "EULA")
+        self.assertEqual(result["category"], "eula")
         self.assertEqual(result["text"], "Sample EULA text")
-        self.assertIsNone(result["url"])
+        self.assertNotIn("url", result)
 
     def test_to_dict_with_url_only(self):
         """Test dictionary conversion with URL only."""
@@ -421,8 +421,8 @@ class TestLegalTermsRepresentation(unittest.TestCase):
         result = terms.to_dict()
 
         self.assertIsInstance(result, dict)
-        self.assertEqual(result["category"], "PRIVACY")
-        self.assertIsNone(result["text"])
+        self.assertEqual(result["category"], "privacy")
+        self.assertNotIn("text", result)
         self.assertEqual(result["url"], "https://example.com/privacy")
 
     def test_to_dict_with_both_text_and_url(self):
@@ -435,18 +435,25 @@ class TestLegalTermsRepresentation(unittest.TestCase):
         result = terms.to_dict()
 
         self.assertIsInstance(result, dict)
-        self.assertEqual(result["category"], "SERVICE")
+        self.assertEqual(result["category"], "service")
         self.assertEqual(result["text"], "Service terms content")
         self.assertEqual(result["url"], "https://example.com/terms")
 
-    def test_to_dict_contains_all_required_keys(self):
-        """Test that dictionary contains all required keys even when values are None."""
+    def test_to_dict_contains_all_expected_keys(self):
+        """Test that dictionary contains all expected keys."""
         terms = LegalTerms(
             category=LegalTermsCategory.OTHER,
             text="Other terms",
         )
         result = terms.to_dict()
+        self.assertEqual(set(result.keys()), {"category", "text"})
 
+        terms = LegalTerms(
+            category=LegalTermsCategory.OTHER,
+            text="Other terms",
+            url="https://example.com",
+        )
+        result = terms.to_dict()
         self.assertEqual(set(result.keys()), {"category", "text", "url"})
 
     def test_to_dict_returns_new_dict(self):

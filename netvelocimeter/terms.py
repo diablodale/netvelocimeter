@@ -128,7 +128,8 @@ class LegalTerms:
         try:
             data = json.loads(json_str)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON: {e}") from e
+            e.msg = f"Invalid JSON: {e.msg}"
+            raise e
 
         # Handle both single object and array
         if isinstance(data, dict):
