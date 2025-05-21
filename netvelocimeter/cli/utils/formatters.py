@@ -9,12 +9,39 @@ from typing import Any
 from ..main import OutputFormat
 
 
-def format_records(records: Sequence[Any], fmt: OutputFormat) -> str:
+def escape_whitespace(text: str) -> str:
+    r"""Escape whitespace characters in a string.
+
+    Replaces newlines, tabs, carriage returns, form feeds, vertical tabs, and backslashes
+    with their `\` escaped representation for use in CSV/TSV values.
+
+    Args:
+        text: The input string to escape whitespace characters.
+
+    Returns:
+        The input string with whitespace characters escaped.
+    """
+    replacements = [
+        ("\\", "\\\\"),  # Must escape backslashes first
+        ("\n", "\\n"),
+        ("\r", "\\r"),
+        ("\t", "\\t"),
+        ("\f", "\\f"),
+        ("\v", "\\v"),
+    ]
+
+    for char, replacement in replacements:
+        text = text.replace(char, replacement)
+    return text
+
+
+def format_records(records: Sequence[Any], fmt: OutputFormat, escape_ws: bool = False) -> str:
     """Format records according to the specified output format.
 
     Args:
         records: Sequence of record objects with a to_dict method
         fmt: Output format to use
+        escape_ws: Whether to escape whitespace in CSV and TSV output
 
     Returns:
         Formatted string
@@ -42,7 +69,17 @@ def format_records(records: Sequence[Any], fmt: OutputFormat) -> str:
 
         # Write the record data
         for record in records:
-            writer.writerow(record.to_dict())
+            record_dict = record.to_dict()
+
+            # if any key has a value which is a sequence, convert them to a string separated by newlines
+            for key, value in record_dict.items():
+                if isinstance(value, Sequence) and not isinstance(value, str):
+                    value = "\n".join([str(v) for v in value])
+                    if escape_ws:
+                        value = escape_whitespace(value)
+                    record_dict[key] = value
+
+            writer.writerow(record_dict)
 
         return csv_output.getvalue()
 
