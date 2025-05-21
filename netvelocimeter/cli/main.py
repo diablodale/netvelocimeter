@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 import sys
-from typing import Annotated, TypedDict
+from typing import Annotated
 
 from click import Choice
 import typer
@@ -24,30 +24,29 @@ class OutputFormat(str, Enum):
     JSON = "json"
 
 
-class CliState(TypedDict):
-    """State for the command line interface."""
-
-    bin_root: Path
-    config_root: Path
-    format: OutputFormat
-    provider: str
-
-
 # Define constants
 BIN_ROOT_DEFAULT = Path(XDGCategory.BIN.resolve_path("netvelocimeter"))
 CONFIG_ROOT_DEFAULT = Path(XDGCategory.CONFIG.resolve_path("netvelocimeter"))
 AVAILABLE_PROVIDERS = [provider.name for provider in list_providers()]
 
+
+class CliState:
+    """State for the command line interface."""
+
+    def __init__(self) -> None:
+        """Initialize the CLI state with default values."""
+        self.bin_root: Path = BIN_ROOT_DEFAULT
+        self.config_root: Path = CONFIG_ROOT_DEFAULT
+        self.escape_ws: bool = False
+        self.format: OutputFormat = OutputFormat.TEXT
+        self.provider: str = "static"
+
+
 # Running in a PyInstaller bundle
 # IN_PYINSTALL_BUNDLE = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 
-# state container and defaults
-state: CliState = {
-    "bin_root": BIN_ROOT_DEFAULT,
-    "config_root": CONFIG_ROOT_DEFAULT,
-    "format": OutputFormat.TEXT,
-    "provider": "static",
-}
+# state container instance
+state: CliState = CliState()
 
 #########################
 #### Global Commands ####
@@ -70,7 +69,7 @@ def main(
             help="directory to cache binaries for some providers",
             rich_help_panel="Global Options",
         ),
-    ] = state["bin_root"],
+    ] = state.bin_root,
     config_root: Annotated[
         Path,
         typer.Option(
@@ -78,7 +77,15 @@ def main(
             help="directory to store configuration files, e.g. legal acceptance",
             rich_help_panel="Global Options",
         ),
-    ] = state["config_root"],
+    ] = state.config_root,
+    escape_ws: Annotated[
+        bool,
+        typer.Option(
+            "--escape-ws",
+            help="Escape newline, tab, etc. in CSV and TSV output values",
+            rich_help_panel="Global Options",
+        ),
+    ] = state.escape_ws,
     format: Annotated[
         OutputFormat,
         typer.Option(
@@ -89,7 +96,7 @@ def main(
             show_default=True,
             case_sensitive=False,
         ),
-    ] = state["format"],
+    ] = state.format,
     provider: Annotated[
         str,
         typer.Option(
@@ -102,7 +109,7 @@ def main(
             click_type=Choice(AVAILABLE_PROVIDERS),
             # TODO: add a list of available providers and their description to a help panel
         ),
-    ] = state["provider"],
+    ] = state.provider,
     quiet: Annotated[
         bool,
         typer.Option(
@@ -135,10 +142,11 @@ def main(
 ) -> None:
     """NetVelocimeter - Measuring network performance metrics across multiple service providers."""
     global state
-    state["bin_root"] = bin_root
-    state["config_root"] = config_root
-    state["format"] = format
-    state["provider"] = provider
+    state.bin_root = bin_root
+    state.config_root = config_root
+    state.escape_ws = escape_ws
+    state.format = format
+    state.provider = provider
 
     # Determine log level with precedence:
     # 1. quiet flag

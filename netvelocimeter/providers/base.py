@@ -77,6 +77,48 @@ class ServerInfo:
 
 
 @dataclass
+class ProviderInfo:
+    """Information about a provider.
+
+    Attributes:
+        name: Name of the provider
+        description: Description of the provider
+    """
+
+    name: str
+    description: list[str]
+
+    def __post_init__(self) -> None:
+        """Ensure name and description are not empty."""
+        if not self.name or not self.description:
+            raise ValueError("Name and description cannot be empty")
+
+    def __str__(self) -> str:
+        """Return a string representation of the provider info.
+
+        Returns:
+            A string with provider name and description.
+        """
+        parts = [f"name: {self.name}"]
+        iterator = iter(self.description)
+        parts.append(f"description: {next(iterator)}")
+        for line in iterator:
+            parts.append(f"             {line}")
+        return "\n".join(parts)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert the provider info to a dictionary.
+
+        Returns:
+            A dictionary representation of the provider info.
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+        }
+
+
+@dataclass
 class MeasurementResult:
     """Result of a network measurement.
 

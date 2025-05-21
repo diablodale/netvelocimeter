@@ -28,21 +28,21 @@ def register_server_commands(app: Typer) -> None:
 @server_app.command(name="list")
 def server_list() -> None:
     """Servers for the selected provider."""
-    logger.debug(f"Listing servers for provider: {state['provider']}")
+    logger.debug(f"Listing servers for provider: {state.provider}")
 
     nv = NetVelocimeter(
-        provider=state["provider"],
-        bin_root=state["bin_root"],
-        config_root=state["config_root"],
+        provider=state.provider,
+        bin_root=state.bin_root,
+        config_root=state.config_root,
     )
 
     # Get the list of servers
     servers = nv.servers
     if not servers:
-        logger.warning("No servers found for provider: %s", state["provider"])
+        logger.warning("No servers found for provider: %s", state.provider)
         typer.echo("No servers available for the selected provider.")
         raise typer.Exit(code=1)
 
     # Print the list of servers
     logger.info("Found %d servers", len(servers))
-    typer.echo(format_records(servers, state["format"]))
+    typer.echo(format_records(servers, state.format, state.escape_ws))

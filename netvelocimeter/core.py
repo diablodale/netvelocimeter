@@ -1,13 +1,12 @@
 """Core functionality for the NetVelocimeter library."""
 
-from dataclasses import dataclass
 import inspect
 from typing import Any, TypeVar, final
 
 from packaging.version import Version
 
 from .exceptions import LegalAcceptanceError
-from .providers.base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
+from .providers.base import BaseProvider, MeasurementResult, ProviderInfo, ServerIDType, ServerInfo
 from .terms import (
     LegalTerms,
     LegalTermsCategory,
@@ -23,14 +22,6 @@ _PROVIDERS: dict[str, type[BaseProvider]] = {}
 logger = get_logger("core")
 
 B = TypeVar("B", bound=BaseProvider)
-
-
-@dataclass
-class ProviderInfo:
-    """Information about a provider."""
-
-    name: str
-    description: list[str]
 
 
 def _normalize_provider_name(name: str) -> str:

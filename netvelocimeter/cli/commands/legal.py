@@ -40,9 +40,9 @@ def legal_accept() -> None:
         raise typer.Exit(code=1)
 
     nv = NetVelocimeter(
-        provider=state["provider"],
-        bin_root=state["bin_root"],
-        config_root=state["config_root"],
+        provider=state.provider,
+        bin_root=state.bin_root,
+        config_root=state.config_root,
     )
     try:
         # Parse the JSON input
@@ -81,21 +81,25 @@ def legal_list(
 ) -> None:
     """List legal terms for the selected provider."""
     logger.info(
-        f"Listing legal terms for provider '{state['provider']}' with category filter {category}"
+        f"Listing legal terms for provider '{state.provider}' with category filter {category}"
     )
 
     nv = NetVelocimeter(
-        provider=state["provider"],
-        bin_root=state["bin_root"],
-        config_root=state["config_root"],
+        provider=state.provider,
+        bin_root=state.bin_root,
+        config_root=state.config_root,
     )
 
     # Get the list of legal terms
     legal_terms = nv.legal_terms(category)
     logger.debug(
-        f"Provider '{state['provider']}' has {len(legal_terms)} legal terms after filter '{category}'"
+        f"Provider '{state.provider}' has {len(legal_terms)} legal terms after filter '{category}'"
     )
-    typer.echo(format_records(legal_terms, state["format"]) if legal_terms else "No legal terms.")
+    typer.echo(
+        format_records(legal_terms, state.format, state.escape_ws)
+        if legal_terms
+        else "No legal terms."
+    )
 
 
 @legal_app.command(name="status")
@@ -112,9 +116,9 @@ def legal_status(
 ) -> None:
     """Status for acceptance of legal terms for the selected provider."""
     nv = NetVelocimeter(
-        provider=state["provider"],
-        bin_root=state["bin_root"],
-        config_root=state["config_root"],
+        provider=state.provider,
+        bin_root=state.bin_root,
+        config_root=state.config_root,
     )
 
     # Check if terms are accepted
@@ -123,7 +127,7 @@ def legal_status(
         term.accepted = nv.has_accepted_terms(term)
 
     # Display the status of legal terms
-    typer.echo(format_records(terms, state["format"]) if terms else "No legal terms.")
+    typer.echo(format_records(terms, state.format, state.escape_ws) if terms else "No legal terms.")
 
     # exit with success if all terms are accepted
     if all(term.accepted for term in terms):

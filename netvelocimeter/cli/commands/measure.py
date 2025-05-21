@@ -25,5 +25,5 @@ def register_measure_commands(app: Typer) -> None:
 @measure_app.command(name="run")
 def measure_run() -> None:
     """Run a measurement with the selected provider."""
-    logger.info("Starting measurement with provider: %s", state["provider"])
+    logger.info("Starting measurement with provider: %s", state.provider)
     # Implementation goes here
