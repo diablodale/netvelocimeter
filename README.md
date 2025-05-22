@@ -170,6 +170,53 @@ except Exception as e:
     print(f"Error running test: {e}")
 ```
 
+## Command Line Interface (CLI)
+
+NetVelocimeter provides a CLI for network measurement, server selection, provider info, and legal terms management.
+
+### Usage
+
+```bash
+netvelocimeter [GLOBAL OPTIONS] COMMAND [ARGS]...
+
+# Example:
+netvelocimeter --provider ookla --format json measure run
+```
+
+#### Common Global Options
+
+- `--format, -f FORMAT`     Output format: text, csv, tsv, json
+- `--provider, -p NAME`     Service provider to use (e.g. ookla, static)
+- `--help`                  Show help message, options, then exit
+
+### Commands
+
+For details on each command and its options, use `--help` after the command, e.g.:
+
+```bash
+netvelocimeter legal list --help
+```
+
+#### measure
+
+- `measure run` Run a measurement with the selected provider.
+
+#### server
+
+- `server list` List available servers for the selected provider.
+
+#### legal
+
+- `legal accept` Accept legal terms (JSON only) from stdin for the selected provider.
+
+- `legal list` List legal terms for the selected provider, optionally filtered by category.
+
+- `legal status` Show acceptance status for legal terms for the selected provider, optionally filtered by category.
+
+#### provider
+
+- `provider list` List all available providers.
+
 ## Development
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen)](https://pre-commit.com/)
