@@ -50,7 +50,7 @@ def format_records(records: Sequence[Any], fmt: OutputFormat, escape_ws: bool = 
         return ""
 
     if fmt == OutputFormat.TEXT:
-        return "\n\n".join(str(record) for record in records)
+        return "\n\n".join(format(record) for record in records)
 
     elif fmt in (OutputFormat.CSV, OutputFormat.TSV):
         # Get dictionary fields from first record, remove the "raw" field

@@ -354,7 +354,7 @@ class TestLegalTermsRepresentation(unittest.TestCase):
             category=LegalTermsCategory.EULA,
             text="Sample EULA text",
         )
-        result = str(terms)
+        result = format(terms)
 
         self.assertIn("category: eula", result)
         self.assertIn("text: Sample EULA text", result)

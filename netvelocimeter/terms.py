@@ -1,18 +1,22 @@
 """Models for handling legal terms and their acceptance."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 import json
 import os
 from typing import Any
 
+from .utils.formatters import TwoColumnFormatMixin
 from .utils.hash import hash_b64encode
 from .utils.xdg import XDGCategory
 
 
 class LegalTermsCategory(str, Enum):
     """Categories of legal terms."""
+
+    # idiomatic way to prevent a __dict__ on immutable subclasses
+    __slots__ = ()
 
     EULA = "eula"
     """End User License Agreement"""
@@ -32,18 +36,30 @@ class LegalTermsCategory(str, Enum):
     ALL = "all"
     """Special value to represent all categories"""
 
+    def __format__(self, format_spec: str) -> str:
+        """Format the enum value for display.
+
+        Args:
+            format_spec: Format specification string
+
+        Returns:
+            The enum value as a string.
+        """
+        return format(self.value, format_spec)
+
 
 LegalTermsCategoryCollection = list[LegalTermsCategory]
 
 
 @dataclass
-class LegalTerms:
+class LegalTerms(TwoColumnFormatMixin):
     """Representation of a single legal terms document."""
 
     category: LegalTermsCategory
     text: str | None = None
     url: str | None = None
     accepted: bool | None = None
+    _format_prefix: str = field(default="terms_", init=False)
 
     def __post_init__(self) -> None:
         """Post-initialization checks for the LegalTerms class."""
@@ -54,21 +70,6 @@ class LegalTerms:
         # Ensure category is valid
         if not isinstance(self.category, LegalTermsCategory):
             raise ValueError(f"Invalid legal terms category: {self.category}")
-
-    def __str__(self) -> str:
-        """Return a string representation of the legal terms.
-
-        Returns:
-            A string with the category and either text or URL.
-        """
-        parts = [f"category: {self.category.value}"]
-        if self.text:
-            parts.append(f"text: {self.text}")
-        if self.url:
-            parts.append(f"url: {self.url}")
-        if self.accepted is not None:
-            parts.append(f"accepted: {'true ✅' if self.accepted else 'false ❌'}")
-        return "\n".join(parts)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert the LegalTerms object to a dictionary.

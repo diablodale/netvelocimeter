@@ -1,6 +1,5 @@
 """Test server list and server selection features."""
 
-from datetime import timedelta
 import unittest
 from unittest import mock
 
@@ -9,6 +8,7 @@ from packaging.version import Version
 from netvelocimeter import NetVelocimeter
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerInfo
 from netvelocimeter.terms import LegalTermsCategory
+from netvelocimeter.utils.rates import DataRateMbps, TimeDuration
 
 
 class ServerFeaturesMockProvider(BaseProvider):
@@ -46,10 +46,10 @@ class ServerFeaturesMockProvider(BaseProvider):
     def _measure(self, server_id=None, server_host=None):
         """Return mock measurement results."""
         return MeasurementResult(
-            download_speed=100.0,
-            upload_speed=50.0,
-            ping_latency=timedelta(milliseconds=10.0),
-            ping_jitter=timedelta(milliseconds=2.0),
+            download_speed=DataRateMbps(100.0),
+            upload_speed=DataRateMbps(50.0),
+            ping_latency=TimeDuration(milliseconds=10.0),
+            ping_jitter=TimeDuration(milliseconds=2.0),
             server_info=ServerInfo(
                 id=server_id if server_id else 832476,
                 name=f"Server {server_host}{server_id}",

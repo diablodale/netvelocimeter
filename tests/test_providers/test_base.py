@@ -1,6 +1,5 @@
 """Tests for the base provider."""
 
-from datetime import timedelta
 import shutil
 import tempfile
 from unittest import TestCase
@@ -10,6 +9,7 @@ from packaging.version import Version
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerInfo
 from netvelocimeter.providers.static import StaticProvider
 from netvelocimeter.terms import LegalTermsCategory
+from netvelocimeter.utils.rates import DataRateMbps, Percentage, TimeDuration
 
 
 class MockProvider(BaseProvider):
@@ -30,8 +30,8 @@ class MockProvider(BaseProvider):
         return MeasurementResult(
             download_speed=100.0,
             upload_speed=50.0,
-            ping_latency=timedelta(milliseconds=20),
-            ping_jitter=timedelta(milliseconds=5),
+            ping_latency=TimeDuration(milliseconds=20),
+            ping_jitter=TimeDuration(milliseconds=5),
         )
 
 
@@ -171,45 +171,46 @@ class TestBaseProviderImplementation(TestCase):
 class TestMeasurementResult(TestCase):
     """Tests for MeasurementResult class."""
 
-    def test_str_representation(self):
+    def test_format_representation(self):
         """Test string representation of measurement results."""
         result = MeasurementResult(
-            download_speed=100.5,
-            upload_speed=20.25,
-            download_latency=timedelta(milliseconds=10.5),
-            upload_latency=timedelta(milliseconds=5.25),
-            ping_latency=timedelta(milliseconds=15.75),
-            ping_jitter=timedelta(milliseconds=3.5),
-            packet_loss=0.1,
+            download_speed=DataRateMbps(100.5),
+            upload_speed=DataRateMbps(20.25),
+            download_latency=TimeDuration(milliseconds=10.5),
+            upload_latency=TimeDuration(milliseconds=5.25),
+            ping_latency=TimeDuration(milliseconds=15.75),
+            ping_jitter=TimeDuration(milliseconds=3.5),
+            packet_loss=Percentage(0.1),
             persist_url="https://example.com/results/1234",
             id="test-measurement-123456",
         )
 
-        str_result = str(result)
+        str_result = format(result)
         # Check that output contains expected values
-        self.assertIn("Download: 100.50 Mbps", str_result)
-        self.assertIn("Upload: 20.25 Mbps", str_result)
-        self.assertIn("Download Latency: 10.50 ms", str_result)
-        self.assertIn("Upload Latency: 5.25 ms", str_result)
-        self.assertIn("Ping Latency: 15.75 ms", str_result)
-        self.assertIn("Ping Jitter: 3.50 ms", str_result)
-        self.assertIn("Packet Loss: 0.10%", str_result)
-        self.assertIn("ID: test-measurement-123456", str_result)
-        self.assertIn("URL: https://example.com/results/1234", str_result)
+        self.assertRegex(str_result, r"download_speed:\s+100.50 Mbps")
+        self.assertRegex(str_result, r"upload_speed:\s+20.25 Mbps")
+        self.assertRegex(str_result, r"download_latency:\s+10.50 ms")
+        self.assertRegex(str_result, r"upload_latency:\s+5.25 ms")
+        self.assertRegex(str_result, r"ping_latency:\s+15.75 ms")
+        self.assertRegex(str_result, r"ping_jitter:\s+3.50 ms")
+        self.assertRegex(str_result, r"packet_loss:\s+0.10 %")
+        self.assertRegex(str_result, r"id:\s+test-measurement-123456")
+        self.assertRegex(str_result, r"url:\s+https://example.com/results/1234")
 
     def test_str_representation_with_server_info(self):
         """Test string representation of measurement results with server info."""
         result = MeasurementResult(
-            download_speed=100.5,
-            upload_speed=20.25,
-            ping_latency=timedelta(milliseconds=15.75),
+            download_speed=DataRateMbps(100.5),
+            upload_speed=DataRateMbps(20.25),
+            ping_latency=TimeDuration(milliseconds=15.75),
             server_info=ServerInfo(name="Test Server", id=1234, host="test.example.com"),
         )
-        str_result = str(result)
+        str_result = format(result)
         # Check that output contains expected values
-        self.assertIn("name: Test Server\nid: 1234", str_result)
-        self.assertIn("Download: 100.50 Mbps", str_result)
-        self.assertIn("Upload: 20.25 Mbps", str_result)
+        self.assertRegex(str_result, r"server_name:\s+Test Server")
+        self.assertRegex(str_result, r"server_id:\s+1234")
+        self.assertRegex(str_result, r"download_speed:\s+100.50 Mbps")
+        self.assertRegex(str_result, r"upload_speed:\s+20.25 Mbps")
 
     def test_server_info_with_optional_id(self):
         """Test ServerInfo with and without ID."""
@@ -234,23 +235,25 @@ class TestMeasurementResult(TestCase):
         """Test string representation of measurement results with server without ID."""
         server_info = ServerInfo(name="Test Server No ID", host="test.example.com")
         result = MeasurementResult(
-            download_speed=100.5,
-            upload_speed=20.25,
-            ping_latency=timedelta(milliseconds=15.75),
+            download_speed=DataRateMbps(100.5),
+            upload_speed=DataRateMbps(20.25),
+            ping_latency=TimeDuration(milliseconds=15.75),
             server_info=server_info,
         )
 
-        str_result = str(result)
-        self.assertIn("name: Test Server No ID", str_result)
+        str_result = format(result)
+        self.assertRegex(str_result, r"server_name:\s+Test Server No ID")
         self.assertNotIn("id:", str_result)
 
     def test_measurement_result_with_no_speeds(self):
         """Test MeasurementResult with no speeds."""
         with self.assertRaises(TypeError):
-            _ = MeasurementResult(download_speed=123, ping_latency=timedelta(milliseconds=15.75))
+            _ = MeasurementResult(download_speed=123, ping_latency=TimeDuration(milliseconds=15.75))
         with self.assertRaises(TypeError):
-            _ = MeasurementResult(upload_speed=123, ping_latency=timedelta(milliseconds=15.75))
+            _ = MeasurementResult(upload_speed=123, ping_latency=TimeDuration(milliseconds=15.75))
         with self.assertRaises(ValueError):
             _ = MeasurementResult(
-                download_speed=None, upload_speed=None, ping_latency=timedelta(milliseconds=15.75)
+                download_speed=None,
+                upload_speed=None,
+                ping_latency=TimeDuration(milliseconds=15.75),
             )

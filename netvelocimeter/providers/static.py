@@ -1,6 +1,5 @@
 """Static provider usually used for testing."""
 
-from datetime import timedelta
 import re
 
 from packaging.version import Version
@@ -12,6 +11,7 @@ from ..terms import (
     LegalTermsCategoryCollection,
     LegalTermsCollection,
 )
+from ..utils.rates import DataRateMbps, Percentage, TimeDuration
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
 
@@ -32,13 +32,13 @@ class StaticProvider(BaseProvider):
         terms_url: str | None = "https://example.com/terms",
         privacy_text: str | None = "Test Privacy",
         privacy_url: str | None = "https://example.com/privacy",
-        download_speed: float = 100.0,
-        upload_speed: float = 50.0,
-        download_latency: timedelta = timedelta(milliseconds=30.0),
-        upload_latency: timedelta = timedelta(milliseconds=60.0),
-        ping_latency: timedelta = timedelta(milliseconds=25.0),
-        ping_jitter: timedelta = timedelta(milliseconds=20.0),
-        packet_loss: float = 1.3,
+        download_speed: DataRateMbps = DataRateMbps(100.0),  # noqa: B008
+        upload_speed: DataRateMbps = DataRateMbps(50.0),  # noqa: B008
+        download_latency: TimeDuration = TimeDuration(milliseconds=30.0),  # noqa: B008
+        upload_latency: TimeDuration = TimeDuration(milliseconds=60.0),  # noqa: B008
+        ping_latency: TimeDuration = TimeDuration(milliseconds=25.0),  # noqa: B008
+        ping_jitter: TimeDuration = TimeDuration(milliseconds=20.0),  # noqa: B008
+        packet_loss: Percentage = Percentage(1.3),  # noqa: B008
         version: str = "1.2.3+c0ffee",
         config_root: str | None = None,
     ):
