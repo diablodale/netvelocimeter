@@ -69,7 +69,7 @@ class MeasurementResult(TwoColumnFormatMixin):
         if self.upload_speed is None or not isinstance(self.upload_speed, DataRateMbps):
             raise ValueError("Upload speed must be a DataRateMbps instance")
 
-        # Ensure that download and upload latencies are TimeDuration instances
+        # Ensure that latencies and jitter are None or TimeDuration instances
         if self.download_latency is not None and not isinstance(
             self.download_latency, TimeDuration
         ):
@@ -81,6 +81,22 @@ class MeasurementResult(TwoColumnFormatMixin):
         if self.ping_jitter is not None and not isinstance(self.ping_jitter, TimeDuration):
             raise ValueError("Ping jitter must be a TimeDuration instance")
 
-        # Ensure packet loss is a Percentage instance
+        # Ensure packet loss is None or Percentage instance
         if self.packet_loss is not None and not isinstance(self.packet_loss, Percentage):
             raise ValueError("Packet loss must be a Percentage instance")
+
+        # Ensure server_info is None or ServerInfo instance
+        if self.server_info is not None and not isinstance(self.server_info, ServerInfo):
+            raise ValueError("Server info must be a ServerInfo instance")
+
+        # Ensure persist_url is None or a string
+        if self.persist_url is not None and not isinstance(self.persist_url, str):
+            raise ValueError("Persist URL must be a string")
+
+        # Ensure id is None or a string
+        if self.id is not None and not isinstance(self.id, str):
+            raise ValueError("ID must be a string")
+
+        # Ensure raw is None or a dictionary
+        if self.raw is not None and not isinstance(self.raw, dict):
+            raise ValueError("Raw data must be a dictionary")

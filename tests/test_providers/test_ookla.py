@@ -287,6 +287,40 @@ class TestOoklaProvider(unittest.TestCase):
         # Verify server info is None
         self.assertIsNone(result.server_info)
 
+    def test_measure_with_results_missing_download_bandwidth(self):
+        """Test measurement with missing download bandwidth."""
+        # Mock successful measurement
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = json.dumps(
+            {
+                "upload": {"bandwidth": 2500000, "latency": {"iqm": 178.546}},
+                "ping": {"latency": 15.5, "jitter": 3.2},
+            }
+        )
+        with mock.patch("subprocess.run", return_value=mock_process):
+            # Run measurement
+            with self.assertRaises(KeyError) as context:
+                _ = self.provider._measure()
+            self.assertIn("bandwidth missing", str(context.exception))
+
+    def test_measure_with_results_missing_upload_bandwidth(self):
+        """Test measurement with missing upload bandwidth."""
+        # Mock successful measurement
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = json.dumps(
+            {
+                "download": {"bandwidth": 12500000, "latency": {"iqm": 42.985}},
+                "ping": {"latency": 15.5, "jitter": 3.2},
+            }
+        )
+        with mock.patch("subprocess.run", return_value=mock_process):
+            # Run measurement
+            with self.assertRaises(KeyError) as context:
+                _ = self.provider._measure()
+            self.assertIn("bandwidth missing", str(context.exception))
+
     def test_parse_version(self):
         """Test getting provider version."""
         # Version is already mocked in setUp

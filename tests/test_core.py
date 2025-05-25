@@ -17,6 +17,7 @@ from netvelocimeter.core import _PROVIDERS
 from netvelocimeter.exceptions import LegalAcceptanceError
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerIDType
 from netvelocimeter.terms import LegalTerms, LegalTermsCategory
+from netvelocimeter.utils.rates import DataRateMbps
 
 
 class MockProviderWithTerms(BaseProvider):
@@ -31,7 +32,7 @@ class MockProviderWithTerms(BaseProvider):
         self, server_id: ServerIDType | None = None, server_host: str | None = None
     ) -> MeasurementResult:
         """Mock measurement method."""
-        return MeasurementResult(download_speed=1.0, upload_speed=1.0)
+        return MeasurementResult(download_speed=DataRateMbps(1.0), upload_speed=DataRateMbps(1.0))
 
     def _legal_terms(self, categories=LegalTermsCategory.ALL):
         """Return mock legal terms."""

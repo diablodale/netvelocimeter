@@ -11,6 +11,7 @@ from netvelocimeter import NetVelocimeter, get_provider
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.static import StaticProvider
 from netvelocimeter.terms import LegalTermsCategory
+from netvelocimeter.utils.rates import DataRateMbps, Percentage, TimeDuration
 
 
 class TestStaticProvider(unittest.TestCase):
@@ -128,11 +129,11 @@ class TestStaticProvider(unittest.TestCase):
     def test_measure_without_server(self):
         """Test measurement without server specification."""
         provider = StaticProvider(
-            download_speed=150.0,
-            upload_speed=30.0,
-            ping_latency=timedelta(milliseconds=20.0),
-            ping_jitter=timedelta(milliseconds=4.0),
-            packet_loss=1.2,
+            download_speed=DataRateMbps(150.0),
+            upload_speed=DataRateMbps(30.0),
+            ping_latency=TimeDuration(milliseconds=20.0),
+            ping_jitter=TimeDuration(milliseconds=4.0),
+            packet_loss=Percentage(1.2),
             config_root=self.temp_dir,
         )
 
@@ -142,11 +143,11 @@ class TestStaticProvider(unittest.TestCase):
         result = provider._measure()
 
         # Check measurement results
-        self.assertEqual(result.download_speed, 150.0)
-        self.assertEqual(result.upload_speed, 30.0)
-        self.assertEqual(result.ping_latency, timedelta(milliseconds=20.0))
-        self.assertEqual(result.ping_jitter, timedelta(milliseconds=4.0))
-        self.assertEqual(result.packet_loss, 1.2)
+        self.assertEqual(result.download_speed, DataRateMbps(150.0))
+        self.assertEqual(result.upload_speed, DataRateMbps(30.0))
+        self.assertEqual(result.ping_latency, TimeDuration(milliseconds=20.0))
+        self.assertEqual(result.ping_jitter, TimeDuration(milliseconds=4.0))
+        self.assertEqual(result.packet_loss, Percentage(1.2))
 
         # Check default server info (should use server 1)
         self.assertEqual(result.server_info.name, "Test Server 1")

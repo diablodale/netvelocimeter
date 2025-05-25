@@ -172,7 +172,7 @@ class TestMeasurementResult(TestCase):
     """Tests for MeasurementResult class."""
 
     def test_format_representation(self):
-        """Test string representation of measurement results."""
+        """Test format representation of measurement results."""
         result = MeasurementResult(
             download_speed=DataRateMbps(100.5),
             upload_speed=DataRateMbps(20.25),
@@ -197,8 +197,8 @@ class TestMeasurementResult(TestCase):
         self.assertRegex(str_result, r"id:\s+test-measurement-123456")
         self.assertRegex(str_result, r"url:\s+https://example.com/results/1234")
 
-    def test_str_representation_with_server_info(self):
-        """Test string representation of measurement results with server info."""
+    def test_format_representation_with_server_info(self):
+        """Test format representation of measurement results with server info."""
         result = MeasurementResult(
             download_speed=DataRateMbps(100.5),
             upload_speed=DataRateMbps(20.25),
@@ -231,8 +231,8 @@ class TestMeasurementResult(TestCase):
         with self.assertRaises(TypeError):
             _ = ServerInfo(id="1234", host="test.example.com")
 
-    def test_measurement_result_str_with_server_without_id(self):
-        """Test string representation of measurement results with server without ID."""
+    def test_measurement_result_format_with_server_without_id(self):
+        """Test format representation of measurement results with server without ID."""
         server_info = ServerInfo(name="Test Server No ID", host="test.example.com")
         result = MeasurementResult(
             download_speed=DataRateMbps(100.5),

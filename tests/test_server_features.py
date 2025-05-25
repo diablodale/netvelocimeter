@@ -110,14 +110,20 @@ class TestServerFeatures(unittest.TestCase):
         self.assertEqual(result.server_info.id, 832476)
 
     @mock.patch("netvelocimeter.core.get_provider")
-    def test_string_representation(self, mock_get_provider):
-        """Test string representation of server info."""
+    def test_format_representation(self, mock_get_provider):
+        """Test format representation of server info."""
         mock_get_provider.return_value = ServerFeaturesMockProvider
         nv = NetVelocimeter()
 
         # Get the first server
         server = nv.servers[0]
 
-        # Check string representation
-        expected_str = "name: Server 1\nid: 1\nhost: host1.example.com\nlocation: Location 1\ncountry: Country 1"
-        self.assertEqual(str(server), expected_str)
+        # Check format representation
+        expected = (
+            r"name:\s+Server 1\n"
+            r"id:\s+1\n"
+            r"host:\s+host1.example.com\n"
+            r"location:\s+Location 1\n"
+            r"country:\s+Country 1"
+        )
+        self.assertRegex(format(server), expected)

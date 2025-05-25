@@ -1,6 +1,5 @@
 """Ookla Speedtest.net provider implementation."""
 
-from datetime import timedelta
 import json
 import platform
 import re
@@ -18,6 +17,7 @@ from ..terms import (
     LegalTermsCollection,
 )
 from ..utils.binary_manager import BinaryManager
+from ..utils.rates import DataRateMbps, Percentage, TimeDuration
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
 
@@ -308,10 +308,11 @@ class OoklaProvider(BaseProvider):
         download_data = result.get("download", {})
         upload_data = result.get("upload", {})
 
-        # Convert bytes/s to Mbps (megabits per second)
-        # cause exception if missing
-        download_mbps = download_data.get("bandwidth") * 8 / 1_000_000
-        upload_mbps = upload_data.get("bandwidth") * 8 / 1_000_000
+        # Get download and upload bandwidth in bytes per second
+        download_bytes_per_sec = download_data.get("bandwidth", None)
+        upload_bytes_per_sec = upload_data.get("bandwidth", None)
+        if download_bytes_per_sec is None or upload_bytes_per_sec is None:
+            raise KeyError("Download or upload bandwidth missing from Ookla result")
 
         # Extract download and upload latency
         download_latency_ms = download_data.get("latency", {}).get("iqm", None)
@@ -321,6 +322,9 @@ class OoklaProvider(BaseProvider):
         ping_latency_ms = result.get("ping", {}).get("latency", None)
         ping_jitter_ms = result.get("ping", {}).get("jitter", None)
 
+        # Extract packet loss percentage
+        packet_loss = result.get("packetLoss", None)
+
         # Extract result ID and persist URL if available
         result_data = result.get("result", {})
         result_id = result_data.get("id", None)
@@ -328,13 +332,21 @@ class OoklaProvider(BaseProvider):
 
         # Convert to timedeltas
         return MeasurementResult(
-            download_speed=download_mbps,
-            upload_speed=upload_mbps,
-            download_latency=timedelta(milliseconds=download_latency_ms),
-            upload_latency=timedelta(milliseconds=upload_latency_ms),
-            ping_latency=timedelta(milliseconds=ping_latency_ms),
-            ping_jitter=timedelta(milliseconds=ping_jitter_ms),
-            packet_loss=result.get("packetLoss"),
+            download_speed=DataRateMbps(download_bytes_per_sec * 8 / 1_000_000),
+            upload_speed=DataRateMbps(upload_bytes_per_sec * 8 / 1_000_000),
+            download_latency=None
+            if download_latency_ms is None
+            else TimeDuration(milliseconds=download_latency_ms),
+            upload_latency=None
+            if upload_latency_ms is None
+            else TimeDuration(milliseconds=upload_latency_ms),
+            ping_latency=None
+            if ping_latency_ms is None
+            else TimeDuration(milliseconds=ping_latency_ms),
+            ping_jitter=None
+            if ping_jitter_ms is None
+            else TimeDuration(milliseconds=ping_jitter_ms),
+            packet_loss=None if packet_loss is None else Percentage(packet_loss),
             server_info=server_info,
             persist_url=persist_url,
             id=result_id,
