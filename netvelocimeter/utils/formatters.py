@@ -9,71 +9,64 @@ from netvelocimeter.utils.logger import get_logger
 logger = get_logger("cli.measure")
 
 
-def pretty_print_two_columns(obj: object, prefix: str | None = None) -> str:
-    """Pretty print any dataclass or class with __dict__ in two columns.
+def _flatten_fields(obj: object, prefix: str = "") -> tuple[list[tuple[str, object]], int]:
+    """Flatten the object graph into a list of (field_name, value) and find max width."""
+    fields = []
+    max_width = 0
 
-    The first column contains the field names (ending with a colon), left-justified and padded to field_width.
-    The second column contains the field values, left-justified.
-
-    Args:
-        obj: The object to pretty print.
-        prefix: A string to prepend to each field name.
-            - None will use the `_format_prefix` attribute on the object if it exists,
-              or default to an empty string.
-            - A string will be used as the prefix for each field name.
-
-    Returns:
-        A string with the pretty-printed fields.
-    """
-    # Prefer dataclasses, fallback to __dict__
     if hasattr(obj, "__dataclass_fields__"):
-        fields = obj.__dataclass_fields__.keys()
+        field_names = obj.__dataclass_fields__.keys()
     elif hasattr(obj, "__dict__"):
-        fields = obj.__dict__.keys()
+        field_names = obj.__dict__.keys()
     else:
-        raise TypeError(
-            f"Object of type {type(obj).__name__} is not supported for pretty printing."
-        )
+        return [], 0
 
-    # use the _format_prefix attribute if it exists, otherwise default to empty string
-    if prefix is None:
-        prefix = getattr(obj, "_format_prefix", "")
-        logger.info(f"Using prefix: {prefix}")
+    field_names = [name for name in field_names if not name.startswith("_") and name != "raw"]
 
-    # remove raw and private fields
-    fields = [name for name in fields if not name.startswith("_") and name != "raw"]
-
-    # calc field width for column 1
-    field_width = max(len(name) for name in fields) + len(prefix) + 1
-
-    lines = []
-    for name in fields:
-        # get the value of the field
+    for name in field_names:
         value = getattr(obj, name)
         if value is None:
             continue
-
-        # recurse if the value is a dataclass or has __dict__
-        logger.debug(f"Processing field '{name}' with value: {value!r}")
+        field_label = f"{prefix}{name}:"
+        max_width = max(max_width, len(field_label))
+        # Recurse for nested objects
         if not isinstance(value, Enum) and (
             hasattr(value, "__dict__") or hasattr(value, "__dataclass_fields__")
         ):
-            # recurse to pretty print nested dataclass or object and use the class' format prefix
-            lines.append(pretty_print_two_columns(value))
-            continue
+            nested_prefix = getattr(value, "_format_prefix", "")
+            logger.debug(f"Flatten nested: {name} type={type(value)} prefix={nested_prefix}")
+            nested_fields, nested_width = _flatten_fields(value, nested_prefix)
+            fields.extend(nested_fields)
+            max_width = max(max_width, nested_width)
+        else:
+            fields.append((field_label, value))
+    return fields, max_width
 
-        # else normalize to sequence
+
+def pretty_print_two_columns(obj: object, prefix: str) -> str:
+    """Pretty print any dataclass or class with __dict__ in two columns, with correct alignment.
+
+    Args:
+        obj: The object to format, which can be a dataclass or any class with __dict__.
+        prefix: Prefix to prepend to field names. Nested objects can set this via their `_format_prefix` attribute.
+
+    Returns:
+        A formatted string representing the object in two columns.
+    """
+    fields, field_width = _flatten_fields(obj, prefix)
+    lines = []
+    for field_label, value in fields:
+        # Normalize value to sequence for multi-line values
         if isinstance(value, str) or not isinstance(value, Sequence):
             value = [value]
 
-        # iterate over the values, printing the field name on the first line
+        # Handle single-line and multi-line values
         iterator = iter(value)
-        lines.append(f"{prefix + name + ':':<{field_width}} {next(iterator)}")
+        lines.append(f"{field_label:<{field_width}} {next(iterator)}")
         for line in iterator:
-            # Indent subsequent lines
             lines.append(" " * field_width + f" {line}")
 
-    # return the formatted string, one line per field
+    # Return the formatted string with each line separated by a newline
     return "\n".join(lines)
 
 
