@@ -110,7 +110,7 @@ def legal_status(
         typer.Option(
             "--category",
             "-c",
-            help="Category filter (defaults to all categories)",
+            help="Category filter",
             case_sensitive=False,
         ),
     ] = [LegalTermsCategory.ALL],  # noqa: B006
