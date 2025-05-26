@@ -9,7 +9,7 @@ from ..main import state
 from ..utils.formatters import format_records
 
 # Get logger for server commands
-logger = get_logger("cli.server")
+logger = get_logger(__name__)
 
 # Create server command group
 server_app = Typer(

@@ -9,7 +9,7 @@ from ..main import state
 from ..utils.formatters import format_records
 
 # Get logger for provider commands
-logger = get_logger("cli.provider")
+logger = get_logger(__name__)
 
 # Create provider command group
 provider_app = Typer(

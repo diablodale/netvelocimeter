@@ -178,7 +178,7 @@ def global_options(
     # Configure logger
     setup_logging(level=log_level, force=True)
     global logger
-    logger = get_logger("cli")
+    logger = get_logger(__name__)
 
     if version:
         typer.echo(f"NetVelocimeter {version_string}")

@@ -6,7 +6,7 @@ from enum import Enum
 from netvelocimeter.utils.logger import get_logger
 
 # Get logger for measure commands
-logger = get_logger("cli.measure")
+logger = get_logger(__name__)
 
 
 def _flatten_fields(obj: object, prefix: str = "") -> tuple[list[tuple[str, object]], int]:

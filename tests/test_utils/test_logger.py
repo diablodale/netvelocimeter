@@ -39,7 +39,7 @@ class TestLogger(unittest.TestCase):
         """Test that get_logger returns correctly named loggers."""
         # Test component logger
         component_logger = get_logger("test_component")
-        self.assertEqual(component_logger.name, f"{ROOT_LOGGER_NAME}.test_component")
+        self.assertEqual(component_logger.name, "test_component")
 
         # Test root logger
         root_logger = get_logger(ROOT_LOGGER_NAME)
@@ -50,9 +50,9 @@ class TestLogger(unittest.TestCase):
         parent_logger = get_logger("parent")
         child_logger = get_logger("parent.child")
 
-        # Child should inherit from parent
-        self.assertEqual(parent_logger.name, f"{ROOT_LOGGER_NAME}.parent")
-        self.assertEqual(child_logger.name, f"{ROOT_LOGGER_NAME}.parent.child")
+        self.assertIsNot(parent_logger, child_logger)
+        self.assertEqual(parent_logger.name, "parent")
+        self.assertEqual(child_logger.name, "parent.child")
 
     def test_logger_hierarchy_log_levels(self):
         """Test that loggers maintain proper hierarchy with different levels."""

@@ -22,7 +22,7 @@ from .utils.logger import get_logger
 _PROVIDERS: dict[str, type[BaseProvider]] = {}
 
 # Get logger for the core component
-logger = get_logger("core")
+logger = get_logger(__name__)
 
 B = TypeVar("B", bound=BaseProvider)
 

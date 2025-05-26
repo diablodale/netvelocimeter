@@ -13,7 +13,7 @@ from ..main import state
 from ..utils.formatters import format_records
 
 # Get logger for legal commands
-logger = get_logger("cli.legal")
+logger = get_logger(__name__)
 
 # Create legal command group
 legal_app = Typer(

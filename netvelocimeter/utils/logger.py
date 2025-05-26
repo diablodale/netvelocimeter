@@ -73,16 +73,14 @@ def setup_logging(
         _root_logger.addHandler(handler)
 
 
-def get_logger(name: str = ROOT_LOGGER_NAME) -> logging.Logger:
+def get_logger(name: str) -> logging.Logger:
     """Get a logger for a component.
 
     Args:
-        name: Component name (e.g., "core", "providers")
+        name: Hierarchical name for the logger. Idiomatic is to pass `__name__`.
 
     Returns:
         Configured logger instance
     """
     setup_logging()
-    return logging.getLogger(
-        f"{ROOT_LOGGER_NAME}.{name}" if name != ROOT_LOGGER_NAME else ROOT_LOGGER_NAME
-    )
+    return logging.getLogger(name)

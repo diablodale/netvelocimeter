@@ -9,7 +9,7 @@ from ..main import state
 from ..utils.formatters import format_records
 
 # Get logger for measure commands
-logger = get_logger("cli.measure")
+logger = get_logger(__name__)
 
 # Create measure command group
 measure_app = Typer(
