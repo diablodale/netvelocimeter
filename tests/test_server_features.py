@@ -6,8 +6,8 @@ from unittest import mock
 from packaging.version import Version
 
 from netvelocimeter import NetVelocimeter
+from netvelocimeter.legal import LegalTermsCategory
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerInfo
-from netvelocimeter.terms import LegalTermsCategory
 from netvelocimeter.utils.rates import DataRateMbps, TimeDuration
 
 

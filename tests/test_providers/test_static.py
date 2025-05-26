@@ -8,9 +8,9 @@ import unittest
 from packaging.version import Version
 
 from netvelocimeter import NetVelocimeter, get_provider
+from netvelocimeter.legal import LegalTermsCategory
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.static import StaticProvider
-from netvelocimeter.terms import LegalTermsCategory
 from netvelocimeter.utils.rates import DataRateMbps, Percentage, TimeDuration
 
 

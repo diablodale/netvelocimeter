@@ -17,9 +17,9 @@ from packaging.version import InvalidVersion, Version
 import pytest
 
 from netvelocimeter.exceptions import PlatformNotSupported
+from netvelocimeter.legal import LegalTermsCategory
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.ookla import OoklaProvider
-from netvelocimeter.terms import LegalTermsCategory
 from netvelocimeter.utils.binary_manager import BinaryManager
 
 

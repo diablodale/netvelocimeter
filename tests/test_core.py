@@ -15,8 +15,8 @@ from netvelocimeter import (
 )
 from netvelocimeter.core import _PROVIDERS
 from netvelocimeter.exceptions import LegalAcceptanceError
+from netvelocimeter.legal import LegalTerms, LegalTermsCategory
 from netvelocimeter.providers.base import BaseProvider, MeasurementResult, ServerIDType
-from netvelocimeter.terms import LegalTerms, LegalTermsCategory
 from netvelocimeter.utils.rates import DataRateMbps
 
 

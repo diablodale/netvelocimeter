@@ -5,7 +5,7 @@ import re
 from packaging.version import Version
 
 from ..core import register_provider
-from ..terms import (
+from ..legal import (
     LegalTerms,
     LegalTermsCategory,
     LegalTermsCategoryCollection,

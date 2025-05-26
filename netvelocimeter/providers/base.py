@@ -5,7 +5,7 @@ from typing import final
 
 from packaging.version import Version
 
-from ..terms import (
+from ..legal import (
     AcceptanceTracker,
     LegalTerms,
     LegalTermsCategory,

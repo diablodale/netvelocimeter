@@ -7,7 +7,7 @@ import typer
 from typer import Typer
 
 from ... import NetVelocimeter
-from ...terms import LegalTerms, LegalTermsCategory, LegalTermsCategoryCollection
+from ...legal import LegalTerms, LegalTermsCategory, LegalTermsCategoryCollection
 from ...utils.logger import get_logger
 from ..main import state
 from ..utils.formatters import format_records

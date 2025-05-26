@@ -8,8 +8,8 @@ from unittest import mock
 
 from netvelocimeter import NetVelocimeter
 from netvelocimeter.exceptions import LegalAcceptanceError
+from netvelocimeter.legal import LegalTermsCategory
 from netvelocimeter.providers.static import StaticProvider
-from netvelocimeter.terms import LegalTermsCategory
 
 
 class TestLegalRequirements(unittest.TestCase):

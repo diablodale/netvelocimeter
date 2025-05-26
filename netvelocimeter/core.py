@@ -6,16 +6,16 @@ from typing import Any, TypeVar, final
 from packaging.version import Version
 
 from .exceptions import LegalAcceptanceError
-from .providers.base import BaseProvider
-from .providers.measurement_result import MeasurementResult
-from .providers.provider_info import ProviderInfo
-from .providers.server_info import ServerIDType, ServerInfo
-from .terms import (
+from .legal import (
     LegalTerms,
     LegalTermsCategory,
     LegalTermsCategoryCollection,
     LegalTermsCollection,
 )
+from .providers.base import BaseProvider
+from .providers.measurement_result import MeasurementResult
+from .providers.provider_info import ProviderInfo
+from .providers.server_info import ServerIDType, ServerInfo
 from .utils.logger import get_logger
 
 # Map of provider names to provider classes

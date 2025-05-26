@@ -10,7 +10,7 @@ from time import sleep
 import unittest
 from unittest import mock
 
-from netvelocimeter.terms import AcceptanceTracker, LegalTerms, LegalTermsCategory
+from netvelocimeter.legal import AcceptanceTracker, LegalTerms, LegalTermsCategory
 
 
 class TestLegalTerms(unittest.TestCase):

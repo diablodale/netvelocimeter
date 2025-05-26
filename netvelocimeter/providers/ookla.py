@@ -10,7 +10,7 @@ from packaging.version import InvalidVersion, Version
 
 from ..core import register_provider
 from ..exceptions import PlatformNotSupported
-from ..terms import (
+from ..legal import (
     LegalTerms,
     LegalTermsCategory,
     LegalTermsCategoryCollection,
