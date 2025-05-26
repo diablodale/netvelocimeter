@@ -230,7 +230,7 @@ class NetVelocimeter:
             List of server information objects.
         """
         if not self.has_accepted_terms():
-            raise LegalAcceptanceError("You must accept all legal terms before using the service.")
+            raise LegalAcceptanceError()
         return self.provider._servers
 
     @final
@@ -286,7 +286,7 @@ class NetVelocimeter:
         """
         # Check legal terms acceptance at the NetVelocimeter level
         if not self.has_accepted_terms():
-            raise LegalAcceptanceError("You must accept all legal terms before using the service.")
+            raise LegalAcceptanceError()
 
         if server_id and server_host:
             raise ValueError("Only one of server_id or server_host should be provided.")

@@ -6,7 +6,7 @@ import unittest
 
 from typer.testing import CliRunner
 
-from netvelocimeter.cli.main import app
+from netvelocimeter.cli import app
 
 runner = CliRunner(mix_stderr=False)
 

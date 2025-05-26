@@ -6,7 +6,7 @@ from io import StringIO
 import json
 from typing import Any
 
-from ..main import OutputFormat
+from ..utils.output_format import OutputFormat
 
 
 def escape_whitespace(text: str) -> str:

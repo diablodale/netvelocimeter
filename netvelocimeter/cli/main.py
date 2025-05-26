@@ -1,6 +1,5 @@
 """Command line interface for NetVelocimeter."""
 
-from enum import Enum
 import logging
 import os
 from pathlib import Path
@@ -11,23 +10,16 @@ from click import Choice
 import typer
 
 from .. import __version__ as version_string, list_providers
-from ..utils.logger import setup_logging
+from ..utils.logger import get_logger, setup_logging
 from ..utils.xdg import XDGCategory
-
-
-class OutputFormat(str, Enum):
-    """Output format for the command line interface."""
-
-    TEXT = "text"
-    CSV = "csv"
-    TSV = "tsv"
-    JSON = "json"
-
+from .utils.output_format import OutputFormat
 
 # Define constants
 BIN_ROOT_DEFAULT = Path(XDGCategory.BIN.resolve_path("netvelocimeter"))
 CONFIG_ROOT_DEFAULT = Path(XDGCategory.CONFIG.resolve_path("netvelocimeter"))
 AVAILABLE_PROVIDERS = [provider.name for provider in list_providers()]
+
+logger: logging.Logger
 
 
 class CliState:
@@ -60,8 +52,24 @@ app = typer.Typer(
 )
 
 
+def entrypoint() -> None:
+    """Entry point for the CLI application."""
+    try:
+        app()
+    except Exception as ex:
+        # Log the exception as an error
+        logger.error(str(ex))
+
+        # If the log level is DEBUG, raise the exception to show the traceback
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            raise
+
+        # Otherwise, exit with an error code
+        exit(1)
+
+
 @app.callback(invoke_without_command=True)
-def main(
+def global_options(
     bin_root: Annotated[
         Path,
         typer.Option(
@@ -162,13 +170,15 @@ def main(
             2: logging.DEBUG,  # -vv
         }.get(min(verbose, 2), logging.WARNING)
 
-    # Configure logger
-    setup_logging(level=log_level, force=True)
-
     # Limit traceback display to show only on debug
     if log_level > logging.DEBUG:
         os.environ["_TYPER_STANDARD_TRACEBACK"] = "1"
         sys.tracebacklimit = 0
+
+    # Configure logger
+    setup_logging(level=log_level, force=True)
+    global logger
+    logger = get_logger("cli")
 
     if version:
         typer.echo(f"NetVelocimeter {version_string}")
