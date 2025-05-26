@@ -13,7 +13,11 @@ import zipfile
 
 from ..providers.base import BaseProvider
 from .hash import hash_b64encode
+from .logger import get_logger
 from .xdg import XDGCategory
+
+# Get logger
+logger = get_logger(__name__)
 
 
 def verified_basename(filepath: str) -> str:
@@ -204,6 +208,7 @@ class BinaryManager:
         # create the directory if it doesn't exist
         os.makedirs(cache_root, mode=0o750, exist_ok=True)
         self._cache_root = cache_root
+        logger.info(f"Binary cache at {cache_root}")
 
     def _cache_dir_for_url(self, url: str) -> str:
         """Create and return the cache absolute directory for a given URL.

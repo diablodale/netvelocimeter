@@ -9,7 +9,10 @@ from typing import Any
 
 from .utils.formatters import TwoColumnFormatMixin
 from .utils.hash import hash_b64encode
+from .utils.logger import get_logger
 from .utils.xdg import XDGCategory
+
+logger = get_logger(__name__)
 
 
 class LegalTermsCategory(str, Enum):
@@ -210,6 +213,7 @@ class AcceptanceTracker:
         # Ensure the base directory exists
         os.makedirs(candidate, mode=0o750, exist_ok=True)
         self._config_root = candidate
+        logger.info(f"Legal terms tracking at {candidate}")
 
     def _acceptance_file_path(self, terms_id: str) -> str:
         """Get the path to the json file for a specific terms acceptance.
