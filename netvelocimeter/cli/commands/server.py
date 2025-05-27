@@ -27,7 +27,7 @@ def register_server_commands(app: Typer) -> None:
 
 @server_app.command(name="list")
 def server_list() -> None:
-    """Servers for the selected provider."""
+    """List servers for the selected provider."""
     logger.info(f"Listing servers for provider '{state.provider}'")
 
     nv = NetVelocimeter(
