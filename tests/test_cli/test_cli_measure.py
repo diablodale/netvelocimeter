@@ -164,3 +164,77 @@ class TestMeasureCommand(unittest.TestCase):
             ],
         )
         self.assertEqual(result.exit_code, 0)
+
+    def test_measure_run_with_server_id(self):
+        """Test measure run with --server-id parameter."""
+        result = runner.invoke(
+            app,
+            [
+                "--provider=static",
+                "--config-root",
+                self.temp_dir,
+                "measure",
+                "run",
+                "--server-id",
+                "3",
+            ],
+        )
+        self.assertEqual(result.exit_code, 0)
+        self.assertRegex(result.stdout, r"server_id:\s+3")
+        self.assertRegex(result.stdout, r"server_name:\s+Test Server 3")
+        self.assertEqual(result.stdout.count("server_name:"), 1)
+
+    def test_measure_run_with_invalid_server_id(self):
+        """Test measure run with invalid --server-id parameter."""
+        result = runner.invoke(
+            app,
+            [
+                "--provider=static",
+                "--config-root",
+                self.temp_dir,
+                "measure",
+                "run",
+                "--server-id",
+                "10",
+            ],
+        )
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn("server_id must be between 1 and 5", result.stderr + str(result.exception))
+
+    def test_measure_run_with_server_host(self):
+        """Test measure run with --server-host parameter."""
+        result = runner.invoke(
+            app,
+            [
+                "--provider=static",
+                "--config-root",
+                self.temp_dir,
+                "measure",
+                "run",
+                "--server-host",
+                "test4.example.com",
+            ],
+        )
+        self.assertEqual(result.exit_code, 0)
+        self.assertRegex(result.stdout, r"server_id:\s+4")
+        self.assertRegex(result.stdout, r"server_name:\s+Test Server 4")
+        self.assertEqual(result.stdout.count("server_name:"), 1)
+
+    def test_measure_run_with_invalid_server_host(self):
+        """Test measure run with invalid --server-host parameter."""
+        result = runner.invoke(
+            app,
+            [
+                "--provider=static",
+                "--config-root",
+                self.temp_dir,
+                "measure",
+                "run",
+                "--server-host",
+                "invalid.example.com",
+            ],
+        )
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn(
+            "server_host must be testX.example.com", result.stderr + str(result.exception)
+        )

@@ -1,5 +1,7 @@
 """Measurement commands for the NetVelocimeter CLI."""
 
+from typing import Annotated
+
 import typer
 from typer import Typer
 
@@ -27,7 +29,20 @@ def register_measure_commands(app: Typer) -> None:
 
 # TODO --server-id and --server-host options for measurements
 @measure_app.command(name="run")
-def measure_run() -> None:
+def measure_run(
+    server_id: Annotated[
+        str | None,
+        typer.Option(
+            "--server-id", show_default=False, help="Provider server id to use for measurement"
+        ),
+    ] = None,
+    server_host: Annotated[
+        str | None,
+        typer.Option(
+            "--server-host", show_default=False, help="Provider server host to use for measurement"
+        ),
+    ] = None,
+) -> None:
     """Run a measurement with the selected provider."""
     logger.info(f"Running measurement for provider '{state.provider}'")
 
@@ -38,7 +53,7 @@ def measure_run() -> None:
     )
 
     # Perform the measurement
-    result = nv.measure()
+    result = nv.measure(server_id=server_id, server_host=server_host)
     logger.debug(f"Measurement result: {result.raw}")
 
     # Display the result
