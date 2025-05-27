@@ -2,6 +2,7 @@
 
 import json
 import unittest
+from unittest import mock
 
 from typer.testing import CliRunner
 
@@ -63,3 +64,14 @@ class TestProviderCommand(unittest.TestCase):
         result = runner.invoke(app, ["provider", "list", "--help"])
         self.assertEqual(result.exit_code, 0)
         self.assertRegex(result.stdout, r"List all available providers(.|\n)+Show this message")
+
+    @mock.patch("netvelocimeter.cli.commands.provider.list_providers")
+    def test_no_providers(self, mock_list_providers):
+        """Test 'provider list' when no providers are available."""
+        # mock list_providers() to return an empty list
+        mock_list_providers.return_value = []
+
+        # Run the command
+        result = runner.invoke(app, ["provider", "list"])
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn("No results.", result.stderr)

@@ -50,6 +50,19 @@ class TestLegalTerms(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = LegalTerms(category=2, url="https://example.com")
 
+    def test_legal_terms_acceptance_field(self):
+        """Test that LegalTerms acceptance field."""
+        term = LegalTerms(text="Test", category=LegalTermsCategory.EULA)
+        self.assertIsNone(term.accepted)
+
+        # Accept the term
+        term2 = LegalTerms(text="Test", category=LegalTermsCategory.EULA, accepted=True)
+        self.assertTrue(term2.accepted)
+
+        # Explicitly set accepted to False
+        term3 = LegalTerms(text="Test", category=LegalTermsCategory.EULA, accepted=False)
+        self.assertFalse(term3.accepted)
+
 
 class TestAcceptanceTracker(unittest.TestCase):
     """Tests for the AcceptanceTracker class."""
@@ -412,6 +425,21 @@ class TestLegalTermsRepresentation(unittest.TestCase):
         self.assertEqual(result["text"], "Sample EULA text")
         self.assertNotIn("url", result)
 
+    def test_to_dict_with_text_and_accepted(self):
+        """Test dictionary conversion with text and accepted fields."""
+        terms = LegalTerms(
+            category=LegalTermsCategory.EULA,
+            text="Sample EULA text",
+            accepted=True,
+        )
+        result = terms.to_dict()
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["category"], "eula")
+        self.assertEqual(result["text"], "Sample EULA text")
+        self.assertEqual(result["accepted"], True)
+        self.assertNotIn("url", result)
+
     def test_to_dict_with_url_only(self):
         """Test dictionary conversion with URL only."""
         terms = LegalTerms(
@@ -455,6 +483,15 @@ class TestLegalTermsRepresentation(unittest.TestCase):
         )
         result = terms.to_dict()
         self.assertEqual(set(result.keys()), {"category", "text", "url"})
+
+        terms = LegalTerms(
+            category=LegalTermsCategory.OTHER,
+            text="Other terms",
+            url="https://example.com",
+            accepted=True,
+        )
+        result = terms.to_dict()
+        self.assertEqual(set(result.keys()), {"category", "text", "url", "accepted"})
 
     def test_to_dict_returns_new_dict(self):
         """Test that to_dict returns a new dict each time, not a reference."""
