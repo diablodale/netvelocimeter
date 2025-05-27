@@ -10,7 +10,17 @@ logger = get_logger(__name__)
 
 
 def _flatten_fields(obj: object, prefix: str = "") -> tuple[list[tuple[str, object]], int]:
-    """Flatten the object graph into a list of (field_name, value) and find max width."""
+    """Flatten the object graph into a list of (field_name, value) and find max width.
+
+    Args:
+        obj: The object to flatten, which can be a dataclass or any class with __dict__.
+        prefix: Prefix to prepend to field names. Nested objects can set this via their `_format_prefix` attribute.
+
+    Returns:
+        Tuple:
+            1. list of (field_name, value) pairs
+            2. maximum width of all field names + 1 to account for a colon after every field name
+    """
     fields = []
     max_width = 0
 
