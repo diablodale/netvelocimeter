@@ -201,16 +201,16 @@ class TestLegalCommand(unittest.TestCase):
         """Test the CLI app with legal list command help."""
         result = runner.invoke(app, ["legal", "list", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("--category", result.stdout)
+        self.assertRegex(result.stdout, r"List legal terms(.|\n)+--category")
 
     def test_cli_legal_status_help(self):
         """Test the CLI app with legal status command help."""
         result = runner.invoke(app, ["legal", "status", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("--category", result.stdout)
+        self.assertRegex(result.stdout, r"Status for(.|\n)+--category")
 
     def test_cli_legal_accept_help(self):
         """Test the CLI app with legal accept command help."""
         result = runner.invoke(app, ["legal", "accept", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("accept legal terms", result.stdout.lower())
+        self.assertRegex(result.stdout, r"Accept legal terms(.|\n)+--help")

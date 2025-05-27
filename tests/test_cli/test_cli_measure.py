@@ -99,7 +99,7 @@ class TestMeasureCommand(unittest.TestCase):
         """Test measure run --help outputs usage."""
         result = runner.invoke(app, ["measure", "run", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("Run a measurement", result.stdout)
+        self.assertRegex(result.stdout, r"Run a measurement(.|\n)+Show this message")
 
     def test_measure_run_with_verbose_verbose(self):
         """Test measure run with verbose verbose (debug) flag."""
