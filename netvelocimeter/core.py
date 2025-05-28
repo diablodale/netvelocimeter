@@ -218,8 +218,14 @@ class NetVelocimeter:
 
         Args:
             terms_or_collection: Terms to accept
+
+        Raises:
+            LegalAcceptanceError: If legal requirements can not be accepted
         """
-        self.provider._accept_terms(terms_or_collection)
+        try:
+            self.provider._accept_terms(terms_or_collection)
+        except Exception as e:
+            raise LegalAcceptanceError(f"Unable to accept terms. {e}") from e
 
     @final
     @property
@@ -228,6 +234,9 @@ class NetVelocimeter:
 
         Returns:
             List of server information objects.
+
+        Raises:
+            LegalAcceptanceError: If legal requirements are not accepted
         """
         if not self.has_accepted_terms():
             raise LegalAcceptanceError()

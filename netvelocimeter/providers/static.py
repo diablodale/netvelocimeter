@@ -11,6 +11,7 @@ from ..legal import (
     LegalTermsCategoryCollection,
     LegalTermsCollection,
 )
+from ..utils.binary_manager import BinaryManager
 from ..utils.rates import DataRateMbps, Percentage, TimeDuration
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
@@ -41,6 +42,7 @@ class StaticProvider(BaseProvider):
         packet_loss: Percentage = Percentage(1.3),  # noqa: B008
         version: str = "1.2.3+c0ffee",
         config_root: str | None = None,
+        bin_root: str | None = None,
     ):
         r"""Initialize a configurable test provider.
 
@@ -62,6 +64,7 @@ class StaticProvider(BaseProvider):
             config_root: Directory to store configuration, e.g. legal acceptance
                 - None: Use default location (%%APPDATA%%\netvelocimeter or ~/.config/netvelocimeter)
                 - str: Custom directory path
+            bin_root: Custom binary cache root directory (not used in this provider)
         """
         # Call the base provider constructor
         super().__init__(config_root=config_root)
@@ -93,6 +96,9 @@ class StaticProvider(BaseProvider):
             self._TERMS_COLLECTION.append(
                 LegalTerms(text=privacy_text, url=privacy_url, category=LegalTermsCategory.PRIVACY)
             )
+
+        # create an unused binary manager
+        self._BINARY_MANAGER = BinaryManager(StaticProvider, bin_root=bin_root)
 
     @property
     def _version(self) -> Version:

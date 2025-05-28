@@ -132,11 +132,12 @@ def legal_status(
 
     # Display the status of legal terms
     if terms:
-        typer.echo(format_records(terms, state.format, state.escape_ws))
+        if not state.quiet:
+            typer.echo(format_records(terms, state.format, state.escape_ws))
     else:
         logger.warning("No results.")
 
-    # exit with success if all terms are accepted
+    # if all terms are accepted exit(0) success
     if all(term.accepted for term in terms):
         logger.info("All filtered legal terms accepted.")
         raise typer.Exit(code=0)

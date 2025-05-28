@@ -282,6 +282,10 @@ class AcceptanceTracker:
 
         Args:
             terms_or_collection: A single LegalTerms object or collection of LegalTerms to record
+
+        Raises:
+            TypeError: If the input is not a LegalTerms or LegalTermsCollection
+            OSError: If the acceptance file cannot be created due to filesystem issues
         """
         if isinstance(terms_or_collection, LegalTerms):
             # Check if terms are already recorded

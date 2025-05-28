@@ -4,7 +4,7 @@
 class LegalAcceptanceError(Exception):
     """Exception raised when legal agreements haven't been accepted."""
 
-    def __init__(self, msg: str = "You must accept all legal terms before use.") -> None:
+    def __init__(self, msg: str = "Must accept all legal terms before use.") -> None:
         """Initialize the LegalAcceptanceError with a message."""
         super().__init__(msg)
 

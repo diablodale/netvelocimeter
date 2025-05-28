@@ -103,5 +103,9 @@ class BaseProvider(ABC):
 
         Args:
             terms_or_collection: Terms to accept
+
+        Raises:
+            TypeError: If the input is not a LegalTerms or LegalTermsCollection
+            OSError: If the acceptance cannot be recorded
         """
         self._acceptance.record(terms_or_collection)

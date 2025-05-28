@@ -31,7 +31,8 @@ class CliState:
         self.config_root: Path = CONFIG_ROOT_DEFAULT
         self.escape_ws: bool = False
         self.format: OutputFormat = OutputFormat.TEXT
-        self.provider: str = "static"
+        self.provider: str = "static"  # TODO change this to ookla before publishing
+        self.quiet: bool = False
 
 
 # Running in a PyInstaller bundle
@@ -126,7 +127,7 @@ def global_options(
             help="Suppress all stderr output except errors",
             rich_help_panel="Global Options",
         ),
-    ] = False,
+    ] = state.quiet,
     verbose: Annotated[
         int,
         typer.Option(
@@ -155,13 +156,14 @@ def global_options(
     state.escape_ws = escape_ws
     state.format = format
     state.provider = provider
+    state.quiet = quiet
 
     # Determine log level with precedence:
     # 1. quiet flag
     # 2. verbose count
     # 3. default (WARNING)
     if quiet:
-        log_level = logging.ERROR
+        log_level = logging.CRITICAL
     else:
         # Map verbosity to log levels
         log_level = {
@@ -182,4 +184,5 @@ def global_options(
 
     if version:
         typer.echo(f"NetVelocimeter {version_string}")
+        # quick exit
         raise typer.Exit()

@@ -259,6 +259,7 @@ class BinaryManager:
         Raises:
             RuntimeError: If the archive format is not supported or contains unsafe paths
         """
+        # TODO validate the binary download and local cache for tampering
         # check cache
         if not dest_dir:
             # check for the file in the cache directory
