@@ -15,12 +15,15 @@ import zipfile
 from packaging.version import Version
 import pytest
 
+from netvelocimeter.exceptions import PlatformNotSupported
 from netvelocimeter.providers.base import BaseProvider
 from netvelocimeter.utils.binary_manager import (
     BinaryManager,
+    BinaryMeta,
     download_file,
     ensure_executable,
     extract_file,
+    select_platform_binary,
     verified_basename,
 )
 from netvelocimeter.utils.hash import hash_b64encode
@@ -870,3 +873,66 @@ class TestBinaryManagerPosixSpecific(unittest.TestCase):
                     ),
                     os.path.normpath(os.path.join(manager._cache_root, "..", "..", "..")),
                 )
+
+
+class TestSelectPlatformBinary(unittest.TestCase):
+    """Tests for select_platform_binary function."""
+
+    PLATFORM_MAP = {
+        ("linux", "x86_32"): BinaryMeta(
+            url="https://example.com/linux-x86_32.tgz",
+            internal_filepath="binfile",
+            hash_sha256="abc123",
+        ),
+        ("windows", "x86_64"): BinaryMeta(
+            url="https://example.com/win64.zip", internal_filepath="bin.exe", hash_sha256="def456"
+        ),
+        ("linux", "armhf"): BinaryMeta(
+            url="https://example.com/linux-armhf.tgz",
+            internal_filepath="binfile",
+            hash_sha256="armhash",
+        ),
+        ("linux", "arm64"): BinaryMeta(
+            url="https://example.com/linux-arm64.tgz",
+            internal_filepath="binfile",
+            hash_sha256="armhash",
+        ),
+    }
+
+    def test_select_exact_match(self):
+        """Test selecting a binary with an exact match."""
+        meta = select_platform_binary(self.PLATFORM_MAP, system="linux", machine="x86_32")
+        self.assertEqual(meta.url, "https://example.com/linux-x86_32.tgz")
+        self.assertEqual(meta.internal_filepath, "binfile")
+        self.assertEqual(meta.hash_sha256, "abc123")
+
+    def test_select_windows_amd64(self):
+        """Test selecting a Windows binary for amd64 aka x86_64 architecture."""
+        meta = select_platform_binary(self.PLATFORM_MAP, system="windows", machine="amd64")
+        self.assertEqual(meta.url, "https://example.com/win64.zip")
+        self.assertEqual(meta.internal_filepath, "bin.exe")
+        self.assertEqual(meta.hash_sha256, "def456")
+
+    def test_normalization_linux_armhf(self):
+        """Test normalization for Linux armhf architecture."""
+        meta = select_platform_binary(self.PLATFORM_MAP, system="linux", machine="armv7l")
+        self.assertEqual(meta.url, "https://example.com/linux-armhf.tgz")
+        self.assertEqual(meta.hash_sha256, "armhash")
+
+    def test_normalization_linux_arm64(self):
+        """Test normalization for Linux arm64 architecture."""
+        meta = select_platform_binary(self.PLATFORM_MAP, system="linux", machine="aarch64")
+        self.assertEqual(meta.url, "https://example.com/linux-arm64.tgz")
+        self.assertEqual(meta.hash_sha256, "armhash")
+
+    def test_unsupported_platform(self):
+        """Test selecting a binary for an unsupported platform."""
+        with self.assertRaises(PlatformNotSupported):
+            select_platform_binary(self.PLATFORM_MAP, system="darwin", machine="arm64")
+
+    def test_disable_normalization(self):
+        """Test selecting a binary without normalization."""
+        with self.assertRaises(PlatformNotSupported):
+            select_platform_binary(
+                self.PLATFORM_MAP, system="linux", machine="armv7l", normalize=False
+            )

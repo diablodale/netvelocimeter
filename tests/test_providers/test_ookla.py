@@ -20,7 +20,7 @@ from netvelocimeter.exceptions import PlatformNotSupported
 from netvelocimeter.legal import LegalTermsCategory
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.ookla import OoklaProvider
-from netvelocimeter.utils.binary_manager import BinaryManager
+from netvelocimeter.utils.binary_manager import BinaryManager, BinaryMeta
 
 
 class TestOoklaProvider(unittest.TestCase):
@@ -46,8 +46,13 @@ class TestOoklaProvider(unittest.TestCase):
         # More robust patching
         self.patchers = []
 
-        # Patch OoklaProvider _download_url to return self.archive_url
-        patcher = mock.patch.object(OoklaProvider, "_download_url", return_value=self.archive_url)
+        # Patch select_platform_binary to return test BinaryMeta
+        patcher = mock.patch(
+            "netvelocimeter.providers.ookla.select_platform_binary",
+            return_value=BinaryMeta(
+                url=self.archive_url, internal_filepath=internal_path, hash_sha256=""
+            ),
+        )
         patcher.start()
         self.patchers.append(patcher)
 
@@ -628,40 +633,23 @@ class TestOoklaProviderPlatformDetection(unittest.TestCase):
         """Clean up test directory."""
         shutil.rmtree(self.temp_dir)
 
-    @mock.patch("platform.system")
-    @mock.patch("platform.machine")
+    @mock.patch("platform.system", return_value="Linux")
+    @mock.patch("platform.machine", return_value="armv7l")
     def test_platform_detection_mapping(self, mock_machine, mock_system):
         """Test platform and architecture mapping logic."""
-        # Test ARM mapping on Linux
-        mock_system.return_value = "Linux"
-        mock_machine.return_value = "armv7l"
-
-        # Save the original method to avoid recursion
-        original_download_url = OoklaProvider._download_url
-
-        # We need to patch binary manager methods
+        # mock the download_extract method to avoid actual downloads, check the parameters that it was called with
         with (
+            # mock.patch("netvelocimeter.providers.ookla.select_platform_binary") as mock_select,
             mock.patch.object(
-                BinaryManager, "download_extract", return_value="/mock/path/speedtest"
-            ),
+                BinaryManager, "download_extract", return_value="/path/to/speedtest"
+            ) as mock_download_extract,
             mock.patch.object(OoklaProvider, "_parse_version", return_value=Version("1.0.0")),
         ):
-            # Create the provider
-            provider = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
+            # Create a provider instance which will trigger platform detection
+            _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
-            # Verify the binary path and version
-            self.assertEqual(provider._BINARY_PATH, "/mock/path/speedtest")
-            self.assertEqual(provider._version, Version("1.0.0"))
-
-            # After creation, call the original method to get the URL that would be used
-            # This avoids the recursion issue
-            with mock.patch.object(
-                OoklaProvider, "_download_url", side_effect=original_download_url
-            ):
-                url = OoklaProvider._download_url()
-
-                # Check if the URL contains "armhf" (our expected machine mapping)
-                self.assertIn("armhf", url)
+            # Verify select has download url with armhf in it
+            self.assertIn("armhf", mock_download_extract.call_args.kwargs["url"])
 
     @mock.patch("platform.system", return_value="UnsupportedOS")
     @mock.patch("platform.machine", return_value="UnsupportedCPU")

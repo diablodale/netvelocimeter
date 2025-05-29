@@ -1,7 +1,6 @@
 """Ookla Speedtest.net provider implementation."""
 
 import json
-import platform
 import re
 import subprocess
 from typing import Any
@@ -9,14 +8,13 @@ from typing import Any
 from packaging.version import InvalidVersion, Version
 
 from ..core import register_provider
-from ..exceptions import PlatformNotSupported
 from ..legal import (
     LegalTerms,
     LegalTermsCategory,
     LegalTermsCategoryCollection,
     LegalTermsCollection,
 )
-from ..utils.binary_manager import BinaryManager
+from ..utils.binary_manager import BinaryManager, BinaryMeta, select_platform_binary
 from ..utils.rates import DataRateMbps, Percentage, TimeDuration
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
@@ -25,48 +23,95 @@ class OoklaProvider(BaseProvider):
     """Provider for Ookla Speedtest.net, uses the official Ookla Speedtest CLI tool."""
 
     # Class variables shared by all instances
-    _DOWNLOAD_VERSION = "1.2.0"
-    _DOWNLOAD_URLS = {
+    _PLATFORM_BINARIES = {
         (
             "windows",
-            "amd64",
-        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-win64.zip",
+            "x86_64",
+        ): BinaryMeta(
+            url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-win64.zip",
+            internal_filepath="speedtest.exe",
+            hash_sha256="",
+        ),
         (
             "linux",
             "x86_64",
-        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-x86_64.tgz",
+        ): BinaryMeta(
+            url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-x86_64.tgz",
+            internal_filepath="speedtest",
+            hash_sha256="",
+        ),
         (
             "linux",
-            "i386",
-        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-i386.tgz",
+            "x86_32",
+        ): BinaryMeta(
+            url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-i386.tgz",
+            internal_filepath="speedtest",
+            hash_sha256="",
+        ),
         (
             "linux",
-            "aarch64",
-        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-aarch64.tgz",
+            "arm64",
+        ): BinaryMeta(
+            url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-aarch64.tgz",
+            internal_filepath="speedtest",
+            hash_sha256="",
+        ),
         (
             "linux",
             "armel",
-        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-armel.tgz",
+        ): BinaryMeta(
+            url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armel.tgz",
+            internal_filepath="speedtest",
+            hash_sha256="",
+        ),
         (
             "linux",
             "armhf",
-        ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-linux-armhf.tgz",
+        ): BinaryMeta(
+            url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armhf.tgz",
+            internal_filepath="speedtest",
+            hash_sha256="",
+        ),
         # (
-        #    "darwin",
-        #    "x86_64",
-        # ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-macosx-universal.tgz",
+        #     "darwin",
+        #     "x86_64",
+        # ): BinaryMeta(
+        #     url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-macosx-universal.tgz",
+        #     internal_filepath="speedtest",
+        #     hash_sha256="",
+        # ),
         # (
-        #    "darwin",
-        #    "arm64",
-        # ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-macosx-universal.tgz",
+        #     "darwin",
+        #     "arm64",
+        # ): BinaryMeta(
+        #     url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-macosx-universal.tgz",
+        #     internal_filepath="speedtest",
+        #     hash_sha256="",
+        # ),
         # (
-        #    "freebsd12",
-        #    "x86_64",
-        # ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd12-x86_64.pkg",
+        #     "freebsd11",
+        #     "x86_64",
+        # ): BinaryMeta(
+        #     url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-freebsd11-x86_64.pkg",
+        #     internal_filepath="speedtest",
+        #     hash_sha256="",
+        # ),
         # (
-        #    "freebsd13",
-        #    "x86_64",
-        # ): f"https://install.speedtest.net/app/cli/ookla-speedtest-{_DOWNLOAD_VERSION}-freebsd13-x86_64.pkg",
+        #     "freebsd12",
+        #     "x86_64",
+        # ): BinaryMeta(
+        #     url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-freebsd12-x86_64.pkg",
+        #     internal_filepath="speedtest",
+        #     hash_sha256="",
+        # ),
+        # (
+        #     "freebsd13",
+        #     "x86_64",
+        # ): BinaryMeta(
+        #     url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-freebsd13-x86_64.pkg",
+        #     internal_filepath="speedtest",
+        #     hash_sha256="",
+        # ),
     }
     _TERMS_COLLECTION = [
         LegalTerms(
@@ -120,10 +165,11 @@ class OoklaProvider(BaseProvider):
         # first create binary manager
         self._BINARY_MANAGER = BinaryManager(OoklaProvider, bin_root=bin_root)
 
-        # then get binary path
-        binary_filename = "speedtest.exe" if platform.system().lower() == "windows" else "speedtest"
+        # get target binary
+        # TODO implement hash check
+        binary_meta = select_platform_binary(self._PLATFORM_BINARIES)
         self._BINARY_PATH = self._BINARY_MANAGER.download_extract(
-            url=OoklaProvider._download_url(), internal_filepath=binary_filename
+            url=binary_meta.url, internal_filepath=binary_meta.internal_filepath
         )
 
         # then set version derived from the binary
@@ -154,44 +200,6 @@ class OoklaProvider(BaseProvider):
         if categories == LegalTermsCategory.ALL or LegalTermsCategory.ALL in categories:
             return cls._TERMS_COLLECTION
         return [term for term in cls._TERMS_COLLECTION if term.category in categories]
-
-    @classmethod
-    def _download_url(cls) -> str:
-        """Get download URL for the compatible speedtest binary.
-
-        Returns:
-            Download URL for the compatible speedtest binary.
-        """
-        # e.g., Windows, Linux, Darwin;
-        # on iOS and Android returns the user-facing OS name (i.e, 'iOS, 'iPadOS' or 'Android')
-        system = platform.system().lower()
-
-        # e.g., x86_64, i686, arm64
-        machine = platform.machine().lower()
-
-        # Map machine types to what Ookla expects
-        if system == "linux":
-            # Map x86 architectures
-            if machine in ("x86_64", "amd64"):
-                machine = "x86_64"
-            elif machine in ("i386", "i486", "i586", "i686", "x86"):
-                machine = "i386"
-            # Map ARM architectures
-            elif machine in ("aarch64", "arm64"):
-                machine = "aarch64"
-            elif machine.startswith("armv7") or machine.startswith("armhf"):
-                machine = "armhf"  # 32-bit ARM with hardware floating point
-            elif machine.startswith("armv6") or machine.startswith("armel"):
-                machine = "armel"  # 32-bit ARM with software floating point
-
-        # return the download URL based on the system and machine
-        try:
-            # Check if the key exists in the dictionary
-            return cls._DOWNLOAD_URLS[(system, machine)]
-        except KeyError:
-            raise PlatformNotSupported(
-                f"{cls.__name__} does not support {system} {machine}"
-            ) from None
 
     def _parse_version(self) -> Version:
         """Get the version of the speedtest CLI as a Version object."""

@@ -27,7 +27,6 @@ def register_measure_commands(app: Typer) -> None:
     app.add_typer(measure_app, name="measure")
 
 
-# TODO --server-id and --server-host options for measurements
 @measure_app.command(name="run")
 def measure_run(
     server_id: Annotated[

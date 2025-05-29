@@ -1,5 +1,6 @@
 """Utilities for managing binary downloads and execution."""
 
+from dataclasses import dataclass
 import inspect
 import os
 import platform
@@ -11,6 +12,7 @@ from urllib.parse import urlsplit
 import urllib.request
 import zipfile
 
+from ..exceptions import PlatformNotSupported
 from ..providers.base import BaseProvider
 from .hash import hash_b64encode
 from .logger import get_logger
@@ -18,6 +20,62 @@ from .xdg import XDGCategory
 
 # Get logger
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class BinaryMeta:
+    """Metadata to describe a binary download url, its name, and its known hash."""
+
+    url: str
+    internal_filepath: str
+    hash_sha256: str
+
+
+def select_platform_binary(
+    platform_map: dict[tuple[str, str], BinaryMeta],
+    *,
+    system: str | None = None,
+    machine: str | None = None,
+    normalize: bool = True,
+) -> BinaryMeta:
+    """Select the BinaryMeta for the current platform from a map of (system, machine) -> BinaryMeta.
+
+    - system: "linux", "windows", "darwin", "android", ...
+    - machine: "x86_64", "x86_32", "arm64", ...
+
+    Args:
+        platform_map: Mapping of (system, machine) -> BinaryMeta
+        system: Override system string (for testing)
+        machine: Override machine string (for testing)
+        normalize: Whether to apply common normalization rules
+
+    Returns:
+        BinaryMeta for the system+machine platform.
+
+    Raises:
+        PlatformNotSupported: If the platform is not supported.
+    """
+    sys_name = (system or platform.system()).lower()
+    mach_name = (machine or platform.machine()).lower()
+
+    # Normalize system names
+    if normalize:
+        if mach_name in ("x86_64", "amd64"):
+            mach_name = "x86_64"
+        elif mach_name in ("i386", "i486", "i586", "i686", "x86"):
+            mach_name = "x86_32"
+        elif mach_name in ("aarch64", "arm64"):
+            mach_name = "arm64"
+        elif mach_name.startswith("armv7") or mach_name.startswith("armhf"):
+            mach_name = "armhf"  # 32-bit ARM with hardware floating point
+        elif mach_name.startswith("armv6") or mach_name.startswith("armel"):
+            mach_name = "armel"  # 32-bit ARM with software floating point
+
+    # return the BinaryMeta for the platform
+    try:
+        return platform_map[(sys_name, mach_name)]
+    except KeyError as e:
+        raise PlatformNotSupported(f"Unsupported platform: {sys_name} {mach_name}") from e
 
 
 def verified_basename(filepath: str) -> str:
@@ -260,6 +318,7 @@ class BinaryManager:
             RuntimeError: If the archive format is not supported or contains unsafe paths
         """
         # TODO validate the binary download and local cache for tampering
+        # https://github.com/jedisct1/minisign/issues/135
         # check cache
         if not dest_dir:
             # check for the file in the cache directory

@@ -116,7 +116,6 @@ def global_options(
             show_default=True,
             case_sensitive=False,
             click_type=Choice(AVAILABLE_PROVIDERS),
-            # TODO: add a list of available providers and their description to a help panel
         ),
     ] = state.provider,
     quiet: Annotated[
