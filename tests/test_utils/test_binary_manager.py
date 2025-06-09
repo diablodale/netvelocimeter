@@ -611,7 +611,7 @@ class TestBinaryManagerCaching(unittest.TestCase):
                         "home_dir",
                         ".local",
                         "bin",
-                        "netvelocimeter",
+                        "netvelocimeter-cache",
                         "TestOS",
                         "TestArch",
                         MockProvider.__name__.lower(),
@@ -839,7 +839,7 @@ class TestBinaryManagerWindowsSpecific(unittest.TestCase):
 
             # Verify Windows path is used
             self.assertEqual(
-                os.path.normpath(os.path.join(self.temp_dir, "localappdata", "netvelocimeter")),
+                os.path.normpath(os.path.join(self.temp_dir, "localappdata", "netvelocimeter-cache")),
                 os.path.normpath(os.path.join(manager._cache_root, "..", "..", "..")),
             )
 
@@ -869,7 +869,7 @@ class TestBinaryManagerPosixSpecific(unittest.TestCase):
                 # Verify POSIX path is used
                 self.assertEqual(
                     os.path.normpath(
-                        os.path.join(self.temp_dir, ".local", "bin", "netvelocimeter")
+                        os.path.join(self.temp_dir, ".local", "bin", "netvelocimeter-cache")
                     ),
                     os.path.normpath(os.path.join(manager._cache_root, "..", "..", "..")),
                 )

@@ -15,7 +15,7 @@ from ..utils.xdg import XDGCategory
 from .utils.output_format import OutputFormat
 
 # Define constants
-BIN_ROOT_DEFAULT = Path(XDGCategory.BIN.resolve_path("netvelocimeter"))
+BIN_ROOT_DEFAULT = Path(XDGCategory.BIN.resolve_path("netvelocimeter-cache"))
 CONFIG_ROOT_DEFAULT = Path(XDGCategory.CONFIG.resolve_path("netvelocimeter"))
 AVAILABLE_PROVIDERS = [provider.name for provider in list_providers()]
 

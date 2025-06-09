@@ -1,5 +1,6 @@
 """Test server list and server selection features."""
 
+from tempfile import TemporaryDirectory
 import unittest
 from unittest import mock
 
@@ -78,6 +79,26 @@ class TestServerFeatures(unittest.TestCase):
         self.assertEqual(servers[1].id, "2")
         self.assertEqual(servers[1].location, "Location 2")
         self.assertEqual(servers[1].country, "Country 2")
+
+    def test_get_servers_static(self):
+        """Test getting static server list."""
+        with TemporaryDirectory() as temp_dir:
+            # create nv with static provider
+            nv = NetVelocimeter(provider="static", config_root=temp_dir)
+
+            # accept all terms
+            nv.accept_terms(nv.legal_terms())
+
+            # get servers
+            servers = nv.servers
+
+            self.assertEqual(len(servers), 5)
+            for i in range(1, 6):
+                self.assertEqual(servers[i - 1].id, i)
+                self.assertEqual(servers[i - 1].name, f"Test Server {i}")
+                self.assertEqual(servers[i - 1].host, f"test{i}.example.com")
+                self.assertEqual(servers[i - 1].location, f"Test Location {i}")
+                self.assertEqual(servers[i - 1].country, "Test Country")
 
     @mock.patch("netvelocimeter.core.get_provider")
     def test_measurement_with_server_id(self, mock_get_provider):

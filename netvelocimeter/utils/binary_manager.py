@@ -252,7 +252,7 @@ class BinaryManager:
                 raise ValueError(f"Invalid custom root {bin_root}")
         else:
             # Use platform-specific XDG directory
-            cache_root = XDGCategory.BIN.resolve_path("netvelocimeter")
+            cache_root = XDGCategory.BIN.resolve_path("netvelocimeter-cache")
 
         # Get the class name for partitioning
         provider_name = provider_class.__name__.lower()
