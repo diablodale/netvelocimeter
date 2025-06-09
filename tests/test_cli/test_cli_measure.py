@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 
 from netvelocimeter.cli import app
 
-runner = CliRunner(mix_stderr=False)
+runner = CliRunner()
 
 # The static provider always returns these legal terms
 STATIC_TERMS = r"""

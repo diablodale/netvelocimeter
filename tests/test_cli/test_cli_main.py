@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from netvelocimeter.cli import app
 
-runner = CliRunner(mix_stderr=False)
+runner = CliRunner()
 
 # get json legal terms once
 JSON_TERMS = runner.invoke(
