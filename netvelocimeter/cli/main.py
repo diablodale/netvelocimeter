@@ -31,7 +31,7 @@ class CliState:
         self.config_root: Path = CONFIG_ROOT_DEFAULT
         self.escape_ws: bool = False
         self.format: OutputFormat = OutputFormat.TEXT
-        self.provider: str = "static"  # TODO change this to ookla before publishing
+        self.provider: str = "ookla"
         self.quiet: bool = False
 
 

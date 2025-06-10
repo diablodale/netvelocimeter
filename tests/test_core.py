@@ -123,7 +123,7 @@ class TestNetVelocimeter(TestCase):
     def test_initialize_with_unknown_parameter(self):
         """Test initializing with an unknown parameter logs a debug message."""
         with self.assertLogs(logger="netvelocimeter.core", level="DEBUG") as log:
-            _ = NetVelocimeter(unknown_param="test")
+            _ = NetVelocimeter(provider="static", unknown_param="test")
 
             # Verify log content
             self.assertEqual(len(log.records), 1)

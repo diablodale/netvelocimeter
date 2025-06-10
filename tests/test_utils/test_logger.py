@@ -188,7 +188,7 @@ class TestLogger(unittest.TestCase):
             from netvelocimeter.core import NetVelocimeter
 
             # Creating with unsupported parameter should log
-            NetVelocimeter(unknown_param="test")
+            NetVelocimeter(provider="static", unknown_param="test")
 
             # Verify core logging occurred with expected message
             mock_debug.assert_called_once()
