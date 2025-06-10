@@ -125,11 +125,11 @@ class TestNetVelocimeter(TestCase):
         with self.assertLogs(logger="netvelocimeter.core", level="DEBUG") as log:
             _ = NetVelocimeter(provider="static", unknown_param="test")
 
-            # Verify log content
-            self.assertEqual(len(log.records), 1)
-            self.assertEqual(log.records[0].levelname, "DEBUG")
-            self.assertIn("does not support parameters", log.output[0])
-            self.assertIn("unknown_param", log.output[0])
+        # Verify log content
+        self.assertEqual(len(log.records), 1)
+        self.assertEqual(log.records[0].levelname, "DEBUG")
+        self.assertIn("does not support parameters", log.output[0])
+        self.assertIn("unknown_param", log.output[0])
 
     def test_provider_version_access(self):
         """Test accessing provider version."""

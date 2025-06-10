@@ -54,7 +54,12 @@ app = typer.Typer(
 
 
 def entrypoint() -> None:
-    """Entry point for the CLI application."""
+    """Entry point for the CLI application.
+
+    Exceptions are caught and logged, with behavior depending on the log level.
+    If the log level is DEBUG, the exception is raised to show the traceback.
+    SystemExit() is a sibling of Exception and is not caught here, allowing it to propagate normally.
+    """
     try:
         app()
     except Exception as ex:
@@ -123,7 +128,7 @@ def global_options(
         typer.Option(
             "--quiet",
             "-q",
-            help="Suppress all stderr output except errors",
+            help="Suppress all stderr output except critical/fatal failures",
             rich_help_panel="Global Options",
         ),
     ] = state.quiet,
@@ -166,7 +171,7 @@ def global_options(
     else:
         # Map verbosity to log levels
         log_level = {
-            0: logging.WARNING,  # Default
+            0: logging.WARNING,  # TODO should default be ERROR?
             1: logging.INFO,  # -v
             2: logging.DEBUG,  # -vv
         }.get(min(verbose, 2), logging.WARNING)

@@ -1,15 +1,18 @@
 """Tests for CLI main and global options."""
 
+from contextlib import redirect_stderr, redirect_stdout
+import io
 from pathlib import Path
 from re import escape as re_escape
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest import mock
 
 from typer.testing import CliRunner
 
-from netvelocimeter.cli import app
+from netvelocimeter.cli import app, entrypoint
 
 runner = CliRunner()
 
@@ -25,10 +28,47 @@ JSON_TERMS = runner.invoke(
 ).stdout.strip()
 
 
+def run_cli_entrypoint(argv: list[str] | None = None) -> tuple[str, str, int]:
+    """Run the CLI entrypoint with the given argv-style arguments.
+
+    This method simulates running the CLI application as if it were invoked from the command line
+    in a way that allows tracking code coverage.
+
+    Args:
+        argv (list[str] | None): List of command line arguments to simulate.
+            The first argument should be the command name, e.g. ["netvelocimeter", ...].
+            If None, defaults to ["netvelocimeter"].
+
+    Returns:
+        tuple: A tuple containing the captured stdout, stderr, and exit code.
+
+    Raises:
+        Any: If the entrypoint raises an exception, it will be propagated.
+    """
+    # If no arguments are provided, use the default command
+    if argv is None:
+        argv = ["netvelocimeter"]
+
+    # Patch sys.argv to simulate command line arguments
+    with mock.patch.object(sys, "argv", argv):
+        stdout_io = io.StringIO()
+        stderr_io = io.StringIO()
+        exit_code = 0
+        try:
+            with redirect_stdout(stdout_io), redirect_stderr(stderr_io):
+                entrypoint()
+        except SystemExit as e:
+            exit_code = int(e.code) if e.code is not None else 0
+            pass  # Typer/argparse will call sys.exit()
+
+    # return the captured output and exit code
+    return stdout_io.getvalue(), stderr_io.getvalue(), exit_code
+
+
 class TestMainModule(unittest.TestCase):
     """Test cases for the main module of NetVelocimeter."""
 
-    def test_main_module_runs(self):
+    def test_main_module_subproc_run(self):
         """Test that the main module can be run as a script."""
         pkg_dir = Path(__file__).parent.parent.parent
         result = subprocess.run(
@@ -153,6 +193,16 @@ class TestMainModule(unittest.TestCase):
         self.assertTrue(stripped_output.startswith("["))
         self.assertTrue(stripped_output.endswith("]"))
 
+    def test_help_option(self):
+        """Test that --help shows the help message."""
+        result = runner.invoke(app, ["--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Usage:", result.stdout)
+        self.assertIn("--help", result.stdout)
+        self.assertIn("--version", result.stdout)
+        self.assertIn("Commands", result.stdout)
+        self.assertIn("Provider commands", result.stdout)
+
     def test_provider_option(self):
         """Test --provider option selects the provider."""
         result = runner.invoke(
@@ -273,3 +323,63 @@ class TestMainModule(unittest.TestCase):
         result = runner.invoke(app, ["--version"])
         self.assertEqual(result.exit_code, 0)
         self.assertEqual(result.stdout, f"NetVelocimeter {version_string}\n")
+
+    def test_bad_option(self):
+        """Test that an invalid option raises an error."""
+        result = runner.invoke(app, ["--invalid-option"])
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn("No such option", result.stderr)
+
+    def test_bad_command(self):
+        """Test that an invalid command raises an error."""
+        result = runner.invoke(app, ["invalid-command"])
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn("No such command", result.stderr)
+
+    def test_internal_exception_gets_logged(self):
+        """Test that an internal exception gets logged."""
+        test_args = ["netvelocimeter", "--config-root", "\\#INVALID:/invalid", "legal", "list"]
+        with self.assertLogs(logger=None, level="ERROR") as log:
+            stdout, stderr, exit_code = run_cli_entrypoint(test_args)
+
+        # Verify log content
+        self.assertNotEqual(exit_code, 0)
+        self.assertEqual(len(log.records), 1)
+        self.assertEqual(log.records[0].levelname, "ERROR")
+        self.assertRegex(
+            log.output[0],
+            r"(?i)(invalid|file|directory|volume|path)",
+        )
+        self.assertNotIn("Traceback", log.output[0])
+        self.assertNotIn("Traceback", stdout)
+        self.assertNotIn("Traceback", stderr)
+
+    def test_internal_exception_gets_logged_and_rethrown(self):
+        """Test that an internal exception with debug log gets logged and rethrown."""
+        test_args = [
+            "netvelocimeter",
+            "-vv",
+            "--config-root",
+            "\\#INVALID:/invalid",
+            "legal",
+            "list",
+        ]
+        with (
+            self.assertRaises(Exception) as context,
+            self.assertLogs(logger=None, level="ERROR") as log,
+        ):
+            stdout, stderr, exit_code = run_cli_entrypoint(test_args)
+
+        # Verify log content
+        self.assertEqual(len(log.records), 1)
+        self.assertEqual(log.records[0].levelname, "ERROR")
+        self.assertRegex(
+            log.output[0],
+            r"(?i)(invalid|file|directory|volume|path)",
+        )
+
+        # Verify that the bad path exception was raised
+        self.assertRegex(
+            str(context.exception),
+            r"(?i)(invalid|file|directory|volume|path)",
+        )
