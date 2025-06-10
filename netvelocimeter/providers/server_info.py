@@ -34,6 +34,8 @@ class ServerInfo(TwoColumnFormatMixin):
         """Require name to be set."""
         if not self.name:
             raise ValueError("Name cannot be empty")
+        if self.id is not None and not isinstance(self.id, (int, str)):
+            raise TypeError("ID must be an int or str")
 
     def to_dict(self) -> dict[str, Any]:
         """Convert the server info to a dictionary."""

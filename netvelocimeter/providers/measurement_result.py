@@ -65,38 +65,38 @@ class MeasurementResult(TwoColumnFormatMixin):
         """Ensure download and upload speeds are set."""
         # Ensure that download and upload speeds are provided, and they are DataRateMbps instances
         if self.download_speed is None or not isinstance(self.download_speed, DataRateMbps):
-            raise ValueError("Download speed must be a DataRateMbps instance")
+            raise TypeError("Download speed must be a DataRateMbps instance")
         if self.upload_speed is None or not isinstance(self.upload_speed, DataRateMbps):
-            raise ValueError("Upload speed must be a DataRateMbps instance")
+            raise TypeError("Upload speed must be a DataRateMbps instance")
 
         # Ensure that latencies and jitter are None or TimeDuration instances
         if self.download_latency is not None and not isinstance(
             self.download_latency, TimeDuration
         ):
-            raise ValueError("Download latency must be a TimeDuration instance")
+            raise TypeError("Download latency must be a TimeDuration instance")
         if self.upload_latency is not None and not isinstance(self.upload_latency, TimeDuration):
-            raise ValueError("Upload latency must be a TimeDuration instance")
+            raise TypeError("Upload latency must be a TimeDuration instance")
         if self.ping_latency is not None and not isinstance(self.ping_latency, TimeDuration):
-            raise ValueError("Ping latency must be a TimeDuration instance")
+            raise TypeError("Ping latency must be a TimeDuration instance")
         if self.ping_jitter is not None and not isinstance(self.ping_jitter, TimeDuration):
-            raise ValueError("Ping jitter must be a TimeDuration instance")
+            raise TypeError("Ping jitter must be a TimeDuration instance")
 
         # Ensure packet loss is None or Percentage instance
         if self.packet_loss is not None and not isinstance(self.packet_loss, Percentage):
-            raise ValueError("Packet loss must be a Percentage instance")
+            raise TypeError("Packet loss must be a Percentage instance")
 
         # Ensure server_info is None or ServerInfo instance
         if self.server_info is not None and not isinstance(self.server_info, ServerInfo):
-            raise ValueError("Server info must be a ServerInfo instance")
+            raise TypeError("Server info must be a ServerInfo instance")
 
         # Ensure persist_url is None or a string
         if self.persist_url is not None and not isinstance(self.persist_url, str):
-            raise ValueError("Persist URL must be a string")
+            raise TypeError("Persist URL must be a string")
 
         # Ensure id is None or a string
         if self.id is not None and not isinstance(self.id, str):
-            raise ValueError("ID must be a string")
+            raise TypeError("ID must be a string")
 
         # Ensure raw is None or a dictionary
         if self.raw is not None and not isinstance(self.raw, dict):
-            raise ValueError("Raw data must be a dictionary")
+            raise TypeError("Raw data must be a dictionary")
