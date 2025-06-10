@@ -1,6 +1,7 @@
 """Tests for the Ookla provider."""
 
 from datetime import timedelta
+import hashlib
 from io import BytesIO
 import json
 import os
@@ -20,7 +21,7 @@ from netvelocimeter.exceptions import PlatformNotSupported
 from netvelocimeter.legal import LegalTermsCategory
 from netvelocimeter.providers.base import ServerInfo
 from netvelocimeter.providers.ookla import OoklaProvider
-from netvelocimeter.utils.binary_manager import BinaryManager, BinaryMeta
+from netvelocimeter.utils.binary_manager import BinaryManager, BinaryMeta, verify_sha256
 
 
 class TestOoklaProvider(unittest.TestCase):
@@ -659,6 +660,79 @@ class TestOoklaProviderPlatformDetection(unittest.TestCase):
             _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
 
 
+class TestOoklaProviderBinaryHashVerification(unittest.TestCase):
+    """Test hash verification for OoklaProvider binary download."""
+
+    def setUp(self):
+        """Set up test environment."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.archive_path = os.path.join(self.temp_dir, "simulate_internet", "linux.tgz")
+        os.makedirs(os.path.dirname(self.archive_path), exist_ok=True)
+        self.archive_url = f"file:{pathname2url(self.archive_path)}"
+
+        # Create a valid .tgz archive with the expected internal file
+        internal_path = "speedtest"
+        file_data = b"test binary content"
+        with tarfile.open(self.archive_path, "w:gz") as tar:
+            info = tarfile.TarInfo(internal_path)
+            info.size = len(file_data)
+            info.mode = 0o755
+            tar.addfile(info, BytesIO(file_data))
+
+        # Compute the hash of the archive file (not the internal file)
+        with open(self.archive_path, "rb") as f:
+            self.expected_hash = hashlib.sha256(f.read()).hexdigest()
+
+        # Patch _parse_version to avoid running the binary
+        self.patcher_version = mock.patch.object(
+            OoklaProvider, "_parse_version", return_value=Version("1.0.0")
+        )
+        self.patcher_version.start()
+
+    def tearDown(self):
+        """Clean up test environment."""
+        self.patcher_version.stop()
+        shutil.rmtree(self.temp_dir)
+
+    def test_download_extract_hash_verified(self):
+        """Test OoklaProvider verifies hash before using binary."""
+        # Patch BinaryManager.verify_sha256 to wrap the real function and assert call
+        with (
+            mock.patch(
+                "netvelocimeter.providers.ookla.select_platform_binary",
+                return_value=BinaryMeta(
+                    url=self.archive_url,
+                    internal_filepath="speedtest",
+                    hash_sha256=self.expected_hash,
+                ),
+            ),
+            mock.patch(
+                "netvelocimeter.utils.binary_manager.verify_sha256", wraps=verify_sha256
+            ) as mock_verify,
+        ):
+            _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
+            # The binary should be downloaded and hash verified
+            mock_verify.assert_called_once()
+            args, _kwargs = mock_verify.call_args
+            self.assertEqual(args[1], self.expected_hash)
+
+    def test_download_extract_hash_mismatch(self):
+        """Test OoklaProvider raises if hash does not match."""
+        with (
+            mock.patch(
+                "netvelocimeter.providers.ookla.select_platform_binary",
+                return_value=BinaryMeta(
+                    url=self.archive_url,
+                    internal_filepath="speedtest",
+                    hash_sha256="0" * 64,
+                ),
+            ),
+            self.assertRaises(RuntimeError) as context,
+        ):
+            _ = OoklaProvider(config_root=self.temp_dir, bin_root=self.temp_dir)
+        self.assertIn("SHA256 mismatch", str(context.exception))
+
+
 class TestOoklaRealBinaries(unittest.TestCase):
     """Test actual Ookla binary operations across supported platforms."""
 
@@ -679,8 +753,8 @@ class TestOoklaRealBinaries(unittest.TestCase):
             # Test results tracking
             results = []
 
-            # Test each platform combination defined in OoklaProvider._DOWNLOAD_URLS
-            for (sys_name, machine), _url in OoklaProvider._DOWNLOAD_URLS.items():
+            # Test each platform combination defined in OoklaProvider._PLATFORM_BINARIES
+            for (sys_name, machine), _meta in OoklaProvider._PLATFORM_BINARIES.items():
                 # Create a dedicated directory for each platform
                 platform_dir = os.path.join(self.temp_dir, f"{sys_name}-{machine}")
                 os.makedirs(platform_dir, exist_ok=True)
@@ -745,8 +819,8 @@ class TestOoklaRealBinaries(unittest.TestCase):
             # Success if we reach here
             self.assertEqual(
                 len(results),
-                len(OoklaProvider._DOWNLOAD_URLS),
-                f"Tested {len(results)} of {len(OoklaProvider._DOWNLOAD_URLS)} platforms",
+                len(OoklaProvider._PLATFORM_BINARIES),
+                f"Tested {len(results)} of {len(OoklaProvider._PLATFORM_BINARIES)} platforms",
             )
 
     @pytest.mark.expensive

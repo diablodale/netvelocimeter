@@ -1,5 +1,6 @@
 """Tests for binary_manager.py utilities."""
 
+import hashlib
 from io import BytesIO
 import os
 import platform
@@ -25,6 +26,7 @@ from netvelocimeter.utils.binary_manager import (
     extract_file,
     select_platform_binary,
     verified_basename,
+    verify_sha256,
 )
 from netvelocimeter.utils.hash import hash_b64encode
 
@@ -839,7 +841,9 @@ class TestBinaryManagerWindowsSpecific(unittest.TestCase):
 
             # Verify Windows path is used
             self.assertEqual(
-                os.path.normpath(os.path.join(self.temp_dir, "localappdata", "netvelocimeter-cache")),
+                os.path.normpath(
+                    os.path.join(self.temp_dir, "localappdata", "netvelocimeter-cache")
+                ),
                 os.path.normpath(os.path.join(manager._cache_root, "..", "..", "..")),
             )
 
@@ -936,3 +940,69 @@ class TestSelectPlatformBinary(unittest.TestCase):
             select_platform_binary(
                 self.PLATFORM_MAP, system="linux", machine="armv7l", normalize=False
             )
+
+
+class TestBinaryManagerHashVerification(unittest.TestCase):
+    """Unit tests for SHA-256 hash verification in BinaryManager."""
+
+    def test_verify_sha256_success(self):
+        """verify_sha256 does not raise when hash matches."""
+        with tempfile.NamedTemporaryFile(delete_on_close=False) as f:
+            f.write(b"hello world")
+            f.flush()
+            expected_hash = hashlib.sha256(b"hello world").hexdigest()
+            # Should not raise
+            verify_sha256(f.name, expected_hash)
+
+    def test_verify_sha256_failure(self):
+        """verify_sha256 raises RuntimeError when hash does not match."""
+        with tempfile.NamedTemporaryFile(delete_on_close=False) as f:
+            f.write(b"bad content")
+            f.flush()
+            wrong_hash = "0" * 64
+            with self.assertRaises(RuntimeError) as context:
+                verify_sha256(f.name, wrong_hash)
+            self.assertIn("SHA256 mismatch", str(context.exception))
+
+    @mock.patch("netvelocimeter.utils.binary_manager.download_file")
+    @mock.patch("netvelocimeter.utils.binary_manager.extract_file")
+    @mock.patch("netvelocimeter.utils.binary_manager.ensure_executable")
+    def test_download_extract_hash_verified(self, mock_ensure, mock_extract, mock_download):
+        """download_extract verifies hash before extraction and succeeds if hash matches."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_path = os.path.join(tmpdir, "archive.zip")
+            with open(archive_path, "wb") as f:
+                f.write(b"archive content")
+            expected_hash = hashlib.sha256(b"archive content").hexdigest()
+            mock_download.return_value = archive_path
+            mock_extract.return_value = os.path.join(tmpdir, "extracted.bin")
+            mock_ensure.side_effect = lambda x: x
+            manager = BinaryManager(MockProvider, bin_root=os.path.join(tmpdir, "cache"))
+            result = manager.download_extract(
+                url="https://example.com/archive.zip",
+                internal_filepath="extracted.bin",
+                hash_sha256=expected_hash,
+            )
+            self.assertEqual(result, os.path.join(tmpdir, "extracted.bin"))
+
+    @mock.patch("netvelocimeter.utils.binary_manager.download_file")
+    @mock.patch("netvelocimeter.utils.binary_manager.extract_file")
+    @mock.patch("netvelocimeter.utils.binary_manager.ensure_executable")
+    def test_download_extract_hash_mismatch(self, mock_ensure, mock_extract, mock_download):
+        """download_extract raises if hash does not match."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_path = os.path.join(tmpdir, "archive.zip")
+            with open(archive_path, "wb") as f:
+                f.write(b"bad content")
+            wrong_hash = "f" * 64
+            mock_download.return_value = archive_path
+            mock_extract.return_value = os.path.join(tmpdir, "extracted.bin")
+            mock_ensure.side_effect = lambda x: x
+            manager = BinaryManager(MockProvider, bin_root=os.path.join(tmpdir, "cache"))
+            with self.assertRaises(RuntimeError) as context:
+                manager.download_extract(
+                    url="https://example.com/archive.zip",
+                    internal_filepath="extracted.bin",
+                    hash_sha256=wrong_hash,
+                )
+            self.assertIn("SHA256 mismatch", str(context.exception))

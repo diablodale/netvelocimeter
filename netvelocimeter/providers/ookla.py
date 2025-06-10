@@ -30,7 +30,7 @@ class OoklaProvider(BaseProvider):
         ): BinaryMeta(
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-win64.zip",
             internal_filepath="speedtest.exe",
-            hash_sha256="",
+            hash_sha256="13e3d888b845d301a556419e31f14ab9bff57e3f06089ef2fd3bdc9ba6841efa",
         ),
         (
             "linux",
@@ -38,7 +38,7 @@ class OoklaProvider(BaseProvider):
         ): BinaryMeta(
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-x86_64.tgz",
             internal_filepath="speedtest",
-            hash_sha256="",
+            hash_sha256="5690596c54ff9bed63fa3732f818a05dbc2db19ad36ed68f21ca5f64d5cfeeb7",
         ),
         (
             "linux",
@@ -46,7 +46,7 @@ class OoklaProvider(BaseProvider):
         ): BinaryMeta(
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-i386.tgz",
             internal_filepath="speedtest",
-            hash_sha256="",
+            hash_sha256="9ff7e18dbae7ee0e03c66108445a2fb6ceea6c86f66482e1392f55881b772fe8",
         ),
         (
             "linux",
@@ -54,7 +54,7 @@ class OoklaProvider(BaseProvider):
         ): BinaryMeta(
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-aarch64.tgz",
             internal_filepath="speedtest",
-            hash_sha256="",
+            hash_sha256="3953d231da3783e2bf8904b6dd72767c5c6e533e163d3742fd0437affa431bd3",
         ),
         (
             "linux",
@@ -62,7 +62,7 @@ class OoklaProvider(BaseProvider):
         ): BinaryMeta(
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armel.tgz",
             internal_filepath="speedtest",
-            hash_sha256="",
+            hash_sha256="629a455a2879224bd0dbd4b36d8c721dda540717937e4660b4d2c966029466bf",
         ),
         (
             "linux",
@@ -70,7 +70,7 @@ class OoklaProvider(BaseProvider):
         ): BinaryMeta(
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armhf.tgz",
             internal_filepath="speedtest",
-            hash_sha256="",
+            hash_sha256="e45fcdebbd8a185553535533dd032d6b10bc8c64eee4139b1147b9c09835d08d",
         ),
         # (
         #     "darwin",
@@ -166,10 +166,11 @@ class OoklaProvider(BaseProvider):
         self._BINARY_MANAGER = BinaryManager(OoklaProvider, bin_root=bin_root)
 
         # get target binary
-        # TODO implement hash check
         binary_meta = select_platform_binary(self._PLATFORM_BINARIES)
         self._BINARY_PATH = self._BINARY_MANAGER.download_extract(
-            url=binary_meta.url, internal_filepath=binary_meta.internal_filepath
+            url=binary_meta.url,
+            internal_filepath=binary_meta.internal_filepath,
+            hash_sha256=binary_meta.hash_sha256,
         )
 
         # then set version derived from the binary

@@ -1,6 +1,7 @@
 """Utilities for managing binary downloads and execution."""
 
 from dataclasses import dataclass
+import hashlib
 import inspect
 import os
 import platform
@@ -24,7 +25,16 @@ logger = get_logger(__name__)
 
 @dataclass(frozen=True)
 class BinaryMeta:
-    """Metadata to describe a binary download url, its name, and its known hash."""
+    """Metadata describing a binary's download url, extraction method, and verification hash.
+
+    Assumes the download is a portable binary archive, i.e. a single file
+    within an archive (e.g. .zip, .tgz, .tar.gz).
+
+    Attributes:
+        url: url from which to download the archive containing the binary
+        internal_filepath: internal file path of binary within archive
+        hash_sha256: SHA-256 hash of the archive for verification
+    """
 
     url: str
     internal_filepath: str
@@ -216,6 +226,28 @@ def extract_file(archive_filepath: str, internal_filepath: str, dest_dir: str) -
     return final_path
 
 
+def verify_sha256(filepath: str, expected_hash: str) -> None:
+    """Verify the SHA-256 hash of a file matches the expected hash.
+
+    Args:
+        filepath: Path to the file to verify.
+        expected_hash: Expected SHA-256 hex digest.
+
+    Raises:
+        RuntimeError: If the hash does not match.
+    """
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    actual_hash = h.hexdigest()
+    if actual_hash.lower() != expected_hash.lower():
+        msg = f"SHA256 mismatch for {filepath}: expected {expected_hash}, got {actual_hash}"
+        logger.error(msg)
+        raise RuntimeError(msg)
+    logger.info(f"SHA256 verified for {filepath}")
+
+
 # TypeVar for the provider class
 B = TypeVar("B", bound=BaseProvider)
 
@@ -299,7 +331,11 @@ class BinaryManager:
         return cached_filepath if os.path.exists(cached_filepath) else None
 
     def download_extract(
-        self, url: str, internal_filepath: str, dest_dir: str | None = None
+        self,
+        url: str,
+        internal_filepath: str,
+        hash_sha256: str | None = None,
+        dest_dir: str | None = None,
     ) -> str:
         """Download and extract a specific file from an archive.
 
@@ -307,6 +343,7 @@ class BinaryManager:
             url: URL from which to download the archive, requires parseable filename.
             internal_filepath: Internal archive file path to extract, e.g. "testapp", "win32/testapp.exe";
                 extracts files within an archive, not directories or multiple files.
+            hash_sha256: Expected SHA-256 hash of the archive for verification. If None, skip verification.
             dest_dir: Directory in which to extract the file.
                 - None (default) = binaries are automatically stored/retrieved within a cache
                 - str = downloads always occur, never cached, and stored in given directory
@@ -315,10 +352,9 @@ class BinaryManager:
             Absolute path to the cached or downloaded+extracted file
 
         Raises:
-            RuntimeError: If the archive format is not supported or contains unsafe paths
+            RuntimeError: If the archive format is not supported or contains unsafe paths,
+                or if the archive's hash does not match the expected hash.
         """
-        # TODO validate the binary download and local cache for tampering
-        # https://github.com/jedisct1/minisign/issues/135
         # check cache
         if not dest_dir:
             # check for the file in the cache directory
@@ -341,6 +377,10 @@ class BinaryManager:
             archive_filepath = download_file(
                 url=url, dest_filepath=os.path.join(temp_dir, archive_filename)
             )
+
+            # verify hash of archive
+            if hash_sha256:
+                verify_sha256(archive_filepath, hash_sha256)
 
             # extract the specific file, ensure executable, and return its path
             return ensure_executable(
