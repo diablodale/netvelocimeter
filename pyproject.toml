@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "netvelocimeter"
-version = "0.3.0" # TODO change to build git driven
+version = "0.4.0" # TODO change to build git driven
 description = "A library for measuring network performance metrics"
 keywords = ["network", "performance", "metrics", "monitoring", "speedtest"]
 authors = [
