@@ -947,22 +947,24 @@ class TestBinaryManagerHashVerification(unittest.TestCase):
 
     def test_verify_sha256_success(self):
         """verify_sha256 does not raise when hash matches."""
-        with tempfile.NamedTemporaryFile(delete_on_close=False) as f:
+        with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(b"hello world")
             f.flush()
             expected_hash = hashlib.sha256(b"hello world").hexdigest()
             # Should not raise
             verify_sha256(f.name, expected_hash)
+        os.remove(f.name)  # python < 3.12 approach
 
     def test_verify_sha256_failure(self):
         """verify_sha256 raises RuntimeError when hash does not match."""
-        with tempfile.NamedTemporaryFile(delete_on_close=False) as f:
+        with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(b"bad content")
             f.flush()
             wrong_hash = "0" * 64
             with self.assertRaises(RuntimeError) as context:
                 verify_sha256(f.name, wrong_hash)
             self.assertIn("SHA256 mismatch", str(context.exception))
+        os.remove(f.name)  # python < 3.12 approach
 
     @mock.patch("netvelocimeter.utils.binary_manager.download_file")
     @mock.patch("netvelocimeter.utils.binary_manager.extract_file")
