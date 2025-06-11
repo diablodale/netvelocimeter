@@ -93,7 +93,7 @@ class TestMainModule(unittest.TestCase):
                     "--provider=static",
                     "--bin-root",
                     temp_dir,
-                    "-v",
+                    "-vv",
                     "legal",
                     "list",
                 ],
@@ -110,7 +110,7 @@ class TestMainModule(unittest.TestCase):
                     "--provider=static",
                     "--config-root",
                     temp_dir,
-                    "-v",
+                    "-vv",
                     "legal",
                     "list",
                 ],
@@ -291,28 +291,40 @@ class TestMainModule(unittest.TestCase):
 
     def test_verbose_option(self):
         """Test -v and -vv increase verbosity."""
-        result_default = runner.invoke(
+        result_error = runner.invoke(
             app,
             ["--provider=static", "legal", "list"],
         )
-        result_info = runner.invoke(
+        result_warning = runner.invoke(
             app,
             ["--provider=static", "-v", "legal", "list"],
         )
-        result_debug = runner.invoke(
+        result_info = runner.invoke(
             app,
             ["--provider=static", "-vv", "legal", "list"],
         )
-        self.assertEqual(result_default.exit_code, 0)
+        result_debug = runner.invoke(
+            app,
+            ["--provider=static", "-vvv", "legal", "list"],
+        )
+        self.assertEqual(result_error.exit_code, 0)
+        self.assertEqual(result_warning.exit_code, 0)
         self.assertEqual(result_info.exit_code, 0)
         self.assertEqual(result_debug.exit_code, 0)
-        # Default mode should have no INFO or DEBUG logs
-        self.assertNotIn("INFO", result_default.stderr)
-        self.assertNotIn("DEBUG", result_default.stderr)
-        # only INFO logs should be present in info mode
+        # Default mode should have no WARNING, INFO, or DEBUG logs
+        self.assertNotIn("WARNING", result_error.stderr)
+        self.assertNotIn("INFO", result_error.stderr)
+        self.assertNotIn("DEBUG", result_error.stderr)
+        # only WARNING logs should be present in warning mode
+        self.assertIn("WARNING", result_warning.stderr)
+        self.assertNotIn("INFO", result_warning.stderr)
+        self.assertNotIn("DEBUG", result_warning.stderr)
+        # only WARNING and INFO logs should be present in info mode
+        self.assertIn("WARNING", result_info.stderr)
         self.assertIn("INFO", result_info.stderr)
         self.assertNotIn("DEBUG", result_info.stderr)
-        # INFO and DEBUG logs should be present in debug mode
+        # WARNING, INFO, and DEBUG logs should be present in debug mode
+        self.assertIn("WARNING", result_debug.stderr)
         self.assertIn("INFO", result_debug.stderr)
         self.assertIn("DEBUG", result_debug.stderr)
 
@@ -339,13 +351,13 @@ class TestMainModule(unittest.TestCase):
     def test_internal_exception_gets_logged(self):
         """Test that an internal exception gets logged."""
         test_args = ["netvelocimeter", "--config-root", "\\#INVALID:/invalid", "legal", "list"]
-        with self.assertLogs(logger=None, level="ERROR") as log:
+        with self.assertLogs(logger=None, level="CRITICAL") as log:
             stdout, stderr, exit_code = run_cli_entrypoint(test_args)
 
         # Verify log content
         self.assertNotEqual(exit_code, 0)
         self.assertEqual(len(log.records), 1)
-        self.assertEqual(log.records[0].levelname, "ERROR")
+        self.assertEqual(log.records[0].levelname, "CRITICAL")
         self.assertRegex(
             log.output[0],
             r"(?i)(invalid|file|directory|volume|path)",
@@ -358,7 +370,7 @@ class TestMainModule(unittest.TestCase):
         """Test that an internal exception with debug log gets logged and rethrown."""
         test_args = [
             "netvelocimeter",
-            "-vv",
+            "-vvv",
             "--config-root",
             "\\#INVALID:/invalid",
             "legal",
@@ -366,13 +378,13 @@ class TestMainModule(unittest.TestCase):
         ]
         with (
             self.assertRaises(Exception) as context,
-            self.assertLogs(logger=None, level="ERROR") as log,
+            self.assertLogs(logger=None, level="CRITICAL") as log,
         ):
             stdout, stderr, exit_code = run_cli_entrypoint(test_args)
 
         # Verify log content
         self.assertEqual(len(log.records), 1)
-        self.assertEqual(log.records[0].levelname, "ERROR")
+        self.assertEqual(log.records[0].levelname, "CRITICAL")
         self.assertRegex(
             log.output[0],
             r"(?i)(invalid|file|directory|volume|path)",

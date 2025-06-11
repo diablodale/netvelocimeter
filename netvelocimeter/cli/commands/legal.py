@@ -100,7 +100,7 @@ def legal_list(
     if terms:
         typer.echo(format_records(terms, state.format, state.escape_ws))
     else:
-        logger.warning("No results.")
+        logger.info("No matching legal terms found.")
 
 
 @legal_app.command(name="status")
@@ -135,12 +135,13 @@ def legal_status(
         if not state.quiet:
             typer.echo(format_records(terms, state.format, state.escape_ws))
     else:
-        logger.warning("No results.")
+        logger.info("No matching legal terms found to query status.")
+        raise typer.Exit(code=0)
 
     # if all terms are accepted exit(0) success
     if all(term.accepted for term in terms):
-        logger.info("All filtered legal terms accepted.")
+        logger.info("All matching legal terms are accepted.")
         raise typer.Exit(code=0)
     else:
-        logger.info("Not all filtered legal terms accepted.")
+        logger.info("Not all matching legal terms are accepted.")
         raise typer.Exit(code=1)

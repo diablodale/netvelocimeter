@@ -102,11 +102,11 @@ class TestMeasureCommand(unittest.TestCase):
         self.assertRegex(result.stdout, r"Run a measurement(.|\n)+Show this message")
 
     def test_measure_run_with_verbose_verbose(self):
-        """Test measure run with verbose verbose (debug) flag."""
+        """Test measure run with verbose verbose verbose (debug) flag."""
         result = runner.invoke(
             app,
             [
-                "-vv",
+                "-vvv",
                 "--provider=static",
                 "--config-root",
                 self.temp_dir,

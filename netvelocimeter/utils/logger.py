@@ -7,7 +7,7 @@ import time
 
 # Constants
 ROOT_LOGGER_NAME = "netvelocimeter"
-_DEFAULT_LOG_LEVEL = logging.WARNING
+_DEFAULT_LOG_LEVEL = logging.ERROR
 
 # Create root logger
 _root_logger = logging.getLogger(ROOT_LOGGER_NAME)
@@ -22,7 +22,7 @@ def setup_logging(
     The log level is set through a cascade of options:
     1. `level` parameter (if provided).
     2. `NETVELOCIMETER_LOG_LEVEL` environment variable (if set).
-    3. Default WARNING level.
+    3. Default ERROR level.
 
     Args:
         level: Numeric log level override (logging.DEBUG, logging.INFO, etc.)
@@ -42,9 +42,9 @@ def setup_logging(
                 numeric_level = getattr(logging, env_level_name)
             except AttributeError:
                 # Invalid level name, use default
-                # Can't log a warning yet if no handler is set up
+                # Can't log yet if no handler is set up
                 if _root_logger.handlers:
-                    _root_logger.warning(
+                    _root_logger.error(
                         f"Invalid environment log level '{env_level_name}', using default"
                     )
                 numeric_level = _DEFAULT_LOG_LEVEL

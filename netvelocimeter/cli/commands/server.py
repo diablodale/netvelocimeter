@@ -44,5 +44,5 @@ def server_list() -> None:
     if servers:
         typer.echo(format_records(servers, state.format, state.escape_ws))
     else:
-        logger.warning("No results.")
+        logger.error("No matching servers found.")
         raise typer.Exit(code=1)

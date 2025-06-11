@@ -6,7 +6,7 @@ import time
 import unittest
 from unittest import mock
 
-from netvelocimeter.utils.logger import ROOT_LOGGER_NAME, get_logger, setup_logging
+from netvelocimeter.utils.logger import ROOT_LOGGER_NAME, _root_logger, get_logger, setup_logging
 
 
 class TestLogger(unittest.TestCase):
@@ -14,8 +14,6 @@ class TestLogger(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures before each test method."""
-        from netvelocimeter.utils.logger import _root_logger
-
         # Store original handlers and level
         self.original_handlers = list(_root_logger.handlers)
         self.original_level = _root_logger.level
@@ -26,8 +24,6 @@ class TestLogger(unittest.TestCase):
 
     def tearDown(self):
         """Tear down test fixtures after each test method."""
-        from netvelocimeter.utils.logger import _root_logger
-
         # Restore original state after test
         _root_logger.setLevel(self.original_level)
         for handler in _root_logger.handlers[:]:
@@ -75,8 +71,6 @@ class TestLogger(unittest.TestCase):
 
     def test_setup_logging_with_different_levels(self):
         """Test setup_logging with different log levels."""
-        from netvelocimeter.utils.logger import _root_logger
-
         # Test cases: (level_input, expected_level)
         test_cases: list[tuple[int | None, int]] = [
             (logging.DEBUG, logging.DEBUG),
@@ -85,7 +79,7 @@ class TestLogger(unittest.TestCase):
             (logging.ERROR, logging.ERROR),
             (logging.CRITICAL, logging.CRITICAL),
             (logging.FATAL, logging.FATAL),
-            (None, logging.WARNING),  # Default level
+            (None, logging.ERROR),  # Default level
         ]
 
         for level_input, expected_level in test_cases:
@@ -95,12 +89,10 @@ class TestLogger(unittest.TestCase):
 
     def test_setup_logging_with_environment_variable(self):
         """Test setup_logging respects environment variable."""
-        from netvelocimeter.utils.logger import _root_logger
-
         # Test with valid level
-        with mock.patch.dict(os.environ, {"NETVELOCIMETER_LOG_LEVEL": "ERROR"}):
+        with mock.patch.dict(os.environ, {"NETVELOCIMETER_LOG_LEVEL": "WARNING"}):
             setup_logging(force=True)
-            self.assertEqual(_root_logger.level, logging.ERROR)
+            self.assertEqual(_root_logger.level, logging.WARNING)
 
         # Test with invalid level
         with mock.patch.dict(os.environ, {"NETVELOCIMETER_LOG_LEVEL": "INVALID"}):
@@ -108,17 +100,15 @@ class TestLogger(unittest.TestCase):
             handler = logging.StreamHandler()
             _root_logger.addHandler(handler)
 
-            with mock.patch.object(_root_logger, "warning") as mock_warning:
+            with mock.patch.object(_root_logger, "error") as mock_error:
                 setup_logging(force=True)
-                mock_warning.assert_called_once()
-                self.assertIn("Invalid environment log level", mock_warning.call_args[0][0])
+                mock_error.assert_called_once()
+                self.assertIn("Invalid environment log level", mock_error.call_args[0][0])
 
-            self.assertEqual(_root_logger.level, logging.WARNING)
+            self.assertEqual(_root_logger.level, logging.ERROR)  # fallback to default of ERROR
 
     def test_setup_logging_handler_creation(self):
         """Test that setup_logging creates a handler when needed."""
-        from netvelocimeter.utils.logger import _root_logger
-
         # Logger should have no handlers initially
         self.assertEqual(len(_root_logger.handlers), 0)
 
@@ -133,8 +123,6 @@ class TestLogger(unittest.TestCase):
 
     def test_setup_logging_force_parameter(self):
         """Test that force=True reconfigures existing loggers."""
-        from netvelocimeter.utils.logger import _root_logger
-
         # Initial setup
         setup_logging(level=logging.INFO)
         self.assertEqual(_root_logger.level, logging.INFO)
@@ -151,8 +139,6 @@ class TestLogger(unittest.TestCase):
     def test_logger_format(self):
         """Test that log messages are properly formatted."""
         import io
-
-        from netvelocimeter.utils.logger import _root_logger
 
         # Set up a string buffer to capture log output
         log_buffer = io.StringIO()
@@ -172,11 +158,11 @@ class TestLogger(unittest.TestCase):
         _root_logger.addHandler(handler)
 
         # Log a test message
-        _root_logger.warning("Test message")
+        _root_logger.error("Test message")
 
         # Check format
         log_output = log_buffer.getvalue()
-        self.assertIn("[WARNING]", log_output)
+        self.assertIn("[ERROR]", log_output)
         self.assertIn("Test message", log_output)
         self.assertIn(f"{ROOT_LOGGER_NAME}:", log_output)
 
@@ -197,8 +183,6 @@ class TestLogger(unittest.TestCase):
 
     def test_formatter_timezone_is_utc(self):
         """Test that timestamps are in UTC."""
-        from netvelocimeter.utils.logger import _root_logger
-
         setup_logging(force=True)
 
         # Get the formatter

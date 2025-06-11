@@ -12,8 +12,12 @@ from ..legal import (
     LegalTermsCollection,
 )
 from ..utils.binary_manager import BinaryManager
+from ..utils.logger import get_logger
 from ..utils.rates import DataRateMbps, Percentage, TimeDuration
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
+
+# Get logger for module
+logger = get_logger(__name__)
 
 
 class StaticProvider(BaseProvider):
@@ -68,6 +72,11 @@ class StaticProvider(BaseProvider):
         """
         # Call the base provider constructor
         super().__init__(config_root=config_root)
+
+        # log warning that is used for testing purposes
+        logger.warning(
+            "StaticProvider is used for testing purposes, it does not require network access."
+        )
 
         #  persist params
         self._download_speed = download_speed

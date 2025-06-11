@@ -74,4 +74,4 @@ class TestProviderCommand(unittest.TestCase):
         # Run the command
         result = runner.invoke(app, ["provider", "list"])
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("No results.", result.stderr)
+        self.assertRegex(result.stderr, r"ERROR.+No matching providers found.")

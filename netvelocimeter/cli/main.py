@@ -63,8 +63,8 @@ def entrypoint() -> None:
     try:
         app()
     except Exception as ex:
-        # Log the exception as an error
-        logger.error(str(ex))
+        # Log the exception as critical since the application will not continue
+        logger.critical(str(ex))
 
         # If the log level is DEBUG, raise the exception to show the traceback
         if logger.getEffectiveLevel() <= logging.DEBUG:
@@ -165,16 +165,17 @@ def global_options(
     # Determine log level with precedence:
     # 1. quiet flag
     # 2. verbose count
-    # 3. default (WARNING)
+    # 3. default (ERROR)
     if quiet:
         log_level = logging.CRITICAL
     else:
         # Map verbosity to log levels
         log_level = {
-            0: logging.WARNING,  # TODO should default be ERROR?
-            1: logging.INFO,  # -v
-            2: logging.DEBUG,  # -vv
-        }.get(min(verbose, 2), logging.WARNING)
+            0: logging.ERROR,  # default
+            1: logging.WARNING,  # -v
+            2: logging.INFO,  # -vv
+            3: logging.DEBUG,  # -vvv
+        }.get(min(verbose, 3), logging.ERROR)
 
     # Limit traceback display to show only on debug
     if log_level > logging.DEBUG:

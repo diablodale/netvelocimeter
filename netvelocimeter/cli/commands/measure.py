@@ -59,5 +59,5 @@ def measure_run(
     if result:
         typer.echo(format_records([result], state.format, state.escape_ws))
     else:
-        logger.warning("No results.")
+        logger.error("No results available.")
         raise typer.Exit(code=1)
