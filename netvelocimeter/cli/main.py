@@ -1,17 +1,15 @@
 """Command line interface for NetVelocimeter."""
 
 import logging
-import os
 from pathlib import Path
-import sys
 from typing import Annotated
 
 from click import Choice
 import typer
 
 from .. import __version__ as version_string, list_providers
-from ..utils.logger import get_logger, setup_logging
 from ..utils.xdg import XDGCategory
+from .utils.logger import setup_cli_logging
 from .utils.output_format import OutputFormat
 
 # Define constants
@@ -19,7 +17,8 @@ BIN_ROOT_DEFAULT = Path(XDGCategory.BIN.resolve_path("netvelocimeter-cache"))
 CONFIG_ROOT_DEFAULT = Path(XDGCategory.CONFIG.resolve_path("netvelocimeter"))
 AVAILABLE_PROVIDERS = [provider.name for provider in list_providers()]
 
-logger: logging.Logger
+# Get logger
+logger = logging.getLogger(__name__)
 
 
 class CliState:
@@ -165,29 +164,23 @@ def global_options(
     # Determine log level with precedence:
     # 1. quiet flag
     # 2. verbose count
-    # 3. default (ERROR)
+    # 3. env var NETVELOCIMETER_LOG_LEVEL
+    # 4. default level (ERROR)
     if quiet:
-        log_level = logging.CRITICAL
+        log_level: int | None = logging.CRITICAL
     else:
         # Map verbosity to log levels
         log_level = {
-            0: logging.ERROR,  # default
+            0: None,  # env var or default
             1: logging.WARNING,  # -v
             2: logging.INFO,  # -vv
             3: logging.DEBUG,  # -vvv
-        }.get(min(verbose, 3), logging.ERROR)
-
-    # Limit traceback display to show only on debug
-    if log_level > logging.DEBUG:
-        os.environ["_TYPER_STANDARD_TRACEBACK"] = "1"
-        sys.tracebacklimit = 0
+        }.get(min(verbose, 3), None)
 
     # Configure logger
-    setup_logging(level=log_level, force=True)
-    global logger
-    logger = get_logger(__name__)
+    setup_cli_logging(log_level=log_level)
 
     if version:
         typer.echo(f"NetVelocimeter {version_string}")
-        # quick exit
+        # quick exit with no error
         raise typer.Exit()

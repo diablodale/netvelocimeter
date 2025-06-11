@@ -5,10 +5,6 @@ such as bandwidth, latency, and ping times using various service providers.
 """
 
 from .core import NetVelocimeter, get_provider, library_version, list_providers, register_provider
-from .utils.logger import setup_logging
-
-# Initialize logging with default settings
-setup_logging()
 
 # Dynamic version import
 __version__: str

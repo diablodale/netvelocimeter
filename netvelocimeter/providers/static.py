@@ -1,5 +1,6 @@
 """Static provider usually used for testing."""
 
+import logging
 import re
 
 from packaging.version import Version
@@ -12,12 +13,11 @@ from ..legal import (
     LegalTermsCollection,
 )
 from ..utils.binary_manager import BinaryManager
-from ..utils.logger import get_logger
 from ..utils.rates import DataRateMbps, Percentage, TimeDuration
 from .base import BaseProvider, MeasurementResult, ServerIDType, ServerInfo
 
-# Get logger for module
-logger = get_logger(__name__)
+# Get logger
+logger = logging.getLogger(__name__)
 
 
 class StaticProvider(BaseProvider):

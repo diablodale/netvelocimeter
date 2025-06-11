@@ -1,15 +1,16 @@
 """Provider commands for the NetVelocimeter CLI."""
 
+import logging
+
 import typer
 from typer import Typer
 
 from ... import list_providers
-from ...utils.logger import get_logger
 from ..main import state
 from ..utils.formatters import format_records
 
-# Get logger for provider commands
-logger = get_logger(__name__)
+# Get logger
+logger = logging.getLogger(__name__)
 
 # Create provider command group
 provider_app = Typer(

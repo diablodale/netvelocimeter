@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 import hashlib
 import inspect
+import logging
 import os
 import platform
 import stat
@@ -16,11 +17,10 @@ import zipfile
 from ..exceptions import PlatformNotSupported
 from ..providers.base import BaseProvider
 from .hash import hash_b64encode
-from .logger import get_logger
 from .xdg import XDGCategory
 
 # Get logger
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)

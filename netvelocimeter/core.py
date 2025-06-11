@@ -1,6 +1,7 @@
 """Core functionality for the NetVelocimeter library."""
 
 import inspect
+import logging
 from typing import Any, TypeVar, final
 
 from packaging.version import Version
@@ -16,13 +17,12 @@ from .providers.base import BaseProvider
 from .providers.measurement_result import MeasurementResult
 from .providers.provider_info import ProviderInfo
 from .providers.server_info import ServerIDType, ServerInfo
-from .utils.logger import get_logger
 
 # Map of provider names to provider classes
 _PROVIDERS: dict[str, type[BaseProvider]] = {}
 
-# Get logger for the core component
-logger = get_logger(__name__)
+# Get logger
+logger = logging.getLogger(__name__)
 
 B = TypeVar("B", bound=BaseProvider)
 

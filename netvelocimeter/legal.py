@@ -4,15 +4,16 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 import json
+import logging
 import os
 from typing import Any
 
 from .utils.formatters import TwoColumnFormatMixin
 from .utils.hash import hash_b64encode
-from .utils.logger import get_logger
 from .utils.xdg import XDGCategory
 
-logger = get_logger(__name__)
+# Get logger
+logger = logging.getLogger(__name__)
 
 
 class LegalTermsCategory(str, Enum):

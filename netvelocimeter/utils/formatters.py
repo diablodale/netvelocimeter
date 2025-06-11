@@ -2,11 +2,10 @@
 
 from collections.abc import Sequence
 from enum import Enum
+import logging
 
-from netvelocimeter.utils.logger import get_logger
-
-# Get logger for measure commands
-logger = get_logger(__name__)
+# Get logger
+logger = logging.getLogger(__name__)
 
 
 def _flatten_fields(obj: object, prefix: str = "") -> tuple[list[tuple[str, object]], int]:

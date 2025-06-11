@@ -16,17 +16,6 @@ from netvelocimeter.cli import app, entrypoint
 
 runner = CliRunner()
 
-# get json legal terms once
-JSON_TERMS = runner.invoke(
-    app,
-    [
-        "--provider=static",
-        "--format=json",
-        "legal",
-        "list",
-    ],
-).stdout.strip()
-
 
 def run_cli_entrypoint(argv: list[str] | None = None) -> tuple[str, str, int]:
     """Run the CLI entrypoint with the given argv-style arguments.
@@ -250,6 +239,17 @@ class TestMainModule(unittest.TestCase):
             self.assertFalse(result.stderr)
             self.assertRaises(SystemExit)
 
+            # get json legal terms
+            json_terms = runner.invoke(
+                app,
+                [
+                    "--provider=static",
+                    "--format=json",
+                    "legal",
+                    "list",
+                ],
+            ).stdout.strip()
+
             # Accept all static legal terms
             result = runner.invoke(
                 app,
@@ -261,7 +261,7 @@ class TestMainModule(unittest.TestCase):
                     "legal",
                     "accept",
                 ],
-                input=JSON_TERMS,
+                input=json_terms,
             )
             # Ensure the command returns zero exit code
             self.assertEqual(result.exit_code, 0)

@@ -1,17 +1,17 @@
 """Measurement commands for the NetVelocimeter CLI."""
 
+import logging
 from typing import Annotated
 
 import typer
 from typer import Typer
 
 from ... import NetVelocimeter
-from ...utils.logger import get_logger
 from ..main import state
 from ..utils.formatters import format_records
 
-# Get logger for measure commands
-logger = get_logger(__name__)
+# Get logger
+logger = logging.getLogger(__name__)
 
 # Create measure command group
 measure_app = Typer(
