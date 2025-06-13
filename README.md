@@ -217,6 +217,28 @@ netvelocimeter legal list --help
 
 - `provider list` List all available providers.
 
+## Examples
+
+Example scripts are provided in the `examples/` directory to demonstrate usage of the netvelocimeter library in real-world scenarios:
+
+- `examples/basic_speed_test.py`: Minimal script to run a speed test using the default provider and print results.
+- `examples/provider_selection.py`: Interactive script to list available providers, prompt the user to select one, display and accept legal terms, and run a speed test with the chosen provider.
+
+To run an example, use one of the following approaches from the project root:
+
+```bash
+python -m examples.basic_speed_test
+python -m examples.provider_selection
+```
+
+Or temporarily set the `PYTHONPATH` and run directly from the `examples/` directory:
+
+```bash
+cd examples
+PYTHONPATH=.. python basic_speed_test.py
+PYTHONPATH=.. python provider_selection.py
+```
+
 ## Development
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen)](https://pre-commit.com/)
