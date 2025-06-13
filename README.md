@@ -229,6 +229,7 @@ To run an example, use one of the following approaches from the project root:
 ```bash
 python -m examples.basic_speed_test
 python -m examples.provider_selection
+python -m examples.batch_automation
 ```
 
 Or temporarily set the `PYTHONPATH` and run directly from the `examples/` directory:
@@ -237,6 +238,7 @@ Or temporarily set the `PYTHONPATH` and run directly from the `examples/` direct
 cd examples
 PYTHONPATH=.. python basic_speed_test.py
 PYTHONPATH=.. python provider_selection.py
+PYTHONPATH=.. python batch_automation.py
 ```
 
 ## Development
