@@ -5,7 +5,7 @@ This script demonstrates how to list available providers, select one, show legal
 
 from dataclasses import asdict
 
-from netvelocimeter.core import NetVelocimeter, list_providers
+from netvelocimeter import NetVelocimeter, list_providers
 
 if __name__ == "__main__":
     # List available providers

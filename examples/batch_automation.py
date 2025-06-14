@@ -10,7 +10,7 @@ from datetime import datetime
 import logging
 import time
 
-from netvelocimeter.core import NetVelocimeter
+from netvelocimeter import NetVelocimeter
 
 # Configure logging to file
 logging.basicConfig(

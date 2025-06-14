@@ -4,7 +4,25 @@ This library provides a unified interface for measuring network performance metr
 such as bandwidth, latency, and ping times using various service providers.
 """
 
-from .core import NetVelocimeter, get_provider, library_version, list_providers, register_provider
+from .core import (
+    MeasurementResult,
+    NetVelocimeter,
+    get_provider,
+    library_version,
+    list_providers,
+    register_provider,
+)
+from .exceptions import LegalAcceptanceError, MeasurementError, PlatformNotSupported
+from .legal import (
+    LegalTerms,
+    LegalTermsCategory,
+    LegalTermsCategoryCollection,
+    LegalTermsCollection,
+)
+from .providers.base import BaseProvider
+from .providers.provider_info import ProviderInfo
+from .providers.server_info import ServerInfo
+from .utils.rates import DataRateMbps, Percentage, TimeDuration
 
 # Dynamic version import
 __version__: str
@@ -43,9 +61,24 @@ del _import_providers
 
 # module names that are exposed to wildcard imports `from netvelocimeter import *`
 __all__ = [
+    "__version__",
+    "MeasurementResult",
     "NetVelocimeter",
     "get_provider",
     "library_version",
     "list_providers",
     "register_provider",
+    "LegalAcceptanceError",
+    "MeasurementError",
+    "PlatformNotSupported",
+    "LegalTerms",
+    "LegalTermsCategory",
+    "LegalTermsCategoryCollection",
+    "LegalTermsCollection",
+    "BaseProvider",
+    "ProviderInfo",
+    "ServerInfo",
+    "DataRateMbps",
+    "Percentage",
+    "TimeDuration",
 ]
