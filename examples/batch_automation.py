@@ -1,6 +1,6 @@
-"""Example: Batch testing/automation with netvelocimeter.
+"""Example: Batch automation with netvelocimeter.
 
-This script demonstrates running speed tests for the static provider on a schedule and
+This script demonstrates running speed measurements for the static provider on a schedule and
 logging results to a file. It uses the standard logging module and can be adapted
 for any provider or scheduler (e.g. cron).
 """
@@ -14,20 +14,20 @@ from netvelocimeter import NetVelocimeter
 
 # Configure logging to file
 logging.basicConfig(
-    filename="batch_speedtest.log",
+    filename="batch_automation.log",
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
 )
 logger = logging.getLogger(__name__)
 
-# Interval between tests in seconds (e.g., 3600 for hourly)
+# Interval between measurements in seconds (e.g., 3600 for hourly)
 INTERVAL_SECONDS = 3600
 
 
-def run_batch_tests() -> None:
-    """Run speed tests for static provider and log results."""
-    logger.info("Starting batch speed tests at %s", datetime.now().isoformat())
+def run_batch_measurements() -> None:
+    """Run speed measurements for static provider and log results."""
+    logger.info("Starting batch speed measurements at %s", datetime.now().isoformat())
 
     # use the static provider for testing purposes
     try:
@@ -38,7 +38,7 @@ def run_batch_tests() -> None:
         # Accept all legal terms for automation
         nv.accept_terms(nv.legal_terms())
 
-        # Perform the speed test
+        # Perform the speed measurement
         result = nv.measure()
 
         # Log the result
@@ -58,10 +58,10 @@ def run_batch_tests() -> None:
 
 
 def main() -> None:
-    """Main function to run batch tests on a schedule."""
+    """Main function to run batch measurements on a schedule."""
     # Run once at startup, then every INTERVAL_SECONDS
     while True:
-        run_batch_tests()
+        run_batch_measurements()
         print(f"Sleeping for {INTERVAL_SECONDS} seconds...")
         time.sleep(INTERVAL_SECONDS)
 

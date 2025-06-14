@@ -1,6 +1,6 @@
 """Example: Integrate netvelocimeter with SQLite for result storage.
 
-This script demonstrates running a test and storing results in a local SQLite database
+This script demonstrates running a measurement and storing results in a local SQLite database
 using only the Python standard library. The schema is minimal and can be extended as needed.
 """
 

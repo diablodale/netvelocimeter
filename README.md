@@ -221,24 +221,30 @@ netvelocimeter legal list --help
 
 Example scripts are provided in the `examples/` directory to demonstrate usage of the netvelocimeter library in real-world scenarios:
 
-- `examples/basic_speed_test.py`: Minimal script to run a speed test using the default provider and print results.
-- `examples/provider_selection.py`: Interactive script to list available providers, prompt the user to select one, display and accept legal terms, and run a speed test with the chosen provider.
+- `examples/basic_measurement.py`: Minimal script; run a speed measurement using the default provider and print results.
+- `examples/provider_selection.py`: Interactive script; list available providers and prompt the user to select one,
+  display and accept legal terms of the chosen provider, and run a speed measurement with the chosen provider.
+- `examples/batch_automation.py`: Batch script; run scheduled speed measurements and log results to a file with the standard logger.
+- `examples/sqlite_integration.py`: Integration script; run a speed measurement and store results in a local SQLite database.
 
 To run an example, use one of the following approaches from the project root:
 
 ```bash
-python -m examples.basic_speed_test
+python -m examples.basic_measurement
 python -m examples.provider_selection
 python -m examples.batch_automation
+python -m examples.sqlite_integration
 ```
 
-Or temporarily set the `PYTHONPATH` and run directly from the `examples/` directory:
+Linux can also temporarily set the `PYTHONPATH` and run directly from the `examples/` directory:
 
 ```bash
+# Linux only
 cd examples
-PYTHONPATH=.. python basic_speed_test.py
+PYTHONPATH=.. python basic_measurement.py
 PYTHONPATH=.. python provider_selection.py
 PYTHONPATH=.. python batch_automation.py
+PYTHONPATH=.. python sqlite_integration.py
 ```
 
 ## Development

@@ -1,4 +1,4 @@
-"""Example: Run a basic speed test using the default provider and print results.
+"""Example: Run a basic speed measurement using the default provider and print results.
 
 This script demonstrates minimal usage of the netvelocimeter library.
 """
@@ -20,6 +20,6 @@ if __name__ == "__main__":
 
     # Print the results
     # Iterate over the result dictionary and print each key-value pair
-    print("Speed Test Result:")
+    print("Speed measurement result:")
     for k, v in asdict(result).items():
         print(f"{k}: {v}")

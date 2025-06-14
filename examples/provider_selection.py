@@ -1,6 +1,6 @@
 """Example: Select and use a specific provider with netvelocimeter, including legal terms acceptance.
 
-This script demonstrates how to list available providers, select one, show legal terms, and run a speed test.
+This demonstrates how to list available providers, select one, show legal terms, and run a speed measurement.
 """
 
 from dataclasses import asdict
@@ -41,6 +41,6 @@ if __name__ == "__main__":
 
     # Print the results
     # Iterate over the result dictionary and print each key-value pair
-    print(f"\nSpeed Test Result with provider '{provider_name}':")
+    print(f"\nSpeed measurement result with provider '{provider_name}':")
     for k, v in asdict(result).items():
         print(f"{k}: {v}")
